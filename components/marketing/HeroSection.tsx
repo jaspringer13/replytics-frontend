@@ -9,37 +9,32 @@ export function HeroSection() {
   const [isDemoOpen, setIsDemoOpen] = useState(false)
 
   return (
-    <section className="relative pt-32 pb-20 px-4 gradient-hero text-white overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl" />
-      </div>
-
-      <div className="container mx-auto max-w-6xl relative z-10">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
+    <section className="gradient-hero text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28">
+        <div className="text-center max-w-3xl mx-auto">
+          <h1 className="text-4xl lg:text-5xl font-extrabold mb-6 text-white">
             Your AI Receptionist Never Takes a Day Off
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90 animate-fade-in">
+          <p className="text-xl lg:text-2xl mb-10 text-white/90">
             Let Replytics answer calls, book appointments, and grow your business 24/7
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/api/auth/signin">
-              <Button size="lg" className="w-full sm:w-auto">
+              <Button size="lg" className="h-12 px-8 text-lg bg-white text-primary hover:bg-gray-100">
                 Get Started Free
               </Button>
             </Link>
             <Button
               size="lg"
               variant="outline"
-              className="w-full sm:w-auto bg-transparent text-white border-white hover:bg-white hover:text-primary"
+              className="h-12 px-8 text-lg border-white text-white hover:bg-white/10"
               onClick={() => setIsDemoOpen(true)}
             >
               <PlayCircle className="mr-2 h-5 w-5" />
               Hear a Demo
             </Button>
           </div>
-          <p className="mt-8 text-sm opacity-75">
+          <p className="mt-8 text-sm text-white/75">
             No credit card required • 14-day free trial • Cancel anytime
           </p>
         </div>

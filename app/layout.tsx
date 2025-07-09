@@ -3,7 +3,11 @@ import { Inter } from "next/font/google"
 import { Providers } from "@/components/providers/SessionProvider"
 import "@/styles/globals.css"
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-inter'
+})
 
 export const metadata: Metadata = {
   title: "Replytics - Your AI Receptionist Never Takes a Day Off",
@@ -25,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className={inter.variable}>
+      <body className={`${inter.className} font-sans`}>
         <Providers>{children}</Providers>
       </body>
     </html>

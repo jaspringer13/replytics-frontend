@@ -25,58 +25,57 @@ export function Navbar() {
     <header
       className={cn(
         "fixed top-0 w-full z-50 transition-all duration-300",
-        isScrolled ? "bg-white/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
+        isScrolled ? "bg-white shadow-sm" : "bg-transparent"
       )}
     >
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-8">
-            <Link href="/" className="flex items-center">
-              <Logo />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/" className="flex items-center">
+            <Logo />
+          </Link>
+          
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link
+              href="/pricing"
+              className={cn(
+                "font-medium transition-colors hover:no-underline",
+                isScrolled ? "text-gray-700 hover:text-primary" : "text-white hover:text-white/80"
+              )}
+            >
+              Pricing
             </Link>
-            <nav className="hidden md:flex space-x-6">
-              <Link
-                href="/pricing"
-                className={cn(
-                  "hover:text-primary transition-colors",
-                  isScrolled ? "text-text-secondary" : "text-white"
-                )}
-              >
-                Pricing
-              </Link>
-            </nav>
-          </div>
+          </nav>
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center">
             {session ? (
               <Link href="/dashboard">
                 <Button>Dashboard</Button>
               </Link>
             ) : (
               <Link href="/api/auth/signin">
-                <Button>Get Started Free</Button>
+                <Button size="lg">Get Started Free</Button>
               </Link>
             )}
           </div>
 
           <button
-            className="md:hidden"
+            className="flex md:hidden p-2"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? (
-              <X className={isScrolled ? "text-text-secondary" : "text-white"} />
+              <X className={isScrolled ? "text-gray-700" : "text-white"} size={24} />
             ) : (
-              <Menu className={isScrolled ? "text-text-secondary" : "text-white"} />
+              <Menu className={isScrolled ? "text-gray-700" : "text-white"} size={24} />
             )}
           </button>
         </div>
 
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-200">
+          <div className="md:hidden py-4 border-t border-gray-200 bg-white">
             <nav className="flex flex-col space-y-4">
               <Link
                 href="/pricing"
-                className="text-text-secondary hover:text-primary transition-colors"
+                className="text-gray-700 hover:text-primary font-medium hover:no-underline"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Pricing
@@ -87,7 +86,7 @@ export function Navbar() {
                 </Link>
               ) : (
                 <Link href="/api/auth/signin">
-                  <Button className="w-full">Get Started Free</Button>
+                  <Button className="w-full" size="lg">Get Started Free</Button>
                 </Link>
               )}
             </nav>
