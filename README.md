@@ -14,7 +14,7 @@ AI-powered phone receptionist service for small businesses.
 
 1. Clone the repository
 ```bash
-git clone <repo-url>
+git clone https://github.com/jaspringer13/replytics-frontend.git
 cd replytics-frontend
 ```
 
