@@ -1,5 +1,14 @@
-import { NextAuthOptions } from "next-auth"
+import { NextAuthOptions, DefaultSession } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      onboardingStep: number
+    } & DefaultSession["user"]
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
