@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Phone, Calendar, MessageSquare, Zap, BarChart3, Globe } from "lucide-react"
+import { Phone, Calendar, MessageSquare, Zap, BarChart3, Brain } from "lucide-react"
 
 const features = [
   {
@@ -35,9 +35,9 @@ const features = [
     gradient: "from-green-400 to-green-600"
   },
   {
-    icon: Globe,
-    title: "Smart Call Routing",
-    description: "Direct calls to the right person every time with intelligent routing based on caller needs.",
+    icon: Brain,
+    title: "Intelligent Memory",
+    description: "Your AI receptionist remembers every client. Their favorite services, preferred times, and booking history - creating personalized experiences that make everyone feel like a VIP regular.",
     gradient: "from-red-400 to-red-600"
   }
 ]

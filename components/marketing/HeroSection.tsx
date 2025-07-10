@@ -125,8 +125,8 @@ export function HeroSection() {
               variants={itemVariants}
               className="mt-8 text-xl sm:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed"
             >
-              Let Replytics answer calls, book appointments, and grow your business 24/7
-              with conversations so natural, your customers won't know it's AI
+              The only AI receptionist that knows your clients by name - remembering every detail
+              so every call feels personal
             </motion.p>
 
             {/* CTA Buttons */}
