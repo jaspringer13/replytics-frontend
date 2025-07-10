@@ -1,11 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navbar } from "@/components/shared/Navbar"
 import { Footer } from "@/components/shared/Footer"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { formatPhoneNumber } from "@/lib/utils"
+import { CheckCircle } from "lucide-react"
+
+interface ConsentRecord {
+  id: string;
+  fullName: string;
+  phoneNumber: string;
+  businessName: string;
+  consentGiven: boolean;
+  timestamp: string;
+  consentMethod: string;
+  consentPageUrl: string;
+  consentText: string;
+  consentVersion: string;
+}
 
 export default function SMSOptInPage() {
   const [formData, setFormData] = useState({
@@ -15,12 +29,72 @@ export default function SMSOptInPage() {
     agree: false,
   })
   const [isSuccess, setIsSuccess] = useState(false)
+  const [consentId, setConsentId] = useState<string>("");
+  const [consentTimestamp, setConsentTimestamp] = useState<string>("");
+  const [storedConsents, setStoredConsents] = useState<ConsentRecord[]>([])
+
+  useEffect(() => {
+    // Load existing consent records from localStorage
+    const existingRecords = JSON.parse(localStorage.getItem('sms-consent-records') || '[]')
+    setStoredConsents(existingRecords)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    
+    // Create consent record
+    const consentRecord: ConsentRecord = {
+      id: Date.now().toString(),
+      fullName: formData.name,
+      phoneNumber: formData.phone,
+      businessName: formData.businessName,
+      consentGiven: true,
+      timestamp: new Date().toISOString(),
+      consentMethod: 'web-form',
+      consentPageUrl: 'https://replytics.ai/sms-opt-in',
+      consentText: 'I agree to receive SMS messages from businesses using Replytics. Message frequency varies. Message and data rates may apply. Reply STOP to unsubscribe at any time.',
+      consentVersion: 'v1.0'
+    }
+    
+    try {
+      // Try to send to backend API first
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL
+      if (backendUrl) {
+        const response = await fetch(`${backendUrl}/api/sms/consent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(consentRecord)
+        })
+        
+        if (!response.ok) throw new Error('Failed to record consent in backend')
+        console.log('Consent recorded in backend:', consentRecord)
+      }
+    } catch (error) {
+      console.error('Failed to record consent in backend:', error)
+      // Fall back to localStorage
+    }
+    
+    // Always store in localStorage as backup
+    const existingRecords = JSON.parse(localStorage.getItem('sms-consent-records') || '[]')
+    existingRecords.push(consentRecord)
+    localStorage.setItem('sms-consent-records', JSON.stringify(existingRecords))
+    setStoredConsents(existingRecords)
+    
+    // Log to console for verification
+    console.log('SMS Consent Recorded:', consentRecord)
+    
+    // Set consent details for display
+    setConsentId(consentRecord.id)
+    setConsentTimestamp(consentRecord.timestamp)
+    
+    // Show success message
     setIsSuccess(true)
+    
+    // Reset form after 5 seconds
+    setTimeout(() => {
+      setFormData({ name: '', phone: '', businessName: '', agree: false })
+      setIsSuccess(false)
+    }, 5000)
   }
 
   return (
@@ -35,27 +109,33 @@ export default function SMSOptInPage() {
             </p>
 
             {isSuccess ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-green-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
+              <div className="bg-green-50 border border-green-200 rounded-xl p-6">
+                <div className="flex items-center mb-4">
+                  <CheckCircle className="w-12 h-12 text-green-600 mx-auto" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Success!</h3>
-                <p className="text-gray-600">You've successfully opted in to SMS notifications.</p>
+                <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                  Successfully Subscribed!
+                </h3>
+                <p className="text-gray-700 text-center mb-4">
+                  You've successfully opted in to SMS notifications for {formData.phone}
+                </p>
+                <div className="bg-white rounded-lg p-4 text-sm border border-gray-200">
+                  <p className="text-gray-600 mb-2 font-medium">What happens next:</p>
+                  <ul className="space-y-1 text-gray-700">
+                    <li>• You'll receive a confirmation SMS shortly</li>
+                    <li>• Appointment reminders will be sent to this number</li>
+                    <li>• Reply STOP at any time to unsubscribe</li>
+                    <li>• Text HELP for support</li>
+                  </ul>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  Consent ID: {consentId} | Recorded: {new Date(consentTimestamp).toLocaleString()}
+                </p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
+                <input type="hidden" name="consent_version" value="v1.0" />
+                <input type="hidden" name="consent_timestamp" value={new Date().toISOString()} />
                 <div>
                   <label className="block text-sm font-medium mb-1">Full Name</label>
                   <Input
@@ -110,6 +190,26 @@ export default function SMSOptInPage() {
               </form>
             )}
           </div>
+          
+          {/* Consent Records Display (Development Only) */}
+          {process.env.NODE_ENV === 'development' && storedConsents.length > 0 && (
+            <div className="mt-8 p-6 bg-gray-100 rounded-lg">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                Consent Records (Dev Only)
+              </h3>
+              <div className="space-y-2">
+                <p className="text-xs text-gray-600">Total Records: {storedConsents.length}</p>
+                <details className="cursor-pointer">
+                  <summary className="text-xs text-gray-600 hover:text-gray-800">
+                    Click to view all consent records
+                  </summary>
+                  <pre className="mt-2 p-3 bg-white rounded border border-gray-200 text-xs text-gray-700 overflow-auto max-h-64">
+                    {JSON.stringify(storedConsents, null, 2)}
+                  </pre>
+                </details>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <Footer />
