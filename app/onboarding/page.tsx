@@ -6,6 +6,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { apiClient } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 
+interface BusinessInfoResponse {
+  name?: string;
+  phone?: string;
+  address?: string;
+}
+
 export default function OnboardingPage() {
   const router = useRouter()
   const { user, onboardingStep, updateOnboardingStep } = useAuth()
@@ -51,7 +57,7 @@ export default function OnboardingPage() {
     setLoading(true)
     try {
       // Call backend to extract business info
-      const response = await apiClient.request('/api/dashboard/business/extract', {
+      const response = await apiClient.request<BusinessInfoResponse>('/api/dashboard/business/extract', {
         method: 'POST',
         body: JSON.stringify({ url: businessData.businessUrl })
       })
