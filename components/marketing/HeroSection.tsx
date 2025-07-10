@@ -24,8 +24,7 @@ export function HeroSection() {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
-        ease: "easeOut"
+        duration: 0.6
       }
     }
   }
@@ -39,7 +38,7 @@ export function HeroSection() {
             scale: [1, 1.2, 1],
             rotate: [0, 90, 0]
           }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 20, repeat: Infinity }}
           className="absolute -top-40 -left-40 w-96 h-96 bg-brand-500/20 rounded-full blur-3xl" 
         />
         <motion.div 
@@ -47,7 +46,7 @@ export function HeroSection() {
             scale: [1, 1.3, 1],
             rotate: [0, -90, 0]
           }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 25, repeat: Infinity }}
           className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" 
         />
         <motion.div
@@ -56,7 +55,7 @@ export function HeroSection() {
             x: [0, 100, 0],
             y: [0, -50, 0]
           }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 30, repeat: Infinity }}
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-400/10 rounded-full blur-3xl"
         />
       </div>
