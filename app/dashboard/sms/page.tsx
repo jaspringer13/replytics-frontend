@@ -33,7 +33,7 @@ export default function SMSPage() {
     loading, 
     error, 
     refetch 
-  } = useSMSConversations(selectedConversation)
+  } = useSMSConversations(selectedConversation ?? undefined)
 
   // Group messages by conversation
   const conversations = useGroupMessagesByConversation(messages)
