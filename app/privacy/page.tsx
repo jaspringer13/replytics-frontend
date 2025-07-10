@@ -1,23 +1,14 @@
 "use client"
 import { motion } from 'framer-motion'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { Navbar } from '@/components/shared/Navbar'
+import { Footer } from '@/components/shared/Footer'
 
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Back to home link */}
-      <div className="fixed top-8 left-8 z-50">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </Link>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-6 py-24">
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-6 pt-32 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -26,8 +17,8 @@ export default function PrivacyPolicyPage() {
           <h1 className="text-4xl font-bold text-white mb-4">Privacy Policy</h1>
           <p className="text-gray-400 mb-8">Last updated: {new Date().toLocaleDateString()}</p>
 
-          <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-8 space-y-8">
-            <section>
+          <div className="space-y-8">
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">1. Introduction</h2>
               <p className="text-gray-300">
                 Replytics AI, Inc. ("Replytics," "we," "our," or "us") is committed to protecting your privacy. 
@@ -36,7 +27,7 @@ export default function PrivacyPolicyPage() {
               </p>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">2. Information We Collect</h2>
               
               <h3 className="text-xl font-medium text-white mb-2">2.1 Business Information</h3>
@@ -63,7 +54,7 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">3. How We Use Your Information</h2>
               <p className="text-gray-300 mb-4">We use collected information to:</p>
               <ul className="list-disc pl-6 text-gray-300 space-y-2">
@@ -76,7 +67,7 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">4. Data Retention</h2>
               <p className="text-gray-300">
                 We retain caller memory data to provide personalized service. Business owners can request 
@@ -85,7 +76,7 @@ export default function PrivacyPolicyPage() {
               </p>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">5. Data Security</h2>
               <p className="text-gray-300">
                 We implement industry-standard security measures including:
@@ -98,7 +89,7 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">6. Third-Party Services</h2>
               <p className="text-gray-300">
                 We integrate with trusted third-party services including:
@@ -114,7 +105,7 @@ export default function PrivacyPolicyPage() {
               </p>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">7. Your Rights</h2>
               <p className="text-gray-300 mb-4">You have the right to:</p>
               <ul className="list-disc pl-6 text-gray-300 space-y-2">
@@ -126,7 +117,7 @@ export default function PrivacyPolicyPage() {
               </ul>
             </section>
 
-            <section>
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <h2 className="text-2xl font-semibold text-white mb-4">8. Contact Us</h2>
               <p className="text-gray-300">
                 For privacy-related questions or concerns, please contact us at:
@@ -140,6 +131,8 @@ export default function PrivacyPolicyPage() {
           </div>
         </motion.div>
       </div>
+      
+      <Footer />
     </div>
   )
 }

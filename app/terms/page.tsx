@@ -1,25 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { Navbar } from '@/components/shared/Navbar';
+import { Footer } from '@/components/shared/Footer';
 
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* Back to home link */}
-      <div className="fixed top-8 left-8 z-50">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to Home</span>
-        </Link>
-      </div>
-
-      {/* Main content */}
-      <div className="max-w-4xl mx-auto px-6 py-20">
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-6 pt-32 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -34,7 +24,7 @@ export default function TermsPage() {
 
           <div className="prose prose-invert max-w-none space-y-8">
             {/* Introduction */}
-            <section className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+            <section className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
               <p className="text-gray-300 leading-relaxed">
                 These Terms of Use (or "Terms") are a binding contract between you and Replytics, our AI phone receptionist technology and related services ("Replytics," "us" or "we") and you as a subscriber to our Services as defined in Section 2 ("you"). Any capitalized terms used herein without defining them have the definitions given in the Privacy Notice. Additional, separate terms may apply to our Services, including without limitation our Data Processing Addendum, each of which will be considered to form part of these Terms.
               </p>
@@ -51,7 +41,7 @@ export default function TermsPage() {
             {/* Section 1 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">1. Eligibility & Acceptance</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed mb-4">
                   To be eligible to use the Services, you must (a) be at least 18 years of age; (b) reside in a jurisdiction where we offer our Services and where the use of our Services is lawful; and (c) represent that you have read, understood, and agree to be bound by the Terms. You may not use the Services if you have previously been suspended or removed from any of our Services. By using the Services, you represent and warrant that you meet all the foregoing eligibility requirements. If you do not meet these eligibility requirements or if you do not agree to these Terms, you may not use the Services.
                 </p>
@@ -64,7 +54,7 @@ export default function TermsPage() {
             {/* Section 2 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">2. The Services</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Our Services</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   Replytics offers the following Services: (i) our AI phone receptionist to answer your calls and set appointments for you ("AI Receptionist"); (ii) a dashboard, software and applications (collectively, the "Application") integrated with the existing systems of the subscribing business or individual (each a "Subscriber"); and (iv) replytics.ai and other websites or online channels we own or operate (collectively, the "Site") (altogether, with the Site and Application, the "Services"). The Services will create an audio recording of each call between callers to your business (your "Callers") and the AI Receptionist ("Recordings") and will generate transcripts of such Recordings ("Transcripts"). Recordings and Transcripts are posted to your Account and available to you on your Dashboard. You will receive the Services at your subscribed-to Services level as described on the Site and subject to these Terms.
@@ -110,7 +100,7 @@ export default function TermsPage() {
             {/* Section 3 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">3. Subscriptions</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Your Subscription</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   The Services are offered on a subscription basis subject to these Terms of Use (your "Subscription"). The duration of your Subscription with Replytics is 30 days. Your Subscription starts the day you sign up and automatically renews every 30 days unless cancelled or changed as provided in these Terms.
@@ -136,7 +126,7 @@ export default function TermsPage() {
             {/* Section 4 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">4. Fees & Payment</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Fees</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   You agree to use the Services only as permitted by these Terms and to pay the fees associated with the Services to which you subscribe ("Fees") and any changes you make to your selections from time to time, as well as any and all applicable sales and use taxes for the purchase of your subscription based on the address that you provide when you register. All Fees are quoted in United States dollars. Billing for your Subscription starts on the day you sign up, even if some Services are not immediately available.
@@ -157,7 +147,7 @@ export default function TermsPage() {
             {/* Section 5 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">5. Privacy</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Privacy Notice</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   You acknowledge that you have read and understand our Privacy Notice.
@@ -178,7 +168,7 @@ export default function TermsPage() {
             {/* Section 6 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">6. Replytics Property</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. The Services</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   Unless otherwise expressly indicated, the Services (including without limitation all AI Features, the Site, and the Site Contents) and all data, images, logos, source code, content, non-public APIs, and other materials contained in the Services (collectively, the "Replytics Property") are copyrights, trademarks, trade dress or other intellectual property owned, controlled, or licensed by Replytics. The Replytics Property is protected by U.S. and foreign copyright, trademark, trade dress, or other proprietary rights laws and international conventions.
@@ -209,7 +199,7 @@ export default function TermsPage() {
             {/* Section 7 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">7. Your Data</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Your Data</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   As between you and Replytics, Your Data belongs to you. Replytics does not claim any ownership rights to Your Data. You are solely responsible, and Replytics shall have no liability, for Your Data on the Services, including without limitation all processing, use, security, disclosure, and disposition thereof.
@@ -255,7 +245,7 @@ export default function TermsPage() {
             {/* Section 8 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">8. Acceptable Use</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Your Callers</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   A Callers' use of the Services does not change your legal relationship with the Caller nor does it make Replytics a party to any transactions or obligations between you and the Caller. You, not Replytics, are responsible for your obligations to your Callers and any products, services, or payment transactions with the Caller.
@@ -281,7 +271,7 @@ export default function TermsPage() {
             {/* Section 9 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">9. Services Access</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Availability</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   Replytics will use commercially reasonable efforts to (i) support your efforts to integrate the Services into your existing systems and (ii) maintain availability of the Services during your subscribed-to Service times. You are responsible for your own costs and expenses integrating the Services to your existing Systems.
@@ -317,7 +307,7 @@ export default function TermsPage() {
             {/* Section 10 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">10. Security</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed mb-4">
                   You are strictly prohibited from violating or trying to violate our security features, such as by:
                 </p>
@@ -337,7 +327,7 @@ export default function TermsPage() {
             {/* Section 11 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">11. Disclaimer of Warranties</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed uppercase">
                   YOUR USE OF THE SERVICES IS AT YOUR OWN RISK. REPLYTICS MAKES NO EXPRESS, IMPLIED OR STATUTORY REPRESENTATIONS, WARRANTIES, OR GUARANTEES IN CONNECTION WITH THE SERVICES OR RELATING TO THE AVAILABILITY, QUALITY, RELIABILITY, SUITABILITY, TIMELINESS, TRUTH, ACCURACY OR COMPLETENESS OF THE SERVICES. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SERVICES ARE PROVIDED TO YOU ON AN "AS IS," "AS AVAILABLE" AND "WHERE-IS" BASIS WITH NO EXPRESS OR IMPLIED WARRANTY OF ANY KIND, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT OF THIRD-PARTY RIGHTS. REPLYTICS DOES NOT WARRANT THAT THE SERVICES WILL MEET ALL OF YOUR REQUIREMENTS OR THAT ITS OPERATIONS WILL BE UNINTERRUPTED OR ERROR FREE, OR THAT ANY DEFECT WITHIN THE SERVICES WILL BE CORRECTED. NO ORAL OR WRITTEN INFORMATION, REPRESENTATION OR ADVICE GIVEN BY REPLYTICS SHALL CREATE A WARRANTY WITHOUT A WRITING SIGNED BY REPLYTICS REFLECTING THE CREATION OF SUCH WARRANTY.
                 </p>
@@ -347,7 +337,7 @@ export default function TermsPage() {
             {/* Section 12 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">12. Limitation of Liability</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed uppercase">
                   TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL REPLYTICS BE LIABLE TO YOU OR ANY THIRD PARTY UNDER ANY THEORY OF LIABILITY - WHETHER BASED IN CONTRACT, TORT (INCLUDING NEGLIGENCE), AGENCY, WARRANTY, STATUTE, OR OTHERWISE - FOR ANY INDIRECT, EXTRAORDINARY, EXEMPLARY, PUNITIVE, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, ANY LOSS OF DATA, REVENUE, PROFITS, USE, OR OTHER ECONOMIC ADVANTAGE, OR ANY OTHER LOSSES OR DAMAGES OF ANY KIND, HOWEVER ARISING, EVEN IF REPLYTICS KNEW OR SHOULD HAVE KNOWN THAT THERE WAS A POSSIBILITY OF SUCH LOSSES OR DAMAGES. IN NO EVENT SHALL REPLYTICS BE LIABLE TO YOU FOR ANY AMOUNTS THAT, TOGETHER WITH AMOUNTS ASSOCIATED WITH ALL OTHER CLAIMS, EXCEED THE AGGREGATE OF THE FEES PAID BY YOU TO REPLYTICS FOR SERVICES DURING THE THREE MONTHS PRIOR TO THE ACT THAT GAVE RISE TO THE LIABILITY OR, IF NO FEES WERE PAID DURING SUCH THREE-MONTH PERIOD, ONE HUNDRED US DOLLARS ($100), IN EACH CASE, WHETHER OR NOT REPLYTICS HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
                 </p>
@@ -357,7 +347,7 @@ export default function TermsPage() {
             {/* Section 13 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">13. Indemnification</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed uppercase">
                   YOU AGREE TO DEFEND, INDEMNIFY, AND HOLD REPLYTICS, OUR SUBSIDIARIES, PARENTS, AFFILIATES, AND SERVICE PROVIDERS, AND THEIR RESPECTIVE MEMBERS, DIRECTORS, OFFICERS, AGENTS, PARTNERS, AND EMPLOYEES HARMLESS FROM AND AGAINST ANY DIRECT OR THIRD- PARTY CLAIMS, LOSSES, LIABILITIES, COSTS, EXPENSES, DAMAGES, OR DEMANDS, INCLUDING WITHOUT LIMITATION REASONABLE ATTORNEYS' FEES DUE TO, RELATING TO, OR ARISING OUT OF (I) YOUR USE OF THE SERVICES IN VIOLATION OF THESE TERMS OR IN A MANNER THAT VIOLATES OR RESULTS IN A VIOLATION OF APPLICABLE LAW; (II) OUR PROVISION OF THE SERVICES TO YOU; (III) YOUR DATA; (IV) THE RESULT OR OUTCOME OF YOUR USE OF OUR TECHNOLOGY OR ANY OUTPUTS; (V) YOUR BREACH OR ALLEGED BREACH OF ANY REPRESENTATIONS OR WARRANTIES MADE BY YOU HEREUNDER OR YOUR VIOLATION OF ANY OTHER PROVISION OF THESE TERMS; OR (VI) YOUR VIOLATION OF ANY LAW OR THE RIGHTS OF A THIRD PARTY.
                 </p>
@@ -367,7 +357,7 @@ export default function TermsPage() {
             {/* Section 14 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">14. Cancellation & Termination</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Cancellation</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   You may cancel your Subscription at any time through your Dashboard and your cancellation will be effective at the end of the then-current monthly billing cycle. Replytics may in our sole discretion cancel your Subscription or otherwise terminate these Terms at any time by giving you notice via the Services or otherwise in writing (email to suffice).
@@ -388,7 +378,7 @@ export default function TermsPage() {
             {/* Section 15 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">15. Dispute Resolution</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <p className="text-gray-300 leading-relaxed mb-4 font-semibold">
                   PLEASE READ THIS SECTION CAREFULLY BECAUSE IT CONTAINS A CLASS ACTION WAIVER, REQUIRES YOU TO ARBITRATE CERTAIN DISPUTES AND LIMITS THE MANNER IN WHICH YOU CAN SEEK RELIEF FROM US.
                 </p>
@@ -418,7 +408,7 @@ export default function TermsPage() {
             {/* Section 16 */}
             <section>
               <h2 className="text-2xl font-bold text-white mb-4">16. General Terms</h2>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50">
                 <h3 className="text-xl font-semibold text-white mb-3">a. Relationship of Parties</h3>
                 <p className="text-gray-300 leading-relaxed mb-4">
                   The parties' relationship, as established by these Terms, is solely that of independent contractors. These Terms do not create any partnership, joint venture, or similar business relationship between the parties.
@@ -478,7 +468,7 @@ export default function TermsPage() {
 
             {/* Footer */}
             <section>
-              <div className="bg-gray-800/50 rounded-xl p-8 backdrop-blur-sm text-center">
+              <div className="bg-gray-800/50 rounded-2xl p-8 backdrop-blur-sm border border-gray-700/50 text-center">
                 <p className="text-gray-300 font-semibold">
                   You agree to be unconditionally bound by these Terms of Service by clicking to accept these Terms or by accessing or using the Services in any manner.
                 </p>
@@ -487,6 +477,8 @@ export default function TermsPage() {
           </div>
         </motion.div>
       </div>
+      
+      <Footer />
     </div>
   );
 }
