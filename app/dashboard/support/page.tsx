@@ -13,59 +13,59 @@ import {
 // FAQ categories and questions
 const faqCategories = [
   {
-    id: 'getting-started',
-    name: 'Getting Started',
+    id: "getting-started",
+    name: "Getting Started",
     icon: Zap,
     questions: [
       {
-        q: 'How do I set up my AI receptionist?',
-        a: 'Setting up your AI receptionist is simple! Go to Settings > AI Configuration to customize your greeting message, business hours, and voice settings. Your AI will be ready to answer calls immediately.'
+        q: "How do I set up my AI receptionist?",
+        a: "Setting up your AI receptionist is simple! Go to Settings > AI Configuration to customize your greeting message, business hours, and voice settings. Your AI will be ready to answer calls immediately."
       },
       {
-        q: 'Can I customize the AI voice?',
-        a: 'Yes! We offer multiple voice options including Professional, Friendly, Casual, and Formal tones. You can change this in Settings > AI Configuration > Voice Settings.'
+        q: "Can I customize the AI voice?",
+        a: "Yes! We offer multiple voice options including Professional, Friendly, Casual, and Formal tones. You can change this in Settings > AI Configuration > Voice Settings."
       },
       {
-        q: 'How do I add my business information?',
-        a: 'Navigate to Settings > Business Info to add your business name, phone number, address, and operating hours. This helps the AI provide accurate information to callers.'
+        q: "How do I add my business information?",
+        a: "Navigate to Settings > Business Info to add your business name, phone number, address, and operating hours. This helps the AI provide accurate information to callers."
       }
     ]
   },
   {
-    id: 'billing',
-    name: 'Billing & Plans',
+    id: "billing",
+    name: "Billing & Plans",
     icon: CreditCard,
     questions: [
       {
-        q: 'How does billing work?',
-        a: 'We bill monthly based on your selected plan. Your subscription renews automatically on the same date each month. You can view your billing history and manage payments in the Billing section.'
+        q: "How does billing work?",
+        a: "We bill monthly based on your selected plan. Your subscription renews automatically on the same date each month. You can view your billing history and manage payments in the Billing section."
       },
       {
-        q: 'Can I change my plan anytime?',
-        a: 'Absolutely! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate the difference for the current billing period.'
+        q: "Can I change my plan anytime?",
+        a: "Absolutely! You can upgrade or downgrade your plan at any time. Changes take effect immediately, and we'll prorate the difference for the current billing period."
       },
       {
-        q: 'What happens if I exceed my minutes?',
-        a: 'We'll notify you when you're approaching your limit. You can either upgrade your plan or purchase additional minutes. Your AI receptionist will never stop working unexpectedly.'
+        q: "What happens if I exceed my minutes?",
+        a: "We'll notify you when you're approaching your limit. You can either upgrade your plan or purchase additional minutes. Your AI receptionist will never stop working unexpectedly."
       }
     ]
   },
   {
-    id: 'features',
-    name: 'Features & Usage',
+    id: "features",
+    name: "Features & Usage",
     icon: Shield,
     questions: [
       {
-        q: 'Can the AI book appointments?',
-        a: 'Yes! The AI can check availability and book appointments directly into your calendar. Enable this feature in Settings > AI Configuration > AI Features.'
+        q: "Can the AI book appointments?",
+        a: "Yes! The AI can check availability and book appointments directly into your calendar. Enable this feature in Settings > AI Configuration > AI Features."
       },
       {
-        q: 'How do I access call recordings?',
-        a: 'Call recordings are available in the Calls section. Click the play button next to any call to listen to the recording or view the transcript.'
+        q: "How do I access call recordings?",
+        a: "Call recordings are available in the Calls section. Click the play button next to any call to listen to the recording or view the transcript."
       },
       {
-        q: 'Can I forward calls to my phone?',
-        a: 'Yes, you can set up call forwarding rules based on time, caller, or specific keywords. Configure this in Settings > Call Handling.'
+        q: "Can I forward calls to my phone?",
+        a: "Yes, you can set up call forwarding rules based on time, caller, or specific keywords. Configure this in Settings > Call Handling."
       }
     ]
   }
@@ -73,19 +73,19 @@ const faqCategories = [
 
 // System status items
 const systemStatus = [
-  { service: 'AI Receptionist', status: 'operational', uptime: '99.9%' },
-  { service: 'Call Processing', status: 'operational', uptime: '99.8%' },
-  { service: 'SMS Notifications', status: 'operational', uptime: '100%' },
-  { service: 'Calendar Sync', status: 'maintenance', uptime: '98.5%' }
+  { service: "AI Receptionist", status: "operational", uptime: "99.9%" },
+  { service: "Call Processing", status: "operational", uptime: "99.8%" },
+  { service: "SMS Notifications", status: "operational", uptime: "100%" },
+  { service: "Calendar Sync", status: "maintenance", uptime: "98.5%" }
 ]
 
 export default function SupportPage() {
-  const [selectedCategory, setSelectedCategory] = useState('getting-started')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState("getting-started")
+  const [searchQuery, setSearchQuery] = useState("")
   const [contactForm, setContactForm] = useState({
-    subject: '',
-    message: '',
-    priority: 'normal'
+    subject: "",
+    message: "",
+    priority: "normal"
   })
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -102,18 +102,18 @@ export default function SupportPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'operational': return 'text-green-400'
-      case 'maintenance': return 'text-yellow-400'
-      case 'outage': return 'text-red-400'
-      default: return 'text-gray-400'
+      case "operational": return "text-green-400"
+      case "maintenance": return "text-yellow-400"
+      case "outage": return "text-red-400"
+      default: return "text-gray-400"
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'operational': return <CheckCircle className="w-4 h-4" />
-      case 'maintenance': return <AlertTriangle className="w-4 h-4" />
-      case 'outage': return <X className="w-4 h-4" />
+      case "operational": return <CheckCircle className="w-4 h-4" />
+      case "maintenance": return <AlertTriangle className="w-4 h-4" />
+      case "outage": return <X className="w-4 h-4" />
       default: return <Info className="w-4 h-4" />
     }
   }
