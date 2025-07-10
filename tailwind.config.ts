@@ -20,6 +20,18 @@ const config = {
     extend: {
       // Premium color system with gradients
       colors: {
+        brand: {
+          50: '#F0FDFA',
+          100: '#CCFBF1',
+          200: '#99F6E4',
+          300: '#5EEAD4',
+          400: '#2DD4BF',
+          500: '#1EC5B7',
+          600: '#17A89D',
+          700: '#0F766E',
+          800: '#0D5F5A',
+          900: '#062F34',
+        },
         primary: {
           DEFAULT: "#1EC5B7",
           50: "#E6FAF8",

@@ -1,168 +1,159 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/Button"
-import { PlayCircle, Phone, Calendar, ChevronDown } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Play, Sparkles, Check } from "lucide-react"
+import { Card } from "@/components/ui/card"
 
 export function HeroSection() {
-  const [isDemoOpen, setIsDemoOpen] = useState(false)
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    setIsVisible(true)
-  }, [])
-
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Gradient mesh background */}
-      <div className="absolute inset-0 gradient-mesh" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white/10" />
-      
-      {/* Floating accent elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 -left-12 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 -right-12 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl animate-pulse-slow" />
+    <section className="relative min-h-[90vh] bg-gradient-to-b from-white via-brand-50/20 to-white overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-20 left-[10%] w-72 h-72 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
+        <div className="absolute top-40 right-[15%] w-96 h-96 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float animation-delay-2000" />
+        <div className="absolute bottom-20 left-[20%] w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float animation-delay-4000" />
       </div>
 
-      {/* Noise texture overlay */}
-      <div className="absolute inset-0 noise-overlay" />
-
-      {/* Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center max-w-4xl mx-auto">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-28">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
           {/* Animated badge */}
-          <div
-            className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 transition-all duration-1000",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="inline-block mb-8"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-            </span>
-            <span className="text-sm font-medium text-primary">Trusted by 10,000+ businesses</span>
-          </div>
+            <Badge variant="secondary" className="px-4 py-2 text-sm font-medium bg-brand-50 text-brand-700 border-brand-200">
+              <span className="relative flex h-2 w-2 mr-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500" />
+              </span>
+              Trusted by 1,000+ service businesses
+            </Badge>
+          </motion.div>
 
-          {/* Main headline */}
-          <h1
-            className={cn(
-              "text-7xl md:text-8xl lg:text-9xl font-black tracking-tight text-gray-900 mb-8 transition-all duration-1000 delay-100",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
+          {/* Main headline with gradient */}
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-6xl sm:text-7xl lg:text-8xl font-black leading-tight tracking-tight"
           >
-            Your AI Receptionist
-            <span className="block text-gradient mt-2">Never Takes a Day Off</span>
-          </h1>
+            Your{" "}
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-r from-brand-500 via-blue-500 to-brand-500 bg-clip-text text-transparent">
+                AI Receptionist
+              </span>
+              <motion.svg
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ delay: 0.5, duration: 0.8 }}
+                className="absolute -bottom-2 left-0 w-full"
+                height="8"
+                viewBox="0 0 100 8"
+              >
+                <motion.path
+                  d="M0 4Q25 0 50 4T100 4"
+                  stroke="url(#gradient)"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#1EC5B7" />
+                    <stop offset="50%" stopColor="#3B82F6" />
+                    <stop offset="100%" stopColor="#1EC5B7" />
+                  </linearGradient>
+                </defs>
+              </motion.svg>
+            </span>
+            <br />
+            Never Takes a Day Off
+          </motion.h1>
 
           {/* Subheadline */}
-          <p
-            className={cn(
-              "text-2xl md:text-3xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 delay-200",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-8 text-xl sm:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
           >
-            Let Replytics answer calls, book appointments, and grow your business 24/7 with human-like conversations
-          </p>
+            Let Replytics answer calls, book appointments, and grow your business 24/7
+            with conversations so natural, your customers won't know it's AI
+          </motion.p>
 
-          {/* CTA buttons */}
-          <div
-            className={cn(
-              "flex flex-col sm:flex-row gap-6 justify-center mb-8 transition-all duration-1000 delay-300",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link href="/api/auth/signin">
-              <Button 
-                size="lg" 
-                className="group h-16 px-10 text-lg bg-primary text-white hover:bg-primary-600 hover:scale-[1.02] hover:shadow-glow transition-all duration-200"
-              >
-                <span className="mr-2">Get Started Free</span>
-                <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
-              </Button>
-            </Link>
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              <Sparkles className="mr-2 h-5 w-5" />
+              Start Free Trial
+            </Button>
             <Button
               size="lg"
               variant="outline"
-              className="group h-16 px-10 text-lg border-gray-300 text-gray-900 hover:border-primary hover:text-primary hover:shadow-lg hover:scale-[1.02] transition-all duration-200"
-              onClick={() => setIsDemoOpen(true)}
+              className="border-2 border-gray-200 hover:border-brand-500 px-8 py-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              <PlayCircle className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+              <Play className="mr-2 h-5 w-5" />
               Hear a Demo
             </Button>
-          </div>
+          </motion.div>
 
           {/* Trust indicators */}
-          <p
-            className={cn(
-              "text-sm text-gray-500 mb-16 transition-all duration-1000 delay-400",
-              isVisible ? "opacity-100" : "opacity-0"
-            )}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-500"
           >
-            No credit card required • 14-day free trial • Cancel anytime
-          </p>
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              <span>No credit card required</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              <span>14-day free trial</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Check className="h-5 w-5 text-green-500" />
+              <span>Cancel anytime</span>
+            </div>
+          </motion.div>
+        </motion.div>
 
-          {/* Feature pills */}
-          <div
-            className={cn(
-              "flex flex-wrap gap-4 justify-center transition-all duration-1000 delay-500",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
-              <Phone className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-gray-700">Unlimited Calls</span>
+        {/* Floating phone mockup or dashboard preview */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="mt-20 relative max-w-5xl mx-auto"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-400 to-blue-500 rounded-3xl blur-3xl opacity-20" />
+          <Card className="relative overflow-hidden rounded-2xl shadow-2xl border-0 bg-white/80 backdrop-blur">
+            <div className="p-8">
+              {/* Dashboard preview or phone mockup goes here */}
+              <div className="aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center">
+                <p className="text-gray-400 text-lg">Dashboard Preview</p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
-              <Calendar className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-gray-700">Smart Scheduling</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-gray-100">
-              <span className="text-sm font-medium text-gray-700">99.9% Uptime</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div className="scroll-indicator" />
+          </Card>
+        </motion.div>
       </div>
-
-      {/* Demo Modal */}
-      {isDemoOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl transform transition-all animate-scale-in">
-            <h3 className="text-2xl font-bold mb-4 text-gray-900">
-              Hear Replytics in Action
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Listen to a real conversation between Replytics and a customer
-            </p>
-            <div className="bg-gray-50 rounded-xl p-6 mb-6">
-              <audio controls className="w-full">
-                <source src="/demo-call.mp3" type="audio/mpeg" />
-                Your browser does not support the audio element.
-              </audio>
-            </div>
-            <div className="flex gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsDemoOpen(false)}
-                className="flex-1 h-12"
-              >
-                Close
-              </Button>
-              <Link href="/api/auth/signin" className="flex-1">
-                <Button className="w-full h-12 bg-primary hover:bg-primary-600">
-                  Get Started
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </section>
   )
 }

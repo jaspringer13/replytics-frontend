@@ -1,226 +1,103 @@
 "use client"
 
-import Link from "next/link"
-import { Button } from "@/components/ui/Button"
-import { ArrowRight, Sparkles, CheckCircle } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
-import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { ArrowRight, Sparkles } from "lucide-react"
 
-interface CTASectionProps {
-  title: string
-  subtitle: string
-  primaryButtonText?: string
-  primaryButtonHref?: string
-  secondaryButtonText?: string
-  secondaryButtonHref?: string
-  features?: string[]
-  variant?: "default" | "gradient" | "dark"
-}
-
-export function CTASection({
-  title,
-  subtitle,
-  primaryButtonText = "Get Started Free",
-  primaryButtonHref = "/api/auth/signin",
-  secondaryButtonText,
-  secondaryButtonHref,
-  features,
-  variant = "gradient"
-}: CTASectionProps) {
-  const [isVisible, setIsVisible] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current)
-    }
-
-    return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current)
-      }
-    }
-  }, [])
-
-  const bgClasses = {
-    default: "bg-gray-50",
-    gradient: "bg-gradient-to-br from-primary via-primary-600 to-primary-800",
-    dark: "bg-gray-900"
-  }
-
-  const textColorClasses = {
-    default: "text-gray-900",
-    gradient: "text-white",
-    dark: "text-white"
-  }
-
-  const subtitleColorClasses = {
-    default: "text-gray-600",
-    gradient: "text-white/90",
-    dark: "text-gray-300"
-  }
-
+export function CTASection() {
   return (
-    <section 
-      ref={sectionRef}
-      className={cn(
-        "py-24 lg:py-32 relative overflow-hidden",
-        bgClasses[variant]
-      )}
-    >
-      {/* Background patterns and effects */}
-      {variant === "gradient" && (
-        <>
-          {/* Mesh pattern overlay */}
-          <div className="absolute inset-0 bg-gradient-mesh opacity-10" />
-          
-          {/* Animated circles */}
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-primary-300/20 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: "2s" }} />
-          
-          {/* Noise texture */}
-          <div className="absolute inset-0 noise-overlay" />
-          
-          {/* Grid pattern */}
-          <div 
-            className="absolute inset-0 opacity-[0.02]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), 
-                               linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: '50px 50px'
-            }}
-          />
-        </>
-      )}
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-4xl mx-auto">
-          {/* Animated badge */}
-          {variant === "gradient" && (
-            <div
-              className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-8 transition-all duration-1000",
-                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              )}
-            >
-              <Sparkles className="w-4 h-4 text-white animate-pulse" />
-              <span className="text-sm font-medium text-white">Limited Time Offer</span>
-            </div>
-          )}
-
-          {/* Title */}
-          <h2
-            className={cn(
-              "text-5xl lg:text-6xl font-black mb-6 transition-all duration-1000 delay-100",
-              textColorClasses[variant],
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            {title}
-          </h2>
-
-          {/* Subtitle */}
-          <p
-            className={cn(
-              "text-xl lg:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 delay-200",
-              subtitleColorClasses[variant],
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            {subtitle}
-          </p>
-
-          {/* Features list */}
-          {features && features.length > 0 && (
-            <div
-              className={cn(
-                "flex flex-wrap gap-4 justify-center mb-12 transition-all duration-1000 delay-300",
-                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-              )}
-            >
-              {features.map((feature, index) => (
-                <div 
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm",
-                    variant === "gradient" 
-                      ? "bg-white/10 border border-white/20 text-white" 
-                      : "bg-white border border-gray-200 text-gray-700"
-                  )}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">{feature}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* CTA buttons */}
-          <div
-            className={cn(
-              "flex flex-col sm:flex-row gap-4 justify-center transition-all duration-1000 delay-400",
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-            )}
-          >
-            <Link href={primaryButtonHref}>
-              <Button 
-                size="lg" 
-                className={cn(
-                  "group h-14 px-8 text-lg font-semibold transition-all hover:scale-[1.02] hover:shadow-2xl",
-                  variant === "gradient" 
-                    ? "bg-white text-primary hover:bg-gray-50" 
-                    : "bg-primary text-white hover:bg-primary-600"
-                )}
-              >
-                <span className="mr-2">{primaryButtonText}</span>
-                <ArrowRight className="w-5 h-5 inline-block transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
-            
-            {secondaryButtonText && secondaryButtonHref && (
-              <Link href={secondaryButtonHref}>
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className={cn(
-                    "h-14 px-8 text-lg font-semibold transition-all hover:scale-[1.02]",
-                    variant === "gradient"
-                      ? "border-white/30 text-white hover:bg-white/10 hover:border-white/50"
-                      : "border-gray-300 text-gray-700 hover:border-primary hover:text-primary"
-                  )}
-                >
-                  {secondaryButtonText}
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          {/* Trust text */}
-          <p
-            className={cn(
-              "mt-8 text-sm transition-all duration-1000 delay-500",
-              variant === "gradient" ? "text-white/70" : "text-gray-500",
-              isVisible ? "opacity-100" : "opacity-0"
-            )}
-          >
-            No credit card required • 14-day free trial • Cancel anytime
-          </p>
-        </div>
+    <section className="py-24 relative overflow-hidden">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700" />
+      
+      {/* Pattern overlay */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+        }} />
       </div>
 
-      {/* Decorative bottom wave */}
-      {variant === "gradient" && (
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      )}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center"
+        >
+          {/* Sparkle badge */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-8"
+          >
+            <Sparkles className="w-4 h-4 text-white" />
+            <span className="text-sm font-medium text-white">Limited Time: Get 3 Months Free</span>
+          </motion.div>
+
+          {/* Main heading */}
+          <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 max-w-4xl mx-auto">
+            Ready to Transform Your Business?
+          </h2>
+          
+          {/* Subheading */}
+          <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto">
+            Join thousands of businesses already using Replytics to deliver exceptional customer service 24/7
+          </p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
+          >
+            <Button
+              size="lg"
+              className="bg-white text-brand-600 hover:bg-gray-100 px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              Start Your Free Trial
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold backdrop-blur-sm transition-all duration-200"
+            >
+              Schedule a Demo
+            </Button>
+          </motion.div>
+
+          {/* Trust text */}
+          <p className="text-white/70 text-sm">
+            No credit card required • Setup in 5 minutes • Cancel anytime
+          </p>
+        </motion.div>
+
+        {/* Feature cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto"
+        >
+          {[
+            { title: "1 Minute Setup", description: "Get started instantly with our quick onboarding" },
+            { title: "Unlimited Calls", description: "Handle any volume with no per-minute charges" },
+            { title: "24/7 Support", description: "Expert help whenever you need it" }
+          ].map((feature, index) => (
+            <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 p-6 text-center">
+              <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
+              <p className="text-white/80 text-sm">{feature.description}</p>
+            </Card>
+          ))}
+        </motion.div>
+      </div>
     </section>
   )
 }
