@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useSession, signIn } from "next-auth/react"
+import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/Button"
 import { Logo } from "@/components/shared/Logo"
-import { Menu, X, Phone, ChevronRight, Sparkles, ChevronDown } from "lucide-react"
+import { Menu, X, Phone, ChevronRight, Sparkles, ChevronDown, LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
+import { useAuth } from "@/contexts/AuthContext"
 
 const businessTypes = [
   { name: 'Barbers', href: '/businesses/barbers' },
@@ -27,7 +28,8 @@ export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false)
-  const { data: session } = useSession()
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false)
+  const { user, isAuthenticated, logout } = useAuth()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -132,13 +134,51 @@ export function Navbar() {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              {session ? (
-                <Link href="/dashboard">
-                  <Button className="h-10 px-6 bg-primary hover:bg-primary-600 text-white transition-all hover:scale-[1.02] hover:shadow-md">
-                    Dashboard
-                    <ChevronRight className="ml-1 h-4 w-4" />
-                  </Button>
-                </Link>
+              {isAuthenticated ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    onMouseEnter={() => setUserDropdownOpen(true)}
+                    onMouseLeave={() => setUserDropdownOpen(false)}
+                    className="flex items-center gap-2 h-10 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
+                  >
+                    <User className="h-4 w-4" />
+                    <span className="text-sm font-medium text-gray-700">{user?.email}</span>
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {userDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        onMouseEnter={() => setUserDropdownOpen(true)}
+                        onMouseLeave={() => setUserDropdownOpen(false)}
+                        className="absolute top-full right-0 mt-2 w-48 bg-white backdrop-blur-xl border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                      >
+                        <Link
+                          href="/dashboard"
+                          className="block px-4 py-3 text-gray-700 hover:text-primary hover:bg-gray-50 transition-colors"
+                          onClick={() => setUserDropdownOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                        <hr className="border-gray-100" />
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false)
+                            logout()
+                          }}
+                          className="w-full text-left px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Sign Out
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
                 <>
                   <Link href="/auth/signin">
@@ -252,13 +292,32 @@ export function Navbar() {
 
             {/* CTA Section */}
             <div className="p-6 border-t bg-gray-50">
-              {session ? (
-                <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Button className="w-full h-12 bg-primary hover:bg-primary-600 text-white">
-                    Go to Dashboard
-                    <ChevronRight className="ml-2 h-4 w-4" />
+              {isAuthenticated ? (
+                <div className="space-y-3">
+                  <div className="px-4 py-3 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <User className="h-4 w-4" />
+                      <span>{user?.email}</span>
+                    </div>
+                  </div>
+                  <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button className="w-full h-12 bg-primary hover:bg-primary-600 text-white">
+                      Go to Dashboard
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      logout()
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
                   </Button>
-                </Link>
+                </div>
               ) : (
                 <div className="space-y-3">
                   <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>

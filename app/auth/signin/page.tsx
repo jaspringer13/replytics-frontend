@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
@@ -9,9 +9,11 @@ import { Loader2 } from "lucide-react"
 import { Navbar } from "@/components/shared/Navbar"
 import { Footer } from "@/components/shared/Footer"
 import { Logo } from "@/components/shared/Logo"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function SignInPage() {
   const router = useRouter()
+  const { login, isAuthenticated } = useAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
@@ -19,18 +21,28 @@ export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isAuthenticated, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
 
-    // Static authentication for testing
-    if (email === "admin" && password === "admin") {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push("/dashboard")
-    } else {
-      setError("Invalid email or password")
+    try {
+      const success = await login(email, password)
+      if (success) {
+        router.push("/dashboard")
+      } else {
+        setError("Invalid email or password")
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.")
+    } finally {
       setIsLoading(false)
     }
   }
@@ -44,10 +56,10 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-900 flex flex-col">
       <Navbar />
       
-      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] py-12 px-6">
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -84,7 +96,7 @@ export default function SignInPage() {
             {/* OAuth Approval Notice */}
             <div className="bg-blue-500/10 border border-blue-500/50 text-blue-400 rounded-lg p-3 mb-6">
               <p className="text-sm text-center">
-                🚧 OAuth approval pending. You can use admin/admin for testing.
+                🚧 OAuth approval pending. You can use jaspringer13@gmail.com / admin for testing.
               </p>
             </div>
 
@@ -134,7 +146,7 @@ export default function SignInPage() {
                   Remember me
                 </label>
                 <Link
-                  href="#"
+                  href="/auth/forgot-password"
                   className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
                 >
                   Forgot password?
