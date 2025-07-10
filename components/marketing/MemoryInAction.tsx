@@ -36,10 +36,11 @@ export function MemoryInAction() {
                     <Phone className="w-5 h-5 text-brand-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-gray-500">Incoming call from Sarah (555-0123)</p>
+                    <p className="text-sm text-gray-500">Incoming call from John (555-0123)</p>
                     <div className="bg-gray-700/50 rounded-lg p-3 mt-2">
-                      <p className="text-white">"Hi Sarah! Great to hear from you again. 
-                      Ready for your usual trim with Marcus on Saturday mornings?"</p>
+                      <p className="text-white">
+                        "Hey John! Welcome back. Ready for your usual Thursday afternoon haircut with Dory?"
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -51,7 +52,7 @@ export function MemoryInAction() {
                   </div>
                   <div className="flex-1">
                     <div className="bg-purple-500/20 rounded-lg p-3">
-                      <p className="text-white">"Actually, can we do Friday instead?"</p>
+                      <p className="text-white">"Actually, can we do Friday morning instead?"</p>
                     </div>
                   </div>
                 </div>
@@ -63,8 +64,9 @@ export function MemoryInAction() {
                   </div>
                   <div className="flex-1">
                     <div className="bg-gray-700/50 rounded-lg p-3">
-                      <p className="text-white">"Marcus has 10 AM and 2 PM available on Friday. 
-                      I know you prefer mornings - shall I book you for 10?"</p>
+                      <p className="text-white">
+                        "Sure, no problem! He has a 10 and an 11:30 open. Which would you prefer?"
+                      </p>
                     </div>
                   </div>
                 </div>
