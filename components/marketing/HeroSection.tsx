@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
 import { Play, Sparkles, Check, ArrowRight } from "lucide-react"
 import { Card } from "@/components/ui/Card"
+import { signIn } from "next-auth/react"
 
 export function HeroSection() {
   const containerVariants = {
@@ -137,6 +138,7 @@ export function HeroSection() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
                 className="px-8 py-4 bg-brand-500 text-white rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl hover:shadow-brand-500/25 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <Sparkles className="w-5 h-5" />

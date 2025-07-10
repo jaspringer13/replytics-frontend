@@ -37,7 +37,7 @@ const features = [
   {
     icon: Brain,
     title: "Intelligent Memory",
-    description: "Your AI receptionist remembers every client. Their favorite services, preferred times, and booking history - creating personalized experiences that make everyone feel like a VIP regular.",
+    description: "Remembers every client. Their favorite services, preferred times, and booking history. Every customer feels like a VIP.",
     gradient: "from-red-400 to-red-600"
   }
 ]

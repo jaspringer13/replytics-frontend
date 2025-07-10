@@ -32,10 +32,14 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      // Always redirect to dashboard after sign in
+      return `${baseUrl}/dashboard`
+    },
   },
   pages: {
-    signIn: "/",
-    error: "/error",
+    signIn: "/auth/signin",
+    error: "/auth/error",
   },
   session: {
     strategy: "jwt",

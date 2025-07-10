@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { Button } from "@/components/ui/Button"
 import { Logo } from "@/components/shared/Logo"
 import { Menu, X, Phone, ChevronRight, Sparkles } from "lucide-react"
@@ -89,20 +89,20 @@ export function Navbar() {
                 </Link>
               ) : (
                 <>
-                  <Link href="/api/auth/signin">
-                    <Button 
-                      variant="ghost" 
-                      className="h-10 px-6 text-gray-700 hover:text-primary hover:bg-gray-50"
-                    >
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/api/auth/signin">
-                    <Button className="h-10 px-6 bg-primary hover:bg-primary-600 text-white transition-all hover:scale-[1.02] hover:shadow-md group">
-                      <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
-                      Get Started Free
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    className="h-10 px-6 text-gray-700 hover:text-primary hover:bg-gray-50"
+                    onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="h-10 px-6 bg-primary hover:bg-primary-600 text-white transition-all hover:scale-[1.02] hover:shadow-md group"
+                    onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
+                    Get Started Free
+                  </Button>
                 </>
               )}
             </div>
@@ -185,17 +185,26 @@ export function Navbar() {
                 </Link>
               ) : (
                 <div className="space-y-3">
-                  <Link href="/api/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button variant="outline" className="w-full h-12">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/api/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
-                    <Button className="w-full h-12 bg-primary hover:bg-primary-600 text-white">
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Get Started Free
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      signIn('google', { callbackUrl: '/dashboard' })
+                    }}
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="w-full h-12 bg-primary hover:bg-primary-600 text-white"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      signIn('google', { callbackUrl: '/onboarding' })
+                    }}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Get Started Free
+                  </Button>
                 </div>
               )}
               
