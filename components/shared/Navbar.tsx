@@ -5,11 +5,19 @@ import Link from "next/link"
 import { useSession, signIn } from "next-auth/react"
 import { Button } from "@/components/ui/Button"
 import { Logo } from "@/components/shared/Logo"
-import { Menu, X, Phone, ChevronRight, Sparkles } from "lucide-react"
+import { Menu, X, Phone, ChevronRight, Sparkles, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from "framer-motion"
+
+const businessTypes = [
+  { name: 'Barbers', href: '/businesses/barbers' },
+  { name: 'Beauty Salons', href: '/businesses/beauty-salons' },
+  { name: 'Nail Salons', href: '/businesses/nail-salons' },
+  { name: 'Tattoo Studios', href: '/businesses/tattoo' },
+  { name: 'Massage & Wellness', href: '/businesses/massage-wellness' }
+]
 
 const navLinks = [
-  { href: "/features", label: "Features" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
@@ -18,6 +26,7 @@ const navLinks = [
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false)
   const { data: session } = useSession()
 
   useEffect(() => {
@@ -59,6 +68,49 @@ export function Navbar() {
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center">
               <ul className="flex items-center space-x-10">
+                {/* Businesses Dropdown */}
+                <li className="relative">
+                  <button
+                    onClick={() => setBusinessDropdownOpen(!businessDropdownOpen)}
+                    onMouseEnter={() => setBusinessDropdownOpen(true)}
+                    onMouseLeave={() => setBusinessDropdownOpen(false)}
+                    className={cn(
+                      "flex items-center gap-1 text-sm font-medium transition-all duration-200 hover:no-underline relative group",
+                      isScrolled 
+                        ? "text-gray-700 hover:text-primary" 
+                        : "text-gray-900 hover:text-primary"
+                    )}
+                  >
+                    Businesses
+                    <ChevronDown className="w-4 h-4" />
+                    <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {businessDropdownOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        onMouseEnter={() => setBusinessDropdownOpen(true)}
+                        onMouseLeave={() => setBusinessDropdownOpen(false)}
+                        className="absolute top-full left-0 mt-2 w-56 bg-white backdrop-blur-xl border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+                      >
+                        {businessTypes.map((type) => (
+                          <Link
+                            key={type.href}
+                            href={type.href}
+                            className="block px-4 py-3 text-gray-700 hover:text-primary hover:bg-gray-50 transition-colors"
+                            onClick={() => setBusinessDropdownOpen(false)}
+                          >
+                            {type.name}
+                          </Link>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </li>
+
                 {navLinks.map((link) => (
                   <li key={link.href}>
                     <Link
@@ -89,13 +141,14 @@ export function Navbar() {
                 </Link>
               ) : (
                 <>
-                  <Button 
-                    variant="ghost" 
-                    className="h-10 px-6 text-gray-700 hover:text-primary hover:bg-gray-50"
-                    onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                  >
-                    Sign In
-                  </Button>
+                  <Link href="/auth/signin">
+                    <Button 
+                      variant="ghost" 
+                      className="h-10 px-6 text-gray-700 hover:text-primary hover:bg-gray-50"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
                   <Button 
                     className="h-10 px-6 bg-primary hover:bg-primary-600 text-white transition-all hover:scale-[1.02] hover:shadow-md group"
                     onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
@@ -159,6 +212,29 @@ export function Navbar() {
             {/* Navigation */}
             <nav className="flex-1 p-6">
               <ul className="space-y-1">
+                {/* Businesses Section */}
+                <li>
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    For Businesses
+                  </div>
+                  <ul className="mt-2 space-y-1">
+                    {businessTypes.map((type) => (
+                      <li key={type.href}>
+                        <Link
+                          href={type.href}
+                          className="flex items-center justify-between px-4 py-3 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg transition-all group"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <span className="font-medium">{type.name}</span>
+                          <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary transition-colors" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+                <li className="pt-4">
+                  <div className="border-t pt-4"></div>
+                </li>
                 {navLinks.map((link) => (
                   <li key={link.href}>
                     <Link
@@ -185,16 +261,14 @@ export function Navbar() {
                 </Link>
               ) : (
                 <div className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12"
-                    onClick={() => {
-                      setIsMobileMenuOpen(false)
-                      signIn('google', { callbackUrl: '/dashboard' })
-                    }}
-                  >
-                    Sign In
-                  </Button>
+                  <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button 
+                      variant="outline" 
+                      className="w-full h-12"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
                   <Button 
                     className="w-full h-12 bg-primary hover:bg-primary-600 text-white"
                     onClick={() => {

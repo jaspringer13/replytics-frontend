@@ -3,13 +3,17 @@ import { signIn } from "next-auth/react"
 import { motion } from "framer-motion"
 import { useState } from "react"
 import { Loader2 } from "lucide-react"
+import Link from "next/link"
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setIsLoading(true)
-    await signIn('google', { callbackUrl: '/dashboard' })
+    // Temporary redirect while OAuth is being set up
+    setTimeout(() => {
+      window.location.href = '/dashboard'
+    }, 1500)
   }
 
   return (
@@ -20,12 +24,11 @@ export default function SignInPage() {
         className="max-w-md w-full"
       >
         <div className="bg-gray-800/50 backdrop-blur-xl border border-gray-700 rounded-2xl p-8 shadow-2xl">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
+          <Link href="/" className="flex justify-center mb-8">
             <div className="w-20 h-20 bg-gradient-to-br from-brand-400 to-brand-600 rounded-2xl flex items-center justify-center shadow-lg shadow-brand-500/25">
               <span className="text-4xl font-bold text-white">R</span>
             </div>
-          </div>
+          </Link>
           
           <h1 className="text-3xl font-bold text-white text-center mb-2">
             Welcome to Replytics
@@ -37,7 +40,7 @@ export default function SignInPage() {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleSignIn}
+            onClick={handleGoogleSignIn}
             disabled={isLoading}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white text-gray-900 rounded-xl font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg disabled:opacity-70"
           >
@@ -68,8 +71,21 @@ export default function SignInPage() {
             )}
           </motion.button>
           
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <p className="text-sm text-blue-400 text-center">
+              🚧 OAuth approval pending. You'll be redirected to the dashboard for now.
+            </p>
+          </div>
+          
           <p className="text-xs text-gray-500 text-center mt-6">
-            By signing in, you agree to our Terms of Service and Privacy Policy
+            By signing in, you agree to our{' '}
+            <Link href="/terms" className="text-gray-400 hover:text-white underline">
+              Terms of Service
+            </Link>{' '}
+            and{' '}
+            <Link href="/privacy" className="text-gray-400 hover:text-white underline">
+              Privacy Policy
+            </Link>
           </p>
         </div>
       </motion.div>
