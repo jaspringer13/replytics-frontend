@@ -5,9 +5,10 @@ import { motion } from 'framer-motion'
 import { 
   CreditCard, Check, X, TrendingUp, Download,
   Calendar, AlertCircle, Zap, Shield, Clock,
-  ChevronRight, ArrowUpRight, Receipt, Phone
+  ChevronRight, ArrowUpRight, Receipt, Phone, Loader2
 } from 'lucide-react'
 import Link from 'next/link'
+import { useBillingInfo } from '@/hooks/useBackendData'
 
 // Pricing tiers from pricing page
 const plans = {
@@ -63,11 +64,24 @@ const billingHistory = [
 ]
 
 export default function BillingPage() {
+  const { data: billingInfo, loading, error, refetch } = useBillingInfo()
+  
   const currentPlan = 'professional'
-  const minutesUsed = 287
-  const minutesTotal = 500
-  const percentageUsed = (minutesUsed / minutesTotal) * 100
-  const daysLeft = 19
+  const minutesUsed = billingInfo?.usage?.minutes || 0
+  const minutesTotal = billingInfo?.limits?.minutes || 500
+  const percentageUsed = minutesTotal > 0 ? (minutesUsed / minutesTotal) * 100 : 0
+  
+  // Calculate days left in billing period
+  const getDaysLeft = () => {
+    if (!billingInfo?.billingPeriod?.end) return 0
+    const endDate = new Date(billingInfo.billingPeriod.end)
+    const today = new Date()
+    const diffTime = endDate.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return Math.max(0, diffDays)
+  }
+  
+  const daysLeft = getDaysLeft()
 
   return (
     <DashboardLayout>
@@ -86,6 +100,23 @@ export default function BillingPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-6"
             >
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                  <p className="text-gray-400 mb-4">Failed to load billing information</p>
+                  <button
+                    onClick={() => refetch()}
+                    className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <>
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-xl font-semibold text-white mb-1">Current Plan</h2>
@@ -126,19 +157,20 @@ export default function BillingPage() {
                       <Phone className="w-4 h-4 text-brand-400" />
                       <span className="text-sm text-gray-400">Total Calls</span>
                     </div>
-                    <p className="text-2xl font-bold text-white">1,247</p>
-                    <p className="text-xs text-green-400 flex items-center gap-1 mt-1">
-                      <TrendingUp className="w-3 h-3" />
-                      +12% from last month
+                    <p className="text-2xl font-bold text-white">{billingInfo?.usage?.calls || 0}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {billingInfo?.limits?.calls ? `of ${billingInfo.limits.calls} limit` : 'this period'}
                     </p>
                   </div>
                   <div className="bg-gray-700/30 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <Clock className="w-4 h-4 text-purple-400" />
-                      <span className="text-sm text-gray-400">Avg Call Duration</span>
+                      <Receipt className="w-4 h-4 text-purple-400" />
+                      <span className="text-sm text-gray-400">SMS Messages</span>
                     </div>
-                    <p className="text-2xl font-bold text-white">2:34</p>
-                    <p className="text-xs text-gray-400 mt-1">minutes per call</p>
+                    <p className="text-2xl font-bold text-white">{billingInfo?.usage?.sms || 0}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {billingInfo?.limits?.sms ? `of ${billingInfo.limits.sms} limit` : 'sent'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -155,6 +187,8 @@ export default function BillingPage() {
                   ))}
                 </div>
               </div>
+                </>
+              )}
             </motion.div>
           </div>
 
@@ -222,7 +256,15 @@ export default function BillingPage() {
                 <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm text-blue-400 font-medium">Next billing date</p>
-                  <p className="text-sm text-gray-300">February 1, 2025 - $149.00</p>
+                  <p className="text-sm text-gray-300">
+                    {billingInfo?.billingPeriod?.end 
+                      ? `${new Date(billingInfo.billingPeriod.end).toLocaleDateString('en-US', { 
+                          month: 'long', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        })} - $149.00`
+                      : 'Loading...'}
+                  </p>
                 </div>
               </div>
             </div>

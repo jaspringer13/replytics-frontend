@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
+import { LiveCallIndicator } from './LiveCallIndicator'
+import { ConnectionStatus } from './ConnectionStatus'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -20,6 +22,7 @@ interface DashboardLayoutProps {
 const sidebarLinks = [
   { id: 'overview', label: 'Overview', icon: Home, href: '/dashboard' },
   { id: 'calls', label: 'Call History', icon: Phone, href: '/dashboard/calls' },
+  { id: 'sms', label: 'SMS Messages', icon: MessageSquare, href: '/dashboard/sms' },
   { id: 'calendar', label: 'Calendar', icon: Calendar, href: '/dashboard/calendar' },
   { id: 'clients', label: 'Clients', icon: Users, href: '/dashboard/clients' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/dashboard/analytics' },
@@ -238,6 +241,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </div>
       </main>
+
+      {/* Live Call Indicator */}
+      <LiveCallIndicator />
+      
+      {/* Connection Status */}
+      <ConnectionStatus />
     </div>
   )
 }

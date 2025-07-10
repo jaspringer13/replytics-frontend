@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { motion } from 'framer-motion'
 import { 
   ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
-  Clock, Users, MapPin, Phone, Plus
+  Clock, Users, MapPin, Phone, Plus, AlertCircle, Loader2
 } from 'lucide-react'
+import { useBookings } from '@/hooks/useBackendData'
+import { Booking } from '@/lib/api-client'
 
 // Helper to get days in month
 function getDaysInMonth(date: Date) {
@@ -20,19 +22,35 @@ function getDaysInMonth(date: Date) {
   return { daysInMonth, startingDayOfWeek }
 }
 
-// Demo appointments data
-const demoAppointments = [
-  { id: 1, date: new Date(2025, 0, 15, 10, 0), client: 'Sarah Johnson', service: 'Hair Cut & Style', duration: 60 },
-  { id: 2, date: new Date(2025, 0, 15, 14, 30), client: 'Mike Chen', service: 'Beard Trim', duration: 30 },
-  { id: 3, date: new Date(2025, 0, 16, 9, 0), client: 'Emma Rodriguez', service: 'Color Treatment', duration: 120 },
-  { id: 4, date: new Date(2025, 0, 17, 11, 0), client: 'David Kim', service: 'Haircut', duration: 45 },
-  { id: 5, date: new Date(2025, 0, 17, 15, 0), client: 'Lisa Wang', service: 'Styling', duration: 45 },
-]
+// Helper to format date for API
+const formatDateForAPI = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Helper to parse booking date and time
+const parseBookingDateTime = (booking: Booking): Date => {
+  const [year, month, day] = booking.date.split('-').map(Number)
+  const [hours, minutes] = booking.time.split(':').map(Number)
+  return new Date(year, month - 1, day, hours, minutes)
+}
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'month' | 'week' | 'day'>('month')
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedDateString, setSelectedDateString] = useState<string | undefined>()
+  
+  const { data: bookings, loading, error, refetch } = useBookings(selectedDateString)
+  
+  // Update selected date string when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      setSelectedDateString(formatDateForAPI(selectedDate))
+    }
+  }, [selectedDate])
 
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate)
   const monthYear = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -50,12 +68,26 @@ export default function CalendarPage() {
     setSelectedDate(new Date())
   }
 
-  const getAppointmentsForDate = (date: Date) => {
-    return demoAppointments.filter(apt => 
-      apt.date.getDate() === date.getDate() &&
-      apt.date.getMonth() === date.getMonth() &&
-      apt.date.getFullYear() === date.getFullYear()
-    )
+  const getBookingsForDate = (date: Date) => {
+    if (!bookings) return []
+    const dateString = formatDateForAPI(date)
+    return bookings.filter(booking => booking.date === dateString)
+  }
+  
+  const getAllBookingsForMonth = () => {
+    if (!bookings) return {}
+    const bookingsByDate: { [key: string]: Booking[] } = {}
+    
+    // This would ideally fetch all bookings for the month
+    // For now, we'll work with what we have
+    bookings.forEach(booking => {
+      if (!bookingsByDate[booking.date]) {
+        bookingsByDate[booking.date] = []
+      }
+      bookingsByDate[booking.date].push(booking)
+    })
+    
+    return bookingsByDate
   }
 
   const renderCalendarDays = () => {
@@ -72,7 +104,9 @@ export default function CalendarPage() {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
       const isToday = date.toDateString() === today.toDateString()
       const isSelected = selectedDate?.toDateString() === date.toDateString()
-      const appointments = getAppointmentsForDate(date)
+      const dateString = formatDateForAPI(date)
+      const monthBookings = getAllBookingsForMonth()
+      const dayBookings = monthBookings[dateString] || []
       
       days.push(
         <motion.div
@@ -87,20 +121,20 @@ export default function CalendarPage() {
             <span className={`text-sm font-medium ${isToday ? 'text-brand-400' : 'text-gray-300'}`}>
               {day}
             </span>
-            {appointments.length > 0 && (
+            {dayBookings.length > 0 && (
               <span className="text-xs bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded-full">
-                {appointments.length}
+                {dayBookings.length}
               </span>
             )}
           </div>
           <div className="space-y-1">
-            {appointments.slice(0, 2).map((apt, idx) => (
+            {dayBookings.slice(0, 2).map((booking, idx) => (
               <div key={idx} className="text-xs text-gray-400 truncate">
-                {apt.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - {apt.client}
+                {booking.time} - {booking.customerName}
               </div>
             ))}
-            {appointments.length > 2 && (
-              <div className="text-xs text-gray-500">+{appointments.length - 2} more</div>
+            {dayBookings.length > 2 && (
+              <div className="text-xs text-gray-500">+{dayBookings.length - 2} more</div>
             )}
           </div>
         </motion.div>
@@ -204,31 +238,55 @@ export default function CalendarPage() {
               
               {selectedDate ? (
                 <div className="space-y-3">
-                  {getAppointmentsForDate(selectedDate).length > 0 ? (
-                    getAppointmentsForDate(selectedDate).map(apt => (
+                  {loading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+                    </div>
+                  ) : error ? (
+                    <div className="text-center py-8">
+                      <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+                      <p className="text-gray-400">Failed to load bookings</p>
+                      <button 
+                        onClick={() => refetch()}
+                        className="mt-4 text-sm text-brand-400 hover:text-brand-300 transition-colors"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : bookings && bookings.length > 0 ? (
+                    bookings.map(booking => (
                       <motion.div
-                        key={apt.id}
+                        key={booking.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="p-4 bg-gray-700/30 rounded-lg border border-gray-600/50"
                       >
                         <div className="flex items-start justify-between mb-2">
-                          <h4 className="font-medium text-white">{apt.client}</h4>
-                          <span className="text-xs text-gray-400">
-                            {apt.duration} min
+                          <h4 className="font-medium text-white">{booking.customerName}</h4>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            booking.status === 'confirmed' 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : booking.status === 'pending'
+                              ? 'bg-yellow-500/20 text-yellow-400'
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {booking.status}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-400 mb-2">{apt.service}</p>
+                        <p className="text-sm text-gray-400 mb-2">{booking.service}</p>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {apt.date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {booking.time}
                           </span>
                           <span className="flex items-center gap-1">
                             <Phone className="w-3 h-3" />
-                            Call
+                            {booking.phoneNumber}
                           </span>
                         </div>
+                        {booking.notes && (
+                          <p className="mt-2 text-xs text-gray-500 italic">{booking.notes}</p>
+                        )}
                       </motion.div>
                     ))
                   ) : (

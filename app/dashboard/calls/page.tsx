@@ -7,80 +7,26 @@ import { motion } from 'framer-motion'
 import { 
   Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing, 
   Voicemail, Search, Filter, Download, Play, FileText,
-  Calendar, Clock, User, ChevronDown
+  Calendar, Clock, User, ChevronDown, AlertCircle, Loader2
 } from 'lucide-react'
+import { useCallHistory } from '@/hooks/useBackendData'
+import { apiClient, Call } from '@/lib/api-client'
 
-// Demo call data
-const demoCalls = [
-  { 
-    id: 1, 
-    caller: 'Sarah Johnson', 
-    number: '+1 (555) 123-4567', 
-    date: new Date(2025, 0, 10, 14, 30), 
-    duration: 245, 
-    status: 'answered', 
-    type: 'incoming',
-    hasRecording: true,
-    hasTranscript: true
-  },
-  { 
-    id: 2, 
-    caller: 'Mike Chen', 
-    number: '+1 (555) 234-5678', 
-    date: new Date(2025, 0, 10, 13, 15), 
-    duration: 0, 
-    status: 'missed', 
-    type: 'incoming',
-    hasRecording: false,
-    hasTranscript: false
-  },
-  { 
-    id: 3, 
-    caller: 'Emma Rodriguez', 
-    number: '+1 (555) 345-6789', 
-    date: new Date(2025, 0, 10, 11, 45), 
-    duration: 180, 
-    status: 'answered', 
-    type: 'incoming',
-    hasRecording: true,
-    hasTranscript: true
-  },
-  { 
-    id: 4, 
-    caller: 'David Kim', 
-    number: '+1 (555) 456-7890', 
-    date: new Date(2025, 0, 10, 10, 20), 
-    duration: 90, 
-    status: 'voicemail', 
-    type: 'incoming',
-    hasRecording: true,
-    hasTranscript: true
-  },
-  { 
-    id: 5, 
-    caller: 'Lisa Wang', 
-    number: '+1 (555) 567-8901', 
-    date: new Date(2025, 0, 9, 16, 45), 
-    duration: 320, 
-    status: 'answered', 
-    type: 'incoming',
-    hasRecording: true,
-    hasTranscript: true
-  },
-]
-
-type CallStatus = 'all' | 'answered' | 'missed' | 'voicemail'
+type CallStatus = 'all' | 'completed' | 'missed' | 'in_progress' | 'failed'
 
 function CallsContent() {
   const searchParams = useSearchParams()
   const [filter, setFilter] = useState<CallStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [playingRecording, setPlayingRecording] = useState<string | null>(null)
+  
+  const { data: calls, loading, error, hasMore, loadMore, total } = useCallHistory()
 
   // Check for filter in URL params
   useEffect(() => {
     const urlFilter = searchParams.get('filter')
-    if (urlFilter && ['answered', 'missed', 'voicemail'].includes(urlFilter)) {
+    if (urlFilter && ['completed', 'missed', 'in_progress', 'failed'].includes(urlFilter)) {
       setFilter(urlFilter as CallStatus)
     }
   }, [searchParams])
@@ -92,7 +38,8 @@ function CallsContent() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
     const now = new Date()
     const diffTime = Math.abs(now.getTime() - date.getTime())
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
@@ -106,25 +53,44 @@ function CallsContent() {
     }
   }
 
-  const getStatusIcon = (call: typeof demoCalls[0]) => {
+  const getStatusIcon = (call: Call) => {
     if (call.status === 'missed') return <PhoneMissed className="w-4 h-4 text-red-400" />
-    if (call.status === 'voicemail') return <Voicemail className="w-4 h-4 text-yellow-400" />
-    if (call.type === 'incoming') return <PhoneIncoming className="w-4 h-4 text-green-400" />
+    if (call.status === 'failed') return <Phone className="w-4 h-4 text-red-400" />
+    if (call.status === 'in_progress') return <Phone className="w-4 h-4 text-yellow-400 animate-pulse" />
+    if (call.direction === 'inbound') return <PhoneIncoming className="w-4 h-4 text-green-400" />
     return <PhoneOutgoing className="w-4 h-4 text-blue-400" />
   }
 
-  const filteredCalls = demoCalls.filter(call => {
+  const filteredCalls = calls.filter(call => {
     if (filter !== 'all' && call.status !== filter) return false
-    if (searchQuery && !call.caller.toLowerCase().includes(searchQuery.toLowerCase()) && 
-        !call.number.includes(searchQuery)) return false
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      const matchesName = call.customerName?.toLowerCase().includes(query)
+      const matchesNumber = call.phoneNumber.includes(searchQuery)
+      if (!matchesName && !matchesNumber) return false
+    }
     return true
   })
 
   const stats = {
-    total: demoCalls.length,
-    answered: demoCalls.filter(c => c.status === 'answered').length,
-    missed: demoCalls.filter(c => c.status === 'missed').length,
-    voicemail: demoCalls.filter(c => c.status === 'voicemail').length,
+    total: total || 0,
+    completed: calls.filter(c => c.status === 'completed').length,
+    missed: calls.filter(c => c.status === 'missed').length,
+    in_progress: calls.filter(c => c.status === 'in_progress').length,
+  }
+  
+  const handlePlayRecording = async (callId: string) => {
+    try {
+      setPlayingRecording(callId)
+      const { url } = await apiClient.fetchCallRecording(callId)
+      // In a real implementation, you'd play the audio here
+      console.log('Playing recording:', url)
+      // Simulate playing
+      setTimeout(() => setPlayingRecording(null), 3000)
+    } catch (error) {
+      console.error('Failed to play recording:', error)
+      setPlayingRecording(null)
+    }
   }
 
   return (
@@ -162,8 +128,8 @@ function CallsContent() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-white">{stats.answered}</p>
-                <p className="text-sm text-gray-400">Answered</p>
+                <p className="text-2xl font-bold text-white">{stats.completed}</p>
+                <p className="text-sm text-gray-400">Completed</p>
               </div>
               <PhoneIncoming className="w-8 h-8 text-green-400" />
             </div>
@@ -192,10 +158,10 @@ function CallsContent() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-white">{stats.voicemail}</p>
-                <p className="text-sm text-gray-400">Voicemail</p>
+                <p className="text-2xl font-bold text-white">{stats.in_progress}</p>
+                <p className="text-sm text-gray-400">In Progress</p>
               </div>
-              <Voicemail className="w-8 h-8 text-yellow-400" />
+              <Phone className="w-8 h-8 text-yellow-400 animate-pulse" />
             </div>
           </motion.div>
         </div>
@@ -205,7 +171,7 @@ function CallsContent() {
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             {/* Filter tabs */}
             <div className="flex gap-2 overflow-x-auto">
-              {(['all', 'answered', 'missed', 'voicemail'] as const).map(status => (
+              {(['all', 'completed', 'missed', 'in_progress'] as const).map(status => (
                 <button
                   key={status}
                   onClick={() => setFilter(status)}
@@ -215,7 +181,7 @@ function CallsContent() {
                       : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                   }`}
                 >
-                  {status} {status !== 'all' && `(${stats[status]})`}
+                  {status.replace('_', ' ')} {status !== 'all' && `(${stats[status] || 0})`}
                 </button>
               ))}
             </div>
@@ -244,7 +210,19 @@ function CallsContent() {
 
         {/* Calls Table */}
         <div className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl overflow-hidden">
-          {filteredCalls.length > 0 ? (
+          {loading && calls.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-brand-400 animate-spin" />
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-white mb-2">Failed to load calls</h3>
+                <p className="text-gray-400">{error.message}</p>
+              </div>
+            </div>
+          ) : filteredCalls.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -273,14 +251,14 @@ function CallsContent() {
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <p className="text-white font-medium">{call.caller}</p>
-                          <p className="text-sm text-gray-400">{call.number}</p>
+                          <p className="text-white font-medium">{call.customerName || 'Unknown'}</p>
+                          <p className="text-sm text-gray-400">{call.phoneNumber}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2 text-sm text-gray-400">
                           <Calendar className="w-4 h-4" />
-                          {formatDate(call.date)}
+                          {formatDate(call.startTime)}
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -291,12 +269,21 @@ function CallsContent() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          {call.hasRecording && (
-                            <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all" title="Play Recording">
-                              <Play className="w-4 h-4" />
+                          {call.recordingUrl && (
+                            <button 
+                              onClick={() => handlePlayRecording(call.id)}
+                              disabled={playingRecording === call.id}
+                              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all disabled:opacity-50" 
+                              title="Play Recording"
+                            >
+                              {playingRecording === call.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Play className="w-4 h-4" />
+                              )}
                             </button>
                           )}
-                          {call.hasTranscript && (
+                          {call.transcript && (
                             <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-all" title="View Transcript">
                               <FileText className="w-4 h-4" />
                             </button>
@@ -321,6 +308,18 @@ function CallsContent() {
             </div>
           )}
         </div>
+        
+        {/* Load More */}
+        {hasMore && !loading && (
+          <div className="text-center mt-6">
+            <button
+              onClick={loadMore}
+              className="px-6 py-2 bg-brand-500/20 text-brand-400 hover:bg-brand-500/30 border border-brand-500/50 rounded-lg transition-all"
+            >
+              Load More Calls
+            </button>
+          </div>
+        )}
     </div>
   )
 }

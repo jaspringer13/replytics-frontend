@@ -1,21 +1,44 @@
 "use client"
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Phone, Calendar, Users, Settings, BarChart3, Clock, 
-  TrendingUp, PhoneCall, MessageSquare, Home
+  TrendingUp, PhoneCall, MessageSquare, Home, AlertCircle
 } from 'lucide-react'
 
 import Link from 'next/link'
 import { CheckCircle, FileText, Headphones, Brain } from 'lucide-react'
+import { useDashboardStats } from '@/hooks/useBackendData'
 
 export function DashboardClient() {
-  const stats = [
-    { label: 'Calls Today', value: '47', change: '+12%', icon: PhoneCall },
-    { label: 'Appointments Booked', value: '23', change: '+8%', icon: Calendar },
-    { label: 'Active Clients', value: '342', change: '+23%', icon: Users },
-    { label: 'Response Time', value: '1.2s', change: '-15%', icon: Clock }
-  ]
+  const { data: dashboardStats, loading, error } = useDashboardStats()
+  
+  const stats = dashboardStats ? [
+    { 
+      label: 'Calls Today', 
+      value: dashboardStats.callsToday.toString(), 
+      change: '+12%', 
+      icon: PhoneCall 
+    },
+    { 
+      label: 'Appointments Booked', 
+      value: dashboardStats.bookingsToday.toString(), 
+      change: '+8%', 
+      icon: Calendar 
+    },
+    { 
+      label: 'SMS Today', 
+      value: dashboardStats.smsToday.toString(), 
+      change: '+23%', 
+      icon: MessageSquare 
+    },
+    { 
+      label: 'Avg Call Duration', 
+      value: `${Math.round(dashboardStats.avgCallDuration)}s`, 
+      change: '-15%', 
+      icon: Clock 
+    }
+  ] : []
 
   const quickActions = [
     { label: "View Today's Schedule", icon: Calendar, href: '/dashboard/calendar', color: 'bg-blue-500' },
@@ -34,7 +57,35 @@ export function DashboardClient() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, i) => (
+        {loading ? (
+          // Loading skeleton
+          [...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl p-6 animate-pulse"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 bg-gray-700 rounded-lg"></div>
+                <div className="w-12 h-4 bg-gray-700 rounded"></div>
+              </div>
+              <div className="w-20 h-8 bg-gray-700 rounded mb-1"></div>
+              <div className="w-24 h-4 bg-gray-700 rounded"></div>
+            </div>
+          ))
+        ) : error ? (
+          // Error state
+          <div className="col-span-full bg-red-900/20 border border-red-700 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-6 h-6 text-red-400" />
+              <div>
+                <p className="text-white font-medium">Failed to load dashboard stats</p>
+                <p className="text-sm text-gray-400">{error.message}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Stats display
+          stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
@@ -55,8 +106,9 @@ export function DashboardClient() {
               <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
               <p className="text-sm text-gray-400">{stat.label}</p>
             </motion.div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
 
       {/* Quick Actions */}
       <div className="mb-8">
@@ -172,7 +224,7 @@ export function DashboardClient() {
               <span className="text-sm font-medium text-white">AI is learning and improving</span>
             </div>
             <p className="text-xs text-gray-400">
-              Your AI has handled 1,247 calls this month and continues to improve its responses based on successful interactions.
+              Your AI has handled {dashboardStats?.totalCalls || 0} calls this month and continues to improve its responses based on successful interactions.
             </p>
           </div>
         </div>
