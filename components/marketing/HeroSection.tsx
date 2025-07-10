@@ -9,6 +9,10 @@ import { Card } from "@/components/ui/Card"
 export function HeroSection() {
   return (
     <section className="relative min-h-[90vh] bg-gradient-to-b from-white via-brand-50/20 to-white overflow-hidden">
+      {/* TAILWIND TEST - REMOVE AFTER VERIFICATION */}
+      <div className="bg-red-500 text-white text-6xl p-10 text-center font-bold">
+        TAILWIND TEST - THIS SHOULD BE HUGE RED TEXT
+      </div>
       {/* Animated background elements */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute top-20 left-[10%] w-72 h-72 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-float" />
