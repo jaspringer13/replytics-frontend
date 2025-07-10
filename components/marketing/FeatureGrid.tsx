@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Card } from "@/components/ui/card"
+import { Card } from "@/components/ui/Card"
 import { Phone, Calendar, MessageSquare, Zap, BarChart3, Shield, Globe, Clock } from "lucide-react"
 
 const features = [
