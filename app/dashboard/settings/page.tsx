@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { motion } from 'framer-motion'
@@ -13,7 +13,7 @@ import {
 
 type TabType = 'business' | 'ai' | 'team' | 'integrations'
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<TabType>('business')
   const [saved, setSaved] = useState(false)
@@ -68,8 +68,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <DashboardLayout>
-      <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
@@ -472,7 +471,30 @@ export default function SettingsPage() {
             Settings saved successfully!
           </motion.div>
         )}
-      </div>
+    </div>
+  )
+}
+
+export default function SettingsPage() {
+  return (
+    <DashboardLayout>
+      <Suspense fallback={
+        <div className="max-w-5xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-700 rounded w-1/4 mb-2"></div>
+            <div className="h-4 bg-gray-700 rounded w-1/2 mb-8"></div>
+            <div className="flex gap-8 mb-6">
+              <div className="h-10 bg-gray-700 rounded w-32"></div>
+              <div className="h-10 bg-gray-700 rounded w-32"></div>
+              <div className="h-10 bg-gray-700 rounded w-32"></div>
+              <div className="h-10 bg-gray-700 rounded w-32"></div>
+            </div>
+            <div className="h-96 bg-gray-700 rounded-xl"></div>
+          </div>
+        </div>
+      }>
+        <SettingsContent />
+      </Suspense>
     </DashboardLayout>
   )
 }

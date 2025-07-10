@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { motion } from 'framer-motion'
@@ -71,7 +71,7 @@ const demoCalls = [
 
 type CallStatus = 'all' | 'answered' | 'missed' | 'voicemail'
 
-export default function CallsPage() {
+function CallsContent() {
   const searchParams = useSearchParams()
   const [filter, setFilter] = useState<CallStatus>('all')
   const [searchQuery, setSearchQuery] = useState('')
@@ -128,8 +128,7 @@ export default function CallsPage() {
   }
 
   return (
-    <DashboardLayout>
-      <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-3xl font-bold text-white mb-4 sm:mb-0">Call History</h1>
@@ -322,7 +321,30 @@ export default function CallsPage() {
             </div>
           )}
         </div>
-      </div>
+    </div>
+  )
+}
+
+export default function CallsPage() {
+  return (
+    <DashboardLayout>
+      <Suspense fallback={
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-10 bg-gray-700 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="h-24 bg-gray-700 rounded-xl"></div>
+              <div className="h-24 bg-gray-700 rounded-xl"></div>
+              <div className="h-24 bg-gray-700 rounded-xl"></div>
+              <div className="h-24 bg-gray-700 rounded-xl"></div>
+            </div>
+            <div className="h-20 bg-gray-700 rounded-xl mb-6"></div>
+            <div className="h-96 bg-gray-700 rounded-xl"></div>
+          </div>
+        </div>
+      }>
+        <CallsContent />
+      </Suspense>
     </DashboardLayout>
   )
 }
