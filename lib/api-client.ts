@@ -90,12 +90,12 @@ class APIClient {
     };
 
     if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
+      (headers as Record<string, string>)['Authorization'] = `Bearer ${this.token}`;
     }
     
     // Add tenant ID to headers if available
     if (this.tenantId) {
-      headers['X-Tenant-ID'] = this.tenantId;
+      (headers as Record<string, string>)['X-Tenant-ID'] = this.tenantId;
     }
 
     try {
