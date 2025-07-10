@@ -3,13 +3,31 @@
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/Button"
 import { Card } from "@/components/ui/Card"
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, Sparkles, Check } from "lucide-react"
 
 export function CTASection() {
   return (
-    <section className="py-24 relative overflow-hidden">
-      {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-500 via-brand-600 to-brand-700" />
+    <section className="py-24 relative overflow-hidden bg-gray-900">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-800" />
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 8, repeat: Infinity }}
+          className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500 rounded-full blur-3xl"
+        />
+        <motion.div
+          animate={{
+            scale: [1.2, 1, 1.2],
+            opacity: [0.3, 0.5, 0.3]
+          }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl"
+        />
+      </div>
       
       {/* Pattern overlay */}
       <div className="absolute inset-0 opacity-10">
@@ -34,48 +52,67 @@ export function CTASection() {
             transition={{ delay: 0.1 }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-8"
           >
-            <Sparkles className="w-4 h-4 text-white" />
+            <Sparkles className="w-4 h-4 text-white animate-pulse" />
             <span className="text-sm font-medium text-white">Limited Time: Get 3 Months Free</span>
           </motion.div>
 
           {/* Main heading */}
-          <h2 className="text-5xl md:text-6xl font-bold text-white mb-6 max-w-4xl mx-auto">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl md:text-6xl font-bold text-white mb-6 max-w-4xl mx-auto"
+          >
             Ready to Transform Your Business?
-          </h2>
+          </motion.h2>
           
           {/* Subheading */}
-          <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto"
+          >
             Join thousands of businesses already using Replytics to deliver exceptional customer service 24/7
-          </p>
+          </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
           >
-            <Button
-              size="lg"
-              className="bg-white text-brand-600 hover:bg-gray-100 px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 transition-all duration-200"
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-white text-brand-600 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-200 flex items-center justify-center gap-2"
             >
               Start Your Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold backdrop-blur-sm transition-all duration-200"
+              <ArrowRight className="w-5 h-5" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-transparent text-white rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-white/10 backdrop-blur-sm transition-all duration-200"
             >
               Schedule a Demo
-            </Button>
+            </motion.button>
           </motion.div>
 
           {/* Trust text */}
-          <p className="text-white/70 text-sm">
+          <motion.p 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
+            className="text-white/70 text-sm"
+          >
             No credit card required • Setup in 5 minutes • Cancel anytime
-          </p>
+          </motion.p>
         </motion.div>
 
         {/* Feature cards */}
@@ -83,18 +120,39 @@ export function CTASection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
+          transition={{ delay: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto"
         >
           {[
-            { title: "1 Minute Setup", description: "Get started instantly with our quick onboarding" },
-            { title: "Unlimited Calls", description: "Handle any volume with no per-minute charges" },
-            { title: "24/7 Support", description: "Expert help whenever you need it" }
+            { 
+              title: "1 Minute Setup", 
+              description: "Get started instantly with our quick onboarding",
+              icon: "⚡"
+            },
+            { 
+              title: "Unlimited Calls", 
+              description: "Handle any volume with no per-minute charges",
+              icon: "📞"
+            },
+            { 
+              title: "24/7 Support", 
+              description: "Expert help whenever you need it",
+              icon: "🛟"
+            }
           ].map((feature, index) => (
-            <Card key={index} className="bg-white/10 backdrop-blur-sm border-white/20 p-6 text-center">
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.7 + index * 0.1 }}
+              whileHover={{ y: -5 }}
+              className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 text-center hover:bg-white/15 transition-all duration-300"
+            >
+              <div className="text-4xl mb-3">{feature.icon}</div>
               <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
               <p className="text-white/80 text-sm">{feature.description}</p>
-            </Card>
+            </motion.div>
           ))}
         </motion.div>
       </div>
