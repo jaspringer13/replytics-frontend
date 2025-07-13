@@ -5,6 +5,8 @@ interface AuthResponse {
     email: string;
     name: string;
   };
+  expires_at?: string; // ISO timestamp when token expires
+  expires_in?: number; // Seconds until expiry
 }
 
 interface DashboardStats {
@@ -65,6 +67,10 @@ class APIClient {
   private baseURL: string;
   private token: string | null = null;
   private tenantId: string | null = null;
+  private tokenExpiresAt: Date | null = null;
+  private refreshPromise: Promise<AuthResponse> | null = null;
+  private requestQueue: Array<() => void> = [];
+  private isRefreshing = false;
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
@@ -75,13 +81,65 @@ class APIClient {
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('auth_token');
       this.tenantId = localStorage.getItem('tenant_id');
+      const expiresAt = localStorage.getItem('token_expires_at');
+      if (expiresAt) {
+        this.tokenExpiresAt = new Date(expiresAt);
+      }
     }
+  }
+
+  private async executeRequest<T>(
+    url: string,
+    options: RequestInit,
+    headers: HeadersInit
+  ): Promise<Response> {
+    return fetch(url, {
+      ...options,
+      headers,
+    });
+  }
+
+  private async handleTokenRefresh(): Promise<AuthResponse> {
+    if (!this.isRefreshing) {
+      this.isRefreshing = true;
+      this.refreshPromise = this.refreshToken().finally(() => {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+        // Process queued requests
+        this.requestQueue.forEach(resolve => resolve());
+        this.requestQueue = [];
+      });
+    }
+    return this.refreshPromise!;
+  }
+
+  private isTokenExpiringSoon(): boolean {
+    if (!this.tokenExpiresAt) return false;
+    
+    const now = new Date();
+    const expiresAt = new Date(this.tokenExpiresAt);
+    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    
+    // Token will expire in the next 5 minutes
+    return expiresAt <= fiveMinutesFromNow;
   }
 
   async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryCount = 0
   ): Promise<T> {
+    // Check if token is about to expire and proactively refresh
+    if (this.token && this.isTokenExpiringSoon() && endpoint !== '/api/dashboard/auth/refresh') {
+      console.log('Token expiring soon, proactively refreshing...');
+      try {
+        const authResponse = await this.handleTokenRefresh();
+        this.setToken(authResponse.token, authResponse.expires_at, authResponse.expires_in);
+      } catch (error) {
+        console.error('Proactive token refresh failed:', error);
+      }
+    }
+
     const url = `${this.baseURL}${endpoint}`;
     
     const headers: HeadersInit = {
@@ -99,16 +157,46 @@ class APIClient {
     }
 
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      const response = await this.executeRequest(url, options, headers);
+
+      // Handle 401 errors with token refresh
+      if (response.status === 401 && retryCount === 0) {
+        // Don't try to refresh if this is already a refresh request
+        if (endpoint === '/api/dashboard/auth/refresh') {
+          throw new Error('Token refresh failed');
+        }
+
+        // Wait for ongoing refresh or start a new one
+        if (this.isRefreshing) {
+          await new Promise<void>(resolve => {
+            this.requestQueue.push(resolve);
+          });
+        } else {
+          try {
+            const authResponse = await this.handleTokenRefresh();
+            this.setToken(authResponse.token, authResponse.expires_at, authResponse.expires_in);
+          } catch (refreshError) {
+            // Refresh failed, redirect to sign in
+            this.setToken(null);
+            this.setTenantId(null);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/auth/signin';
+            }
+            throw refreshError;
+          }
+        }
+
+        // Retry the original request with new token
+        return this.request<T>(endpoint, options, retryCount + 1);
+      }
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({
           message: `HTTP error! status: ${response.status}`,
         }));
-        throw new Error(error.message || `Request failed: ${response.statusText}`);
+        const apiError = new Error(error.message || `Request failed: ${response.statusText}`);
+        (apiError as any).response = { status: response.status, data: error };
+        throw apiError;
       }
 
       return await response.json();
@@ -118,13 +206,26 @@ class APIClient {
     }
   }
 
-  setToken(token: string | null) {
+  setToken(token: string | null, expiresAt?: string, expiresIn?: number) {
     this.token = token;
     if (typeof window !== 'undefined') {
       if (token) {
         localStorage.setItem('auth_token', token);
+        
+        // Calculate and store expiry time
+        if (expiresAt) {
+          this.tokenExpiresAt = new Date(expiresAt);
+          localStorage.setItem('token_expires_at', expiresAt);
+        } else if (expiresIn) {
+          // If we get expires_in (seconds), calculate expires_at
+          const expiryDate = new Date(Date.now() + expiresIn * 1000);
+          this.tokenExpiresAt = expiryDate;
+          localStorage.setItem('token_expires_at', expiryDate.toISOString());
+        }
       } else {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('token_expires_at');
+        this.tokenExpiresAt = null;
       }
     }
   }
@@ -146,7 +247,7 @@ class APIClient {
       body: JSON.stringify({ email, password }),
     });
     
-    this.setToken(response.token);
+    this.setToken(response.token, response.expires_at, response.expires_in);
     // Assuming the response includes tenant_id for email/password login
     if (response.user?.id) {
       this.setTenantId(response.user.id);
@@ -164,13 +265,15 @@ class APIClient {
     tenant_id: string;
     is_new_user: boolean;
     user: any;
+    expires_at?: string;
+    expires_in?: number;
   }> {
     const response = await this.request<any>('/api/dashboard/auth/google', {
       method: 'POST',
       body: JSON.stringify(googleData),
     });
     
-    this.setToken(response.token);
+    this.setToken(response.token, response.expires_at, response.expires_in);
     this.setTenantId(response.tenant_id);
     return response;
   }
@@ -278,6 +381,34 @@ class APIClient {
 
   isAuthenticated(): boolean {
     return !!this.token;
+  }
+
+  getTokenExpiryInfo(): {
+    expiresAt: Date | null;
+    isExpired: boolean;
+    isExpiringSoon: boolean;
+    minutesUntilExpiry: number | null;
+  } {
+    if (!this.tokenExpiresAt) {
+      return {
+        expiresAt: null,
+        isExpired: false,
+        isExpiringSoon: false,
+        minutesUntilExpiry: null,
+      };
+    }
+
+    const now = new Date();
+    const expiresAt = new Date(this.tokenExpiresAt);
+    const msUntilExpiry = expiresAt.getTime() - now.getTime();
+    const minutesUntilExpiry = Math.floor(msUntilExpiry / 1000 / 60);
+
+    return {
+      expiresAt: this.tokenExpiresAt,
+      isExpired: msUntilExpiry <= 0,
+      isExpiringSoon: this.isTokenExpiringSoon(),
+      minutesUntilExpiry: msUntilExpiry > 0 ? minutesUntilExpiry : null,
+    };
   }
 }
 

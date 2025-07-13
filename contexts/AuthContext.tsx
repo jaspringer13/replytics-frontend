@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authToken && tenantId) {
         localStorage.setItem('auth_token', authToken)
         localStorage.setItem('tenant_id', tenantId)
+        // Note: expires_at should be passed from session if available
         apiClient.setToken(authToken)
         
         // Set cookies for middleware

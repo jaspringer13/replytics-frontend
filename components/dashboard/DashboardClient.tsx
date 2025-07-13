@@ -8,10 +8,18 @@ import {
 
 import Link from 'next/link'
 import { CheckCircle, FileText, Headphones, Brain } from 'lucide-react'
-import { useDashboardStats } from '@/hooks/useBackendData'
+import { useStats } from '@/hooks/api/useStats'
+import { markStatsLoaded } from '@/lib/performance/metrics'
 
 export function DashboardClient() {
-  const { data: dashboardStats, loading, error } = useDashboardStats()
+  const { data: dashboardStats, isLoading: loading, error } = useStats()
+  
+  // Track when stats are loaded for performance metrics
+  useEffect(() => {
+    if (dashboardStats && !loading) {
+      markStatsLoaded()
+    }
+  }, [dashboardStats, loading])
   
   const stats = dashboardStats ? [
     { 

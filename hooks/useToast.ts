@@ -1,0 +1,95 @@
+import { create } from 'zustand';
+
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface Toast {
+  id: string;
+  type: ToastType;
+  title: string;
+  message?: string;
+  duration?: number;
+}
+
+interface ToastStore {
+  toasts: Toast[];
+  addToast: (toast: Omit<Toast, 'id'>) => void;
+  removeToast: (id: string) => void;
+  clearToasts: () => void;
+}
+
+const useToastStore = create<ToastStore>((set) => ({
+  toasts: [],
+  addToast: (toast) => {
+    const id = Date.now().toString();
+    const newToast = { ...toast, id };
+    
+    set((state) => ({
+      toasts: [...state.toasts, newToast],
+    }));
+    
+    // Auto remove after duration (default 5 seconds)
+    const duration = toast.duration || 5000;
+    if (duration > 0) {
+      setTimeout(() => {
+        set((state) => ({
+          toasts: state.toasts.filter((t) => t.id !== id),
+        }));
+      }, duration);
+    }
+  },
+  removeToast: (id) => {
+    set((state) => ({
+      toasts: state.toasts.filter((toast) => toast.id !== id),
+    }));
+  },
+  clearToasts: () => {
+    set({ toasts: [] });
+  },
+}));
+
+export function useToast() {
+  const { addToast, removeToast, clearToasts } = useToastStore();
+  
+  return {
+    toast: {
+      success: (title: string, message?: string, duration?: number) =>
+        addToast({ type: 'success', title, message, duration }),
+      error: (title: string, message?: string, duration?: number) =>
+        addToast({ type: 'error', title, message, duration }),
+      warning: (title: string, message?: string, duration?: number) =>
+        addToast({ type: 'warning', title, message, duration }),
+      info: (title: string, message?: string, duration?: number) =>
+        addToast({ type: 'info', title, message, duration }),
+    },
+    dismiss: removeToast,
+    dismissAll: clearToasts,
+  };
+}
+
+export function useToasts() {
+  return useToastStore((state) => state.toasts);
+}
+
+// Helper hook to show API error messages
+export function useApiErrorToast() {
+  const { toast } = useToast();
+  
+  return (error: any) => {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message || error?.message;
+    
+    if (status === 401) {
+      toast.info('Refreshing authentication...', 'Please wait a moment');
+    } else if (status === 403) {
+      toast.error('Access Denied', "You don't have access to this resource");
+    } else if (status === 404) {
+      toast.warning('Not Found', 'The requested resource was not found');
+    } else if (status >= 500) {
+      toast.error('Server Error', 'Something went wrong. Please try again');
+    } else if (!navigator.onLine) {
+      toast.error('Connection Lost', 'Please check your internet connection');
+    } else {
+      toast.error('Error', message || 'An unexpected error occurred');
+    }
+  };
+}
