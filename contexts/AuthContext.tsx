@@ -168,8 +168,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const isAuthenticated = !!user || (status === 'authenticated')
-  const token = session?.user?.authToken || localStorage.getItem('auth_token')
-  const tenantId = session?.user?.tenantId || localStorage.getItem('tenant_id')
+  const token = session?.user?.authToken || (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null)
+  const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0
 
   return (

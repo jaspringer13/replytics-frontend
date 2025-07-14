@@ -282,6 +282,22 @@ export function isErrorLike(value: unknown): value is { message: string; name?: 
 }
 
 // Guard for Axios errors (common in API calls)
-export function isAxiosError(error: unknown): error is { isAxiosError: true; response?: { status: number; data: any } } {
+export function isAxiosError(error: unknown): error is { 
+  isAxiosError: true; 
+  response?: { 
+    status: number; 
+    data: any;
+    headers?: any;
+  };
+  config?: {
+    url?: string;
+    timeout?: number;
+  };
+  request?: any;
+  code?: string;
+  message?: string;
+  name?: string;
+  stack?: string;
+} {
   return isObject(error) && error.isAxiosError === true;
 }

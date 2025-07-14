@@ -26,6 +26,7 @@ class PerformanceTracker {
     onFCP((metric: Metric) => {
       this.metrics.FCP = metric.value;
       console.log('[Performance] FCP:', metric.value, 'ms');
+      this.sendMetricToEndpoint(metric);
       this.notifyCallbacks();
     });
 
@@ -33,6 +34,7 @@ class PerformanceTracker {
     onLCP((metric: Metric) => {
       this.metrics.LCP = metric.value;
       console.log('[Performance] LCP:', metric.value, 'ms');
+      this.sendMetricToEndpoint(metric);
       this.notifyCallbacks();
     });
 
@@ -40,6 +42,7 @@ class PerformanceTracker {
     onCLS((metric: Metric) => {
       this.metrics.CLS = metric.value;
       console.log('[Performance] CLS:', metric.value);
+      this.sendMetricToEndpoint(metric);
       this.notifyCallbacks();
     });
 
@@ -47,6 +50,7 @@ class PerformanceTracker {
     onINP((metric: Metric) => {
       this.metrics.INP = metric.value;
       console.log('[Performance] INP:', metric.value, 'ms');
+      this.sendMetricToEndpoint(metric);
       this.notifyCallbacks();
     });
 
@@ -54,6 +58,7 @@ class PerformanceTracker {
     onTTFB((metric: Metric) => {
       this.metrics.TTFB = metric.value;
       console.log('[Performance] TTFB:', metric.value, 'ms');
+      this.sendMetricToEndpoint(metric);
       this.notifyCallbacks();
     });
   }
@@ -92,9 +97,66 @@ class PerformanceTracker {
     }
   }
 
+  private async sendMetricToEndpoint(metric: Metric) {
+    try {
+      // Add browser console logging with clear prefix
+      console.log(`[PERFORMANCE METRIC CAPTURED] ${metric.name}:`, {
+        value: metric.value,
+        rating: metric.rating,
+        delta: metric.delta,
+        id: metric.id,
+        navigationType: metric.navigationType,
+      });
+
+      // Validate metric before sending
+      if (!metric.name || typeof metric.value !== 'number') {
+        console.warn('[Performance] Invalid metric format:', metric);
+        return;
+      }
+
+      const response = await fetch('/api/performance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: metric.name,
+          value: metric.value,
+          rating: metric.rating,
+          delta: metric.delta,
+          id: metric.id,
+          navigationType: metric.navigationType,
+          entries: metric.entries,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`[PERFORMANCE METRIC SENT] ${metric.name}:`, result);
+    } catch (error) {
+      console.error(`[PERFORMANCE METRIC ERROR] Failed to send ${metric.name}:`, error);
+    }
+  }
+
   markStatsLoaded() {
     this.metrics.statsLoaded = performance.now();
     console.log('[Performance] Stats Loaded:', this.metrics.statsLoaded, 'ms');
+    
+    // Send custom metric for stats loaded
+    // Using a type assertion since statsLoaded is not a standard web-vitals metric
+    this.sendMetricToEndpoint({
+      name: 'statsLoaded' as any,
+      value: this.metrics.statsLoaded,
+      rating: this.metrics.statsLoaded < 1000 ? 'good' : this.metrics.statsLoaded < 3000 ? 'needs-improvement' : 'poor',
+      delta: 0,
+      id: `stats-${Date.now()}`,
+      navigationType: 'navigate',
+      entries: [],
+    } as unknown as Metric);
+    
     this.notifyCallbacks();
     
     // Log performance budget status

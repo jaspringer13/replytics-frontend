@@ -487,3 +487,29 @@ export class PaymentError extends IntegrationError {
     this.paymentMethod = paymentMethod;
   }
 }
+
+// Helper function to check if an error is retryable
+export function isRetryableError(error: unknown): boolean {
+  if (error instanceof NetworkError) {
+    // Network errors are generally retryable
+    return true;
+  }
+  
+  if (error instanceof TimeoutError) {
+    // Timeouts are retryable
+    return true;
+  }
+  
+  if (error instanceof ServerError) {
+    // 5xx errors are typically retryable
+    return true;
+  }
+  
+  if (error instanceof RateLimitError) {
+    // Rate limits can be retried after delay
+    return true;
+  }
+  
+  // Most other errors (auth, validation, etc.) are not retryable
+  return false;
+}

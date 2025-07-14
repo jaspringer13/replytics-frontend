@@ -70,6 +70,107 @@ function withContext<T extends AppError>(error: T, context?: ErrorContext): T {
 
 export class ErrorFactory {
   /**
+   * Convert API response to our domain error
+   */
+  static fromAPIResponse(status: number, data: any, context?: ErrorContext): AppError {
+    const message = extractErrorMessage(data) || `HTTP ${status} error`;
+    const endpoint = context?.metadata?.endpoint as string | undefined;
+
+    // Map status codes to specific error types
+    switch (status) {
+      case 400: {
+        const validationErrors = extractValidationErrors(data);
+        return new ValidationError(
+          message,
+          validationErrors,
+          endpoint,
+          context
+        );
+      }
+
+      case 401: {
+        const reason = data?.reason || 
+          (message.includes('expired') ? 'token_expired' : 
+           message.includes('invalid') ? 'token_invalid' : 
+           undefined);
+        return new AuthenticationError(
+          reason as any,
+          endpoint,
+          context
+        );
+      }
+
+      case 403: {
+        return new AuthorizationError(
+          data?.requiredPermission,
+          endpoint,
+          context
+        );
+      }
+
+      case 404: {
+        return new NotFoundError(
+          data?.resourceType,
+          data?.resourceId,
+          endpoint,
+          context
+        );
+      }
+
+      case 429: {
+        return new RateLimitError(
+          data?.retryAfter,
+          data?.limit,
+          endpoint,
+          context
+        );
+      }
+
+      case 408:
+      case 504:
+      case 524: {
+        return new TimeoutError(
+          30000,
+          context
+        );
+      }
+
+      case 500:
+      case 502:
+      case 503: {
+        return new ServerError(
+          message,
+          status,
+          endpoint,
+          context
+        );
+      }
+
+      default: {
+        // Check if it's a business logic error (4xx range)
+        if (status >= 400 && status < 500 && data?.businessCode) {
+          return new BusinessLogicError(
+            message,
+            data.businessCode,
+            endpoint,
+            context
+          );
+        }
+        
+        // Generic API error
+        return new APIError(
+          message,
+          `HTTP_${status}`,
+          status,
+          endpoint,
+          data,
+          context
+        );
+      }
+    }
+  }
+
+  /**
    * Convert Axios error to our domain error
    */
   static fromAxiosError(axiosError: any, context?: ErrorContext): AppError {
@@ -89,31 +190,29 @@ export class ErrorFactory {
 
     // Network error - no response received
     if (!response) {
-      if (axiosError.code === 'ECONNABORTED' || axiosError.message.includes('timeout')) {
+      if (axiosError.code === 'ECONNABORTED' || (axiosError.message && axiosError.message.includes('timeout'))) {
         return new TimeoutError(
           config?.timeout || 0,
-          context,
-          axiosError
+          context
         );
       }
       
       if (axiosError.code === 'ENOTFOUND') {
         return new DNSError(
           config?.url,
-          context,
-          axiosError
+          context
         );
       }
       
       if (!navigator.onLine) {
-        return new OfflineError(context, axiosError);
+        return new OfflineError(context);
       }
       
       return new NetworkError(
         axiosError.message || 'Network request failed',
         'NETWORK_ERROR',
         context,
-        axiosError
+        axiosError as Error
       );
     }
 
@@ -131,8 +230,7 @@ export class ErrorFactory {
           message,
           validationErrors,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -143,8 +241,7 @@ export class ErrorFactory {
             message,
             data.businessCode,
             endpoint,
-            context,
-            axiosError
+            context
           );
         }
         // Otherwise treat as validation error
@@ -153,8 +250,7 @@ export class ErrorFactory {
           message,
           validationErrors,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -166,8 +262,7 @@ export class ErrorFactory {
         return new AuthenticationError(
           reason as any,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -175,8 +270,7 @@ export class ErrorFactory {
         return new AuthorizationError(
           data?.requiredPermission,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -185,8 +279,7 @@ export class ErrorFactory {
           data?.resourceType,
           data?.resourceId,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -202,8 +295,7 @@ export class ErrorFactory {
           retryAfter,
           limit,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -212,8 +304,7 @@ export class ErrorFactory {
       case 524: {
         return new TimeoutError(
           config?.timeout || 30000,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -224,8 +315,7 @@ export class ErrorFactory {
           message,
           status,
           endpoint,
-          context,
-          axiosError
+          context
         );
       }
 
@@ -236,8 +326,7 @@ export class ErrorFactory {
             message,
             data.businessCode,
             endpoint,
-            context,
-            axiosError
+            context
           );
         }
         
@@ -249,7 +338,7 @@ export class ErrorFactory {
           endpoint,
           data,
           context,
-          axiosError
+          axiosError as Error
         );
       }
     }
@@ -270,8 +359,7 @@ export class ErrorFactory {
         return new CallDroppedError(
           'network',
           callState,
-          context,
-          twilioError instanceof Error ? twilioError : undefined
+          context
         );
       }
       
@@ -284,8 +372,7 @@ export class ErrorFactory {
             latency: twilioError.latency,
           },
           callState,
-          context,
-          twilioError instanceof Error ? twilioError : undefined
+          context
         );
       }
     }
@@ -362,6 +449,33 @@ export class ErrorFactory {
   }
 
   /**
+   * Convert a standard Error to AppError
+   */
+  static fromError(error: Error, context?: ErrorContext): AppError {
+    // If already an AppError, return with additional context if provided
+    if (error instanceof AppError) {
+      return withContext(error, context);
+    }
+
+    // Check for specific error patterns
+    if (error.message.includes('Network request failed') || error.message.includes('Failed to fetch')) {
+      return new NetworkError(error.message, 'NETWORK_UNKNOWN', context, error);
+    }
+
+    if (error.name === 'AbortError') {
+      return new TimeoutError(0, context);
+    }
+
+    // Default to ThirdPartyError
+    return new ThirdPartyError(
+      'unknown',
+      error.message,
+      context,
+      error
+    );
+  }
+
+  /**
    * Convert any unknown error to AppError
    */
   static fromUnknown(error: unknown, defaultMessage: string = 'An error occurred', context?: ErrorContext): AppError {
@@ -378,7 +492,7 @@ export class ErrorFactory {
       }
       
       if (error.name === 'AbortError') {
-        return new TimeoutError(0, context, error);
+        return new TimeoutError(0, context);
       }
 
       // Generic third-party error
