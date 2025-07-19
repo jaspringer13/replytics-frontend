@@ -38,6 +38,19 @@ export async function POST(request: NextRequest) {
         error: 'Invalid metric format',
       }, { status: 400 });
     }
+    
+    // Skip Supabase logging if environment variables are not set
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      // Just log to console and return success without storing
+      console.log('Performance metric:', metric);
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Metric logged to console only' 
+      });
+    }
 
     // Prepare metric data for database
     const metricData = {
@@ -49,40 +62,50 @@ export async function POST(request: NextRequest) {
     };
     
     // Store metric in Supabase
-    const { data, error } = await getSupabaseClient()
-      .from('performance_metrics')
-      .insert([metricData])
-      .select('id, created_at')
-      .single();
+    try {
+      const { data, error } = await getSupabaseClient()
+        .from('performance_metrics')
+        .insert([metricData])
+        .select('id, created_at')
+        .single();
 
-    if (error) {
-      console.error('[PERFORMANCE METRIC DB ERROR]', error);
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to store metric in database',
-      }, { status: 500 });
-    }
+      if (error) {
+        console.error('[PERFORMANCE METRIC DB ERROR]', error);
+        // Don't throw 500, just log and continue
+        return NextResponse.json({
+          success: true,
+          warning: 'Metric received but not stored in database',
+        });
+      }
     
-    // Log to console with prefix for easy identification
-    console.log('[PERFORMANCE METRIC]', {
-      id: data.id,
-      name: metric.name,
-      value: metric.value,
-      rating: metric.rating || 'N/A',
-      timestamp: data.created_at,
-    });
-
-    // Clean up old metrics (keep only last 1000 to prevent table bloat)
-    await cleanupOldMetrics();
-
-    return NextResponse.json({
-      success: true,
-      data: {
+      // Log to console with prefix for easy identification
+      console.log('[PERFORMANCE METRIC]', {
         id: data.id,
-        received: true,
+        name: metric.name,
+        value: metric.value,
+        rating: metric.rating || 'N/A',
         timestamp: data.created_at,
-      },
-    });
+      });
+
+      // Clean up old metrics (keep only last 1000 to prevent table bloat)
+      await cleanupOldMetrics();
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: data.id,
+          received: true,
+          timestamp: data.created_at,
+        },
+      });
+    } catch (supabaseError: any) {
+      console.error('[PERFORMANCE METRIC SUPABASE ERROR]', supabaseError);
+      // Return success anyway to not interrupt the user experience
+      return NextResponse.json({ 
+        success: true, 
+        warning: 'Metric received but database unavailable' 
+      });
+    }
   } catch (error: any) {
     console.error('[PERFORMANCE API ERROR]', error);
     return NextResponse.json({

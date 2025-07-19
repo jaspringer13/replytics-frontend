@@ -167,7 +167,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         document.cookie = `user=${JSON.stringify(response.user)}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `token_expires_at=${expiresAt}; path=/; max-age=86400; SameSite=Lax`
         
-        router.push('/dashboard')
+        console.log('AuthContext: Navigating to dashboard...')
+        // Use window.location for guaranteed navigation
+        window.location.href = '/dashboard'
         return true
       }
       
