@@ -28,21 +28,34 @@ export default function SignInPage() {
     }
   }, [isAuthenticated, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    
+    console.log('=== SIGN IN ATTEMPT ===')
+    console.log('Email:', email)
+    console.log('Password length:', password.length)
+    
+    if (!email || !password) {
+      setError("Please enter email and password")
+      return
+    }
+    
     setError("")
     setIsLoading(true)
 
     try {
+      console.log('Calling login function...')
       const success = await login(email, password)
-      if (success) {
-        router.push("/dashboard")
-      } else {
+      console.log('Login result:', success)
+      
+      if (!success) {
         setError("Invalid email or password")
+        setIsLoading(false)
       }
+      // If success, AuthContext will handle the navigation
     } catch (err) {
+      console.error('Sign-in error:', err)
       setError("An error occurred. Please try again.")
-    } finally {
       setIsLoading(false)
     }
   }
@@ -100,8 +113,13 @@ export default function SignInPage() {
               </p>
             </div>
 
+
             {/* Sign In Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-6"
+              id="signin-form"
+            >
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
@@ -155,8 +173,12 @@ export default function SignInPage() {
 
               {/* Sign In Button */}
               <button
-                type="submit"
+                type="button"
                 disabled={isLoading}
+                onClick={() => {
+                  console.log('Sign in button clicked!')
+                  handleSubmit()
+                }}
                 className="w-full py-3 px-4 bg-gradient-to-r from-brand-400 to-brand-600 text-white font-medium rounded-lg hover:from-brand-500 hover:to-brand-700 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading ? (

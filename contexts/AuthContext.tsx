@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { apiClient } from '@/lib/api-client'
@@ -25,6 +25,8 @@ interface AuthContextType {
   tenantId: string | null
   onboardingStep: number
   updateOnboardingStep: (step: number) => Promise<void>
+  isTokenExpired: boolean
+  tokenExpiresAt: string | null
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -32,8 +34,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { data: session, status, update } = useSession()
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Initialize state from localStorage
+  const [localUser, setLocalUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserStr = localStorage.getItem('user')
+      if (storedUserStr) {
+        try {
+          return JSON.parse(storedUserStr)
+        } catch (err) {
+          console.error('Failed to parse stored user:', err)
+        }
+      }
+    }
+    return null
+  })
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have a stored user/token, we're not loading
+    if (typeof window !== 'undefined') {
+      const hasStoredAuth = !!localStorage.getItem('auth_token')
+      return !hasStoredAuth
+    }
+    return true
+  })
+  
+  // Token expiration utility function
+  const isTokenExpired = (expiresAt: string | null): boolean => {
+    if (!expiresAt) return true
+    return new Date(expiresAt) <= new Date()
+  }
+  
+  // Get stored expiration time
+  const tokenExpiresAt = typeof window !== 'undefined' 
+    ? localStorage.getItem('token_expires_at') 
+    : null
+
+  // Initialize API client from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token')
+      const expiresAt = localStorage.getItem('token_expires_at')
+      
+      if (storedToken) {
+        apiClient.setToken(storedToken, expiresAt || undefined)
+        console.log('AuthContext: Restored auth token from localStorage')
+      }
+    }
+  }, [])
 
   // Sync NextAuth session with localStorage and API client
   useEffect(() => {
@@ -47,27 +96,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authToken && tenantId) {
         localStorage.setItem('auth_token', authToken)
         localStorage.setItem('tenant_id', tenantId)
-        apiClient.setToken(authToken)
+        localStorage.setItem('token_expires_at', session.expires)
+        apiClient.setToken(authToken, session.expires)
         
         // Set cookies for middleware
         document.cookie = `auth_token=${authToken}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `tenant_id=${tenantId}; path=/; max-age=86400; SameSite=Lax`
+        document.cookie = `token_expires_at=${session.expires}; path=/; max-age=86400; SameSite=Lax`
       }
     } else {
       // Clear auth data
       localStorage.removeItem('auth_token')
       localStorage.removeItem('tenant_id')
+      localStorage.removeItem('token_expires_at')
       apiClient.setToken(null)
       
       // Remove cookies
       document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     }
     
-    setIsLoading(false)
-  }, [session, status])
+    // Only set loading false if we're not using email/password auth
+    if (!localUser && !localStorage.getItem('auth_token')) {
+      setIsLoading(false)
+    }
+  }, [session, status, localUser])
 
-  // Convert NextAuth session to our User type
+  // Token expiration monitoring and automatic refresh
+  useEffect(() => {
+    // Skip if loading
+    if (status === 'loading') return
+
+    const checkTokenExpiration = async () => {
+      const storedExpiresAt = localStorage.getItem('token_expires_at')
+      
+      if (isTokenExpired(storedExpiresAt)) {
+        console.log('Token expired, attempting to refresh session...')
+        
+        try {
+          if (session) {
+            // For OAuth sessions, attempt to refresh the session
+            const result = await update()
+            if (!result) {
+              console.log('Session refresh failed, logging out...')
+              await logout()
+            }
+          } else {
+            // For credential-based auth, attempt to refresh token
+            const refreshed = await apiClient.refreshToken()
+            if (!refreshed) {
+              console.log('Token refresh failed, logging out...')
+              await logout()
+            }
+          }
+        } catch (error) {
+          console.error('Failed to refresh session:', error)
+          await logout()
+        }
+      }
+    }
+
+    // Only run if we have either a session or stored auth token
+    const hasStoredToken = typeof window !== 'undefined' && localStorage.getItem('auth_token')
+    if (session || hasStoredToken) {
+      // Check immediately
+      checkTokenExpiration()
+
+      // Set up periodic checking (every 5 minutes)
+      const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000)
+
+      return () => clearInterval(interval)
+    }
+  }, [session, status, update, logout])
+
+  // Convert NextAuth session to our User type, or use local user
   const user: User | null = session?.user ? {
     id: session.user.id,
     email: session.user.email || '',
@@ -75,30 +178,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tenantId: session.user.tenantId,
     authToken: session.user.authToken,
     onboardingStep: session.user.onboardingStep
-  } : null
+  } : localUser
 
   // Traditional email/password login (for testing)
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting login...')
       const response = await apiClient.login(email, password)
+      console.log('AuthContext: Login response received:', response)
       
       if (response.token && response.user) {
+        console.log('AuthContext: Valid response, setting up auth...')
+        // Calculate token expiration (24 hours from now if not provided)
+        const expiresAt = response.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        
         // Store user data and token
         localStorage.setItem('user', JSON.stringify(response.user))
         localStorage.setItem('auth_token', response.token)
         localStorage.setItem('tenant_id', response.user.id) // Assuming user.id is tenant_id for email login
+        localStorage.setItem('token_expires_at', expiresAt)
+        
+        // Set API client token with expiration
+        apiClient.setToken(response.token, expiresAt)
+        
+        // Update local user state
+        setLocalUser(response.user)
+        
+        // CRITICAL: Set loading to false after successful login
+        setIsLoading(false)
         
         // Set cookies for middleware
         document.cookie = `auth_token=${response.token}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `user=${JSON.stringify(response.user)}; path=/; max-age=86400; SameSite=Lax`
+        document.cookie = `token_expires_at=${expiresAt}; path=/; max-age=86400; SameSite=Lax`
         
+        console.log('AuthContext: Auth state before navigation:', {
+          user: response.user,
+          isLoading: false,
+          hasToken: !!response.token
+        })
+        console.log('AuthContext: Navigating to dashboard...')
+        
+        // Navigate with client-side routing
         router.push('/dashboard')
+        
         return true
       }
       
+      console.log('AuthContext: Invalid response - missing token or user')
       return false
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('AuthContext: Login failed with error:', error)
       return false
     }
   }
@@ -131,7 +261,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Logout
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // Clear backend session if using email/password
       if (!session) {
@@ -142,10 +272,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('user')
       localStorage.removeItem('auth_token')
       localStorage.removeItem('tenant_id')
+      localStorage.removeItem('token_expires_at')
       
       // Clear cookies
       document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       
       // Sign out from NextAuth if using OAuth
@@ -157,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }
+  }, [session, router])
 
   // Update onboarding step
   const updateOnboardingStep = async (step: number) => {
@@ -166,15 +298,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const isAuthenticated = !!user || (status === 'authenticated')
-  const token = session?.user?.authToken || localStorage.getItem('auth_token')
-  const tenantId = session?.user?.tenantId || localStorage.getItem('tenant_id')
+  // Check localStorage for auth state
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
+  
+  const isAuthenticated = !!user || (status === 'authenticated') || !!storedToken
+  const token = session?.user?.authToken || storedToken
+  const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0
+
+  // Debug logging
+  useEffect(() => {
+    console.log('AuthContext state:', {
+      user: !!user,
+      localUser: !!localUser,
+      isLoading,
+      isAuthenticated,
+      hasToken: !!token,
+      storedToken: !!storedToken,
+      nextAuthStatus: status
+    })
+  }, [user, localUser, isLoading, isAuthenticated, token, storedToken, status])
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      isLoading: isLoading || status === 'loading', 
+      isLoading: isLoading, // Don't include NextAuth status for email/password login
       login, 
       signInWithGoogle,
       logout, 
@@ -182,7 +331,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       tenantId,
       onboardingStep,
-      updateOnboardingStep
+      updateOnboardingStep,
+      isTokenExpired: isTokenExpired(tokenExpiresAt),
+      tokenExpiresAt
     }}>
       {children}
     </AuthContext.Provider>
