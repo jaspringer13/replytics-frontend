@@ -13,6 +13,7 @@ import {
 import { useSMSConversations } from '@/hooks/useBackendData'
 import { SMS, apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
 
 // Mock templates - in real app these would come from API
 const mockTemplates: MessageTemplate[] = [
@@ -85,6 +86,7 @@ export default function MessagesPage() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [aiEnabled, setAiEnabled] = useState(true)
   const [newMessage, setNewMessage] = useState('')
+  const { toast } = useToast()
   
   const { 
     data: messages, 
@@ -127,7 +129,7 @@ export default function MessagesPage() {
       await refetch()
     } catch (error) {
       console.error('Failed to send message:', error)
-      // TODO: Show error toast to user
+      toast.error('Failed to send message', 'Please check your connection and try again.')
     }
   }
 
@@ -143,7 +145,7 @@ export default function MessagesPage() {
       await refetch()
     } catch (error) {
       console.error('Failed to override AI message:', error)
-      // TODO: Show error toast to user
+      toast.error('Failed to override AI message', 'Please try again.')
     }
   }
 
