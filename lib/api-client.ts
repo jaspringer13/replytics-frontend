@@ -76,6 +76,7 @@ class APIClient {
 
   constructor(private requestTimeout: number = 30000) {
     this.baseURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
+    console.log('APIClient initialized with baseURL:', this.baseURL);
     if (!this.baseURL) {
       console.warn('Backend API URL not configured. Please set NEXT_PUBLIC_BACKEND_API_URL in .env.local');
     }
@@ -264,17 +265,24 @@ class APIClient {
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/api/dashboard/auth/', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-    
-    this.setToken(response.token, response.expires_at, response.expires_in);
-    // Assuming the response includes tenant_id for email/password login
-    if (response.user?.id) {
-      this.setTenantId(response.user.id);
+    console.log('Login attempt:', { email, baseURL: this.baseURL });
+    try {
+      const response = await this.request<AuthResponse>('/api/dashboard/auth/', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+      console.log('Login response:', response);
+      
+      this.setToken(response.token, response.expires_at, response.expires_in);
+      // Assuming the response includes tenant_id for email/password login
+      if (response.user?.id) {
+        this.setTenantId(response.user.id);
+      }
+      return response;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
-    return response;
   }
   
   async loginWithGoogle(googleData: {

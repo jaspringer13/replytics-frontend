@@ -144,9 +144,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Traditional email/password login (for testing)
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('AuthContext: Attempting login...')
       const response = await apiClient.login(email, password)
+      console.log('AuthContext: Login response received:', response)
       
       if (response.token && response.user) {
+        console.log('AuthContext: Valid response, setting up auth...')
         // Calculate token expiration (24 hours from now if not provided)
         const expiresAt = response.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         
@@ -168,9 +171,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return true
       }
       
+      console.log('AuthContext: Invalid response - missing token or user')
       return false
     } catch (error) {
-      console.error('Login failed:', error)
+      console.error('AuthContext: Login failed with error:', error)
       return false
     }
   }
