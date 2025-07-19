@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Security
-    SECRET_KEY: str
+    SECRET_KEY: str = "CHANGE-THIS-IN-PRODUCTION-565036f21c4432f389b3fdfddd47d4d1"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_HOURS: int = 24
     
@@ -27,16 +27,16 @@ class Settings(BaseSettings):
     ]
     
     # Database
-    SUPABASE_URL: str
-    SUPABASE_SERVICE_ROLE_KEY: str
+    SUPABASE_URL: str = "https://placeholder.supabase.co"
+    SUPABASE_SERVICE_ROLE_KEY: str = "placeholder-key"
     
     # External Services
     VOICE_BOT_URL: str = "https://replytics-dhhf.onrender.com"
     VOICE_BOT_API_KEY: Optional[str] = None
     
     # Google OAuth
-    GOOGLE_CLIENT_ID: str
-    GOOGLE_CLIENT_SECRET: str
+    GOOGLE_CLIENT_ID: str = "placeholder-google-client-id"
+    GOOGLE_CLIENT_SECRET: str = "placeholder-google-client-secret"
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60

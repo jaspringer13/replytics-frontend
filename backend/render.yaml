@@ -2,6 +2,7 @@ services:
   - type: web
     name: replytics-dashboard-api
     runtime: python
+    rootDir: backend
     buildCommand: ./render-build.sh
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
