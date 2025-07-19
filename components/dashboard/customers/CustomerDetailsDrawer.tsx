@@ -266,11 +266,31 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'history' && (
                   <div className="space-y-4">
-                    {/* TODO: Implement appointment history functionality
-                         - Fetch customer's appointment history from API
-                         - Display appointments with date, service, status
-                         - Add filtering/sorting options
-                         - Show appointment details and outcomes */}
+                    {/* IMPLEMENTATION OUTLINE: Appointment History
+                         
+                         1. Data Structure & API:
+                         - Create AppointmentHistory interface with fields:
+                           { id, customerId, date, service, status, duration, cost, notes, outcome }
+                         - Add API endpoint: GET /api/customers/:id/appointments
+                         - Implement filtering params: status, dateRange, service
+                         
+                         2. State Management:
+                         - Add appointments state with loading/error states
+                         - Implement useEffect to fetch data when tab becomes active
+                         - Add pagination for large appointment lists
+                         
+                         3. UI Components:
+                         - AppointmentCard: Show date, service, status badge, cost
+                         - Timeline view with chronological ordering
+                         - Filter controls: date picker, status dropdown, service type
+                         - Empty state for customers with no appointments
+                         
+                         4. Features:
+                         - Click to expand appointment details (notes, outcome)
+                         - Status color coding (completed: green, cancelled: red, no-show: orange)
+                         - Quick actions: reschedule, add notes, mark no-show
+                         - Export appointment history to CSV/PDF
+                    */}
                     <p className="text-gray-400 text-center py-8">
                       Appointment history will be displayed here
                     </p>
@@ -279,12 +299,46 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'notes' && (
                   <div className="space-y-4">
-                    {/* TODO: Implement customer notes and communication history
-                         - Create notes management interface (add/edit/delete)
-                         - Display SMS/call communication history
-                         - Add timestamps and user attribution for notes
-                         - Implement search/filter functionality
-                         - Add rich text editor for notes */}
+                    {/* IMPLEMENTATION OUTLINE: Customer Notes & Communication History
+                         
+                         1. Data Structure & API:
+                         - CustomerNote interface: { id, customerId, content, type: 'note'|'sms'|'call', 
+                           createdBy, createdAt, updatedAt, isPrivate, tags[] }
+                         - API endpoints: 
+                           * GET /api/customers/:id/notes (with pagination, filters)
+                           * POST /api/customers/:id/notes (create new note)
+                           * PUT /api/notes/:id (edit existing note)
+                           * DELETE /api/notes/:id (soft delete with audit trail)
+                         
+                         2. State Management:
+                         - notes state with CRUD operations
+                         - Real-time updates via WebSocket for team collaboration
+                         - Optimistic updates for better UX
+                         - Search/filter state (by type, date range, tags, user)
+                         
+                         3. UI Components:
+                         - NoteCard: Display note content, timestamp, author, edit/delete actions
+                         - AddNoteForm: Rich text editor with @ mentions, file attachments
+                         - CommunicationTimeline: Unified view of notes, SMS, calls
+                         - SearchBar: Filter by content, tags, date, communication type
+                         - TagInput: Categorize notes (follow-up, complaint, preference, etc.)
+                         
+                         4. Features:
+                         - Rich text editing with formatting (bold, italic, lists, links)
+                         - File attachments (images, documents) with preview
+                         - @mentions for team notifications
+                         - Quick templates for common note types
+                         - Export notes to PDF/CSV
+                         - Note privacy controls (public vs team-only)
+                         - Auto-generated notes from communication (SMS/call logs)
+                         - Full-text search across all notes and communications
+                         
+                         5. Communication Integration:
+                         - Display SMS message history with send/receive timestamps
+                         - Show call logs with duration, outcome, recording links
+                         - Auto-create notes from missed calls or failed messages
+                         - Link notes to specific appointments or interactions
+                    */}
                     <p className="text-gray-400 text-center py-8">
                       Customer notes and communication history will be displayed here
                     </p>

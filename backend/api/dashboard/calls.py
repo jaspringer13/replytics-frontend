@@ -20,7 +20,7 @@ async def get_calls(
     status: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
     offset: int = Query(0),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """Get call history with filtering"""
     supabase: SupabaseService = request.app.state.supabase
@@ -56,7 +56,7 @@ async def get_calls(
 async def get_call_recording(
     request: Request,
     call_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """Get recording URL for a call"""
     supabase: SupabaseService = request.app.state.supabase
@@ -87,7 +87,7 @@ async def get_call_recording(
 @router.get("/stats")
 async def get_call_stats(
     request: Request,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user)  # noqa: B008
 ):
     """Get call statistics for current period"""
     supabase: SupabaseService = request.app.state.supabase
@@ -108,29 +108,58 @@ async def get_call_stats(
     today = datetime.now().date()
     week_ago = today - timedelta(days=7)
     
-    # Get today's stats
-    today_result = supabase.client.table('calls')\
-        .select('status', count='exact')\
+    # Use database aggregation for better performance
+    # Get today's total calls
+    today_total = supabase.client.table('calls')\
+        .select('*', count='exact')\
         .eq('business_id', profile["id"])\
         .gte('created_at', today.isoformat())\
         .execute()
     
-    # Get week stats
-    week_result = supabase.client.table('calls')\
-        .select('status', count='exact')\
+    # Get today's answered calls
+    today_answered = supabase.client.table('calls')\
+        .select('*', count='exact')\
+        .eq('business_id', profile["id"])\
+        .eq('status', 'completed')\
+        .gte('created_at', today.isoformat())\
+        .execute()
+    
+    # Get today's missed calls
+    today_missed = supabase.client.table('calls')\
+        .select('*', count='exact')\
+        .eq('business_id', profile["id"])\
+        .eq('status', 'missed')\
+        .gte('created_at', today.isoformat())\
+        .execute()
+    
+    # Get week's total calls
+    week_total = supabase.client.table('calls')\
+        .select('*', count='exact')\
         .eq('business_id', profile["id"])\
         .gte('created_at', week_ago.isoformat())\
         .execute()
     
-    # Calculate stats
-    today_calls = today_result.data or []
-    week_calls = week_result.data or []
+    # Get week's answered calls
+    week_answered = supabase.client.table('calls')\
+        .select('*', count='exact')\
+        .eq('business_id', profile["id"])\
+        .eq('status', 'completed')\
+        .gte('created_at', week_ago.isoformat())\
+        .execute()
+    
+    # Get week's missed calls
+    week_missed = supabase.client.table('calls')\
+        .select('*', count='exact')\
+        .eq('business_id', profile["id"])\
+        .eq('status', 'missed')\
+        .gte('created_at', week_ago.isoformat())\
+        .execute()
     
     return {
-        "todayTotal": len(today_calls),
-        "todayAnswered": len([c for c in today_calls if c.get('status') == 'completed']),
-        "todayMissed": len([c for c in today_calls if c.get('status') == 'missed']),
-        "weekTotal": len(week_calls),
-        "weekAnswered": len([c for c in week_calls if c.get('status') == 'completed']),
-        "weekMissed": len([c for c in week_calls if c.get('status') == 'missed'])
+        "todayTotal": today_total.count or 0,
+        "todayAnswered": today_answered.count or 0,
+        "todayMissed": today_missed.count or 0,
+        "weekTotal": week_total.count or 0,
+        "weekAnswered": week_answered.count or 0,
+        "weekMissed": week_missed.count or 0
     }

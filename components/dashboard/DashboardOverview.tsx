@@ -14,7 +14,7 @@ import { markStatsLoaded } from '@/lib/performance/metrics'
 import { cn } from '@/lib/utils'
 import { InsightCards, type InsightCard } from './overview/InsightCards'
 import { QuickActions } from './overview/QuickActions'
-import { ServicePerformance } from './overview/ServicePerformance'
+import { ServicePerformanceList } from './overview/ServicePerformance'
 import { AIActivityFeed, type AIActivity } from './overview/AIActivityFeed'
 
 const INSIGHT_THRESHOLDS = {
@@ -301,7 +301,7 @@ export function DashboardOverview() {
 
       {/* Service Performance & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ServicePerformance 
+        <ServicePerformanceList 
           topServices={analytics?.topServices} 
           loading={analyticsLoading} 
         />

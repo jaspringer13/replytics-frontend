@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService
+from services.voice_bot_service import VoiceBotService
 
 router = APIRouter()
 
@@ -66,7 +67,8 @@ async def get_business_profile(request: Request, current_user: dict = Depends(ge
             "industry": "general",
             "timezone": "America/New_York"
         }
-        supabase.client.table('business_profiles').insert(profile).execute()
+        result = supabase.client.table('business_profiles').upsert(profile).execute()
+        profile = result.data[0] if result.data else profile
     
     return profile
 
@@ -147,7 +149,9 @@ async def update_voice_settings(
     if not updated_settings:
         raise HTTPException(status_code=500, detail="Failed to update voice settings")
     
-    # TODO: Notify voice bot service of settings change
+    # Notify voice bot service of settings change
+    voice_bot = VoiceBotService()
+    await voice_bot.notify_settings_change(profile["id"], updated_settings)
     
     return updated_settings
 
@@ -208,5 +212,9 @@ async def update_conversation_rules(
     
     if not updated_profile:
         raise HTTPException(status_code=500, detail="Failed to update conversation rules")
+    
+    # Notify voice bot service of conversation rules change
+    voice_bot = VoiceBotService()
+    await voice_bot.notify_conversation_rules_change(profile["id"], current_rules)
     
     return current_rules

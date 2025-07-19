@@ -116,7 +116,7 @@ async def update_service(
         return {"message": "No updates provided"}
     
     # Update service
-    result = supabase.client.table('services').update(update_data).eq('id', service_id).execute()
+    result = await supabase.client.table('services').update(update_data).eq('id', service_id).execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Service not found")

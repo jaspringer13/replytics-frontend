@@ -3,7 +3,7 @@ Billing and usage endpoints
 """
 
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, HTTPException
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService

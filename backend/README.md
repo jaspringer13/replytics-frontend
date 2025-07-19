@@ -42,8 +42,8 @@ Production-ready FastAPI backend for the Replytics AI Voice Receptionist Dashboa
    ```
 
 4. **Access the API documentation**:
-   - Swagger UI: http://localhost:8000/docs
-   - ReDoc: http://localhost:8000/redoc
+   - Swagger UI: <http://localhost:8000/docs>
+   - ReDoc: <http://localhost:8000/redoc>
 
 ## API Endpoints
 
@@ -83,7 +83,7 @@ Production-ready FastAPI backend for the Replytics AI Voice Receptionist Dashboa
 1. **Fork/Clone this repository** to your GitHub account
 
 2. **Go to Render Dashboard**:
-   - Visit https://dashboard.render.com
+   - Visit <https://dashboard.render.com>
    - Click "New +" → "Web Service"
 
 3. **Connect your repository**:
@@ -98,7 +98,7 @@ Production-ready FastAPI backend for the Replytics AI Voice Receptionist Dashboa
    - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 5. **Add environment variables**:
-   ```
+   ```bash
    SECRET_KEY=<generate-a-secure-key>
    SUPABASE_URL=<your-supabase-url>
    SUPABASE_SERVICE_ROLE_KEY=<your-supabase-service-role-key>

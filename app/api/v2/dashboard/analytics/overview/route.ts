@@ -5,6 +5,16 @@ import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDis
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
+// Customer segmentation thresholds - consider making these configurable per business
+const SEGMENTATION_THRESHOLDS = {
+  NEW_CUSTOMER_DAYS: 90,        // Customers are "new" for first 90 days
+  DORMANT_DAYS: 60,             // No activity for 60+ days = dormant
+  AT_RISK_DAYS: 45,             // No activity for 45+ days with history = at risk
+  VIP_LIFETIME_VALUE: 2000,     // Minimum lifetime value for VIP status
+  VIP_MIN_APPOINTMENTS: 10,     // Minimum appointments for VIP status
+  AT_RISK_MIN_APPOINTMENTS: 3   // Minimum appointments to be considered "at risk"
+};
+
 /**
  * GET /api/v2/dashboard/analytics/overview
  * Get comprehensive dashboard overview with metrics and trends
@@ -344,13 +354,15 @@ async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribut
     const daysSinceFirst = Math.floor((now.getTime() - data.firstAppointment.getTime()) / (1000 * 60 * 60 * 24));
     const daysSinceLast = Math.floor((now.getTime() - data.lastAppointment.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (daysSinceFirst < 90) {
+    if (daysSinceFirst < SEGMENTATION_THRESHOLDS.NEW_CUSTOMER_DAYS) {
       segmentCounts.new++;
-    } else if (daysSinceLast > 60) {
+    } else if (daysSinceLast > SEGMENTATION_THRESHOLDS.DORMANT_DAYS) {
       segmentCounts.dormant++;
-    } else if (data.lifetimeValue > 2000 && data.totalAppointments > 10) {
+    } else if (data.lifetimeValue > SEGMENTATION_THRESHOLDS.VIP_LIFETIME_VALUE && 
+               data.totalAppointments > SEGMENTATION_THRESHOLDS.VIP_MIN_APPOINTMENTS) {
       segmentCounts.vip++;
-    } else if (daysSinceLast > 45 && data.totalAppointments > 3) {
+    } else if (daysSinceLast > SEGMENTATION_THRESHOLDS.AT_RISK_DAYS && 
+               data.totalAppointments > SEGMENTATION_THRESHOLDS.AT_RISK_MIN_APPOINTMENTS) {
       segmentCounts.atRisk++;
     } else {
       segmentCounts.regular++;

@@ -21,6 +21,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Validate tenantId format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tenantId)) {
+      return NextResponse.json(
+        { error: 'Invalid tenant ID format' },
+        { status: 400 }
+      );
+    }
+
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';
@@ -87,6 +96,15 @@ export async function POST(request: NextRequest) {
     if (!tenantId) {
       return NextResponse.json(
         { error: 'Tenant ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate tenantId format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(tenantId)) {
+      return NextResponse.json(
+        { error: 'Invalid tenant ID format' },
         { status: 400 }
       );
     }

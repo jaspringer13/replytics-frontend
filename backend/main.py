@@ -25,9 +25,11 @@ from api.v2.dashboard.customers import router as customers_router
 from api.v2.dashboard.analytics import router as analytics_router
 from api.v2.dashboard.services import router as services_router
 from api.v2.dashboard.hours import router as hours_router
+from api.v2.dashboard.voice_bot_proxy import router as voice_bot_proxy_router
 from api.dashboard.calls import router as calls_router
 from api.dashboard.sms import router as sms_router
 from api.dashboard.billing import router as billing_router
+from api.v1.webhooks import router as webhooks_router
 
 # Import middleware
 from middleware.auth import AuthMiddleware
@@ -93,9 +95,11 @@ app.include_router(customers_router, prefix="/api/v2/dashboard/customers", tags=
 app.include_router(analytics_router, prefix="/api/v2/dashboard/analytics", tags=["Analytics"])
 app.include_router(services_router, prefix="/api/v2/dashboard/services", tags=["Services"])
 app.include_router(hours_router, prefix="/api/v2/dashboard/hours", tags=["Hours"])
+app.include_router(voice_bot_proxy_router, prefix="/api/v2/dashboard/voice-bot", tags=["Voice Bot"])
 app.include_router(calls_router, prefix="/api/dashboard/calls", tags=["Calls"])
 app.include_router(sms_router, prefix="/api/dashboard/sms", tags=["SMS"])
 app.include_router(billing_router, prefix="/api/dashboard/billing", tags=["Billing"])
+app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["Webhooks"])
 
 
 @app.get("/")

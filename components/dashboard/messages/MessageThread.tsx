@@ -83,10 +83,41 @@ export function MessageThread({
     })
   }
 
-  const enhancedMessages: ExtendedSMS[] = messages.map(msg => ({
-    ...msg,
-    // AI metadata should come from the backend with the message
-  }))
+  const enhancedMessages: ExtendedSMS[] = messages.map(msg => {
+    // Check if AI metadata exists on the message (from backend)
+    const hasBackendAIData = 'aiGenerated' in msg || 'aiConfidence' in msg || 'aiOverridden' in msg
+    
+    let aiMetadata: AIMessageMetadata | undefined
+    
+    if (hasBackendAIData) {
+      // Use backend AI metadata when available
+      aiMetadata = {
+        isAI: (msg as any).aiGenerated === true,
+        confidence: (msg as any).aiConfidence || 0,
+        suggestedResponse: (msg as any).aiSuggestedResponse,
+        overridden: (msg as any).aiOverridden === true
+      }
+    } else {
+      // Temporary mock logic based on message characteristics
+      // This should be replaced when backend provides AI metadata
+      const isOutbound = msg.direction === 'outbound'
+      const hasAIIndicators = /^(Thank you|Hi|Hello|I can help|Let me check)/i.test(msg.message)
+      const isLikelyAI = isOutbound && (hasAIIndicators || msg.message.length > 50)
+      
+      if (isLikelyAI) {
+        aiMetadata = {
+          isAI: true,
+          confidence: Math.floor(Math.random() * 20) + 80, // 80-99% confidence for demo
+          overridden: false
+        }
+      }
+    }
+    
+    return {
+      ...msg,
+      aiMetadata
+    }
+  })
 
   return (
     <div className="flex flex-col h-full">
@@ -123,7 +154,7 @@ export function MessageThread({
                         <span className="text-xs text-purple-400">AI Response</span>
                         {message.aiMetadata?.confidence !== undefined && (
                           <span className="text-xs text-purple-300">
-                            {message.aiMetadata.confidence.toFixed(0)}%
+                            {(message.aiMetadata.confidence ?? 0).toFixed(0)}%
                           </span>
                         )}
                       </div>

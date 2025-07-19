@@ -12,6 +12,11 @@ python-multipart>=0.0.6
 httpx>=0.25.0,<0.26.0
 email-validator>=2.1.0
 
+# Voice Bot Integration
+tenacity>=8.2.3,<9.0.0
+pyjwt>=2.8.0,<3.0.0
+redis>=5.0.0,<6.0.0
+
 # Database
 supabase==2.3.4
 gotrue==2.4.1

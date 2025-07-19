@@ -4,21 +4,11 @@ Customer management endpoints
 
 from typing import Optional
 from fastapi import APIRouter, Request, Depends, Query
-from pydantic import BaseModel
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService
 
 router = APIRouter()
-
-
-class CustomerFilters(BaseModel):
-    search: Optional[str] = None
-    segment: Optional[str] = None
-    sortBy: Optional[str] = "lastInteraction"
-    sortOrder: Optional[str] = "desc"
-    page: int = 1
-    pageSize: int = 10
 
 
 @router.get("/")
@@ -75,12 +65,12 @@ async def get_segment_counts(
         }
     
     # Query customer_segments materialized view for actual counts
-    query = supabase.client.from('customer_segments').select('segment').eq('tenant_id', profile["id"])
+    query = supabase.client.table('customer_segments').select('segment').eq('tenant_id', profile["id"])
     
     # Apply search filter if provided
     if search:
         search_term = f"%{search.lower()}%"
-        query = query.or(f"first_name.ilike.{search_term},last_name.ilike.{search_term},ani_hash.ilike.{search_term}")
+        query = query.or_(f"first_name.ilike.{search_term},last_name.ilike.{search_term},ani_hash.ilike.{search_term}")
     
     response = query.execute()
     

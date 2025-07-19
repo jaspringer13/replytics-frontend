@@ -13,9 +13,7 @@ import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
 import { BusinessProfile } from '@/app/models/dashboard';
 
-interface BusinessProfileTabProps {}
-
-export function BusinessProfileTab({}: BusinessProfileTabProps) {
+export function BusinessProfileTab() {
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

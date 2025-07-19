@@ -11,7 +11,7 @@ interface ServicePerformanceProps {
   loading?: boolean
 }
 
-export function ServicePerformance({ topServices, loading }: ServicePerformanceProps) {
+export function ServicePerformanceList({ topServices, loading }: ServicePerformanceProps) {
   if (loading) {
     return (
       <motion.div

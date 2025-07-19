@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { VoiceSettings } from '@/app/models/dashboard';
+import { voiceSynthesisService } from '@/lib/voice-synthesis';
 
 
 
@@ -39,6 +40,12 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !business) {
+      console.error('Error fetching business for voice settings:', {
+        tenantId,
+        error: error?.message || 'Unknown error',
+        code: error?.code,
+        details: error?.details
+      });
       return NextResponse.json(
         { error: 'Business not found' },
         { status: 404 }
@@ -53,10 +60,13 @@ export async function GET(request: NextRequest) {
       pitch: 1.0
     };
 
+    // Get available voices from synthesis service
+    const availableVoices = await voiceSynthesisService.getAvailableVoices();
+
     return NextResponse.json({
       success: true,
       data: voiceSettings,
-      availableVoices: AVAILABLE_VOICES
+      availableVoices
     });
 
   } catch (error) {
@@ -160,6 +170,8 @@ export async function PATCH(request: NextRequest) {
 
     // CRITICAL: Broadcast real-time update for voice agent
     const channel = getSupabaseServer().channel(`voice-settings:${tenantId}`);
+    // Subscribe to ensure the client is ready to send
+    await channel.subscribe();
     
     try {
       // Send immediate notification
@@ -180,6 +192,7 @@ export async function PATCH(request: NextRequest) {
 
     // Also update via general business channel
     const businessChannel = getSupabaseServer().channel(`business:${tenantId}`);
+    await businessChannel.subscribe();
     try {
       await businessChannel.send({
         type: 'broadcast',
@@ -229,13 +242,53 @@ export async function POST(request: NextRequest) {
 
     const { message = 'Hello! This is a test of your voice settings.', settings } = await request.json();
 
-    // Here you would integrate with your voice synthesis service
-    // For now, return a mock response
+    // Get current voice settings if not provided
+    let voiceSettings: VoiceSettings;
+    if (settings) {
+      voiceSettings = settings;
+    } else {
+      const { data: business, error } = await getSupabaseServer()
+        .from('businesses')
+        .select('voice_settings')
+        .eq('id', tenantId)
+        .single();
+
+      if (error || !business) {
+        console.error('Error fetching business voice settings for test:', error);
+        return NextResponse.json(
+          { error: 'Unable to load voice settings' },
+          { status: 404 }
+        );
+      }
+
+      voiceSettings = business.voice_settings || {
+        voiceId: 'kdmDKE6EkgrWrrykO9Qt',
+        speakingStyle: 'friendly_professional',
+        speed: 1.0,
+        pitch: 1.0
+      };
+    }
+
+    // Integrate with voice synthesis service
+    const result = await voiceSynthesisService.synthesizeVoice({
+      text: message,
+      settings: voiceSettings,
+      tenantId
+    });
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || 'Voice synthesis failed' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Voice test initiated',
-      audioUrl: `/api/v2/dashboard/business/voice-settings/test-audio?voice=${encodeURIComponent(settings?.voiceId || 'default')}`,
-      duration: 3.5
+      message: 'Voice test generated successfully',
+      audioUrl: result.audioUrl,
+      duration: result.duration,
+      voiceSettings
     });
 
   } catch (error) {

@@ -30,9 +30,22 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = "https://placeholder.supabase.co"
     SUPABASE_SERVICE_ROLE_KEY: str = "placeholder-key"
     
-    # External Services
+    # Voice Bot Integration
     VOICE_BOT_URL: str = "https://replytics-dhhf.onrender.com"
+    VOICE_BOT_JWT_SECRET: str = "b26a442d04ee6198e74663f97bd5e9e64aa82a518d918974da2107678df1d694"
+    VOICE_BOT_JWT_ALGORITHM: str = "HS256"
+    VOICE_BOT_JWT_EXPIRE_MINUTES: int = 30
+    VOICE_BOT_INTERNAL_TOKEN: str = "9cdd5b1bd1d15577cd12611617fe31abcbdf64e652cb4ce9d79a3f8a9c5885ce"
+    VOICE_BOT_TIMEOUT: int = 30
+    VOICE_BOT_MAX_RETRIES: int = 3
+    VOICE_BOT_CACHE_TTL: int = 300  # 5 minutes
+    VOICE_BOT_WEBHOOK_SECRET: Optional[str] = None  # Secret for webhook signature verification
+    
+    # Deprecated - keeping for backward compatibility
     VOICE_BOT_API_KEY: Optional[str] = None
+    
+    # Redis (for caching)
+    REDIS_URL: Optional[str] = None
     
     # Google OAuth
     GOOGLE_CLIENT_ID: str = "placeholder-google-client-id"

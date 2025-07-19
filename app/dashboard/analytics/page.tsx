@@ -22,6 +22,14 @@ export default function AnalyticsPage() {
     end: new Date().toISOString().split('T')[0]
   })
   
+  // Validate date range doesn't exceed reasonable limits (e.g., 1 year)
+  const validateDateRange = (start: string, end: string) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const daysDiff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    return daysDiff <= 365; // Max 1 year
+  };
+  
   // Fetch analytics data
   const { analytics, loading, error, refetch } = useAnalytics({
     startDate: dateRange.start,
@@ -74,14 +82,24 @@ export default function AnalyticsPage() {
               <input
                 type="date"
                 value={dateRange.start}
-                onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                onChange={(e) => {
+                  const newStart = e.target.value;
+                  if (validateDateRange(newStart, dateRange.end)) {
+                    setDateRange({ ...dateRange, start: newStart });
+                  }
+                }}
                 className="bg-transparent text-white text-sm outline-none"
               />
               <span className="text-gray-400">to</span>
               <input
                 type="date"
                 value={dateRange.end}
-                onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                onChange={(e) => {
+                  const newEnd = e.target.value;
+                  if (validateDateRange(dateRange.start, newEnd)) {
+                    setDateRange({ ...dateRange, end: newEnd });
+                  }
+                }}
                 className="bg-transparent text-white text-sm outline-none"
               />
             </div>
@@ -128,7 +146,7 @@ export default function AnalyticsPage() {
           
           <KPICard
             title="Retention Rate"
-            value={`${calculateRetentionRate().toFixed(1)}%`}
+            value={`${(calculateRetentionRate() || 0).toFixed(1)}%`}
             previousValue={`${Object.values(analytics?.customerSegments || {}).reduce((sum, count) => sum + count, 0)} total customers`}
             changeType="neutral"
             icon={<Star className="h-6 w-6" />}
