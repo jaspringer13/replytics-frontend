@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { useAnalytics } from '@/hooks/useAnalytics'
+import { formatCurrency } from '@/lib/utils/currency'
 import { KPICard } from '@/components/dashboard/analytics/KPICard'
 import { ChartWrapper } from '@/components/dashboard/charts/ChartWrapper'
 import { RevenueTrendChart } from '@/components/dashboard/analytics/RevenueTrendChart'
@@ -22,12 +23,12 @@ export default function AnalyticsPage() {
     end: new Date().toISOString().split('T')[0]
   })
   
-  // Validate date range doesn't exceed reasonable limits (e.g., 1 year)
+  // Validate date range doesn't exceed reasonable limits (e.g., 1 year) and start is before end
   const validateDateRange = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const daysDiff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-    return daysDiff <= 365; // Max 1 year
+    return daysDiff >= 0 && daysDiff <= 365; // Start must be before end, max 1 year
   };
   
   // Fetch analytics data
@@ -36,15 +37,6 @@ export default function AnalyticsPage() {
     endDate: dateRange.end
   })
   
-  // Format currency for display
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value)
-  }
   
   // Calculate retention rate from customer segments
   const calculateRetentionRate = () => {
@@ -84,7 +76,7 @@ export default function AnalyticsPage() {
                 value={dateRange.start}
                 onChange={(e) => {
                   const newStart = e.target.value;
-                  if (validateDateRange(newStart, dateRange.end)) {
+                  if (newStart <= dateRange.end && validateDateRange(newStart, dateRange.end)) {
                     setDateRange({ ...dateRange, start: newStart });
                   }
                 }}
@@ -96,7 +88,7 @@ export default function AnalyticsPage() {
                 value={dateRange.end}
                 onChange={(e) => {
                   const newEnd = e.target.value;
-                  if (validateDateRange(dateRange.start, newEnd)) {
+                  if (newEnd >= dateRange.start && validateDateRange(dateRange.start, newEnd)) {
                     setDateRange({ ...dateRange, end: newEnd });
                   }
                 }}

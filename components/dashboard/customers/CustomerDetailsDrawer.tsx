@@ -22,39 +22,21 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
   if (!customer) return null
 
   // Handle send message action
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     if (!customer.phone) {
       toast.error('No phone number available for this customer')
       return
     }
     
-    setIsLoading(true)
-    try {
-      // TODO: Implement SMS sending logic
-      // For now, show a coming soon message
-      toast.info('SMS messaging feature coming soon!')
-    } catch (error) {
-      console.error('Failed to send message:', error)
-      toast.error('Failed to send message. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+    // TODO: Implement SMS sending logic
+    toast.info('SMS messaging feature coming soon!')
   }
 
   // Handle book appointment action
-  const handleBookAppointment = async () => {
-    setIsLoading(true)
-    try {
-      // TODO: Implement appointment booking logic
-      // For now, show a coming soon message and close drawer
-      toast.info('Appointment booking feature coming soon!')
-      onClose()
-    } catch (error) {
-      console.error('Failed to book appointment:', error)
-      toast.error('Failed to book appointment. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
+  const handleBookAppointment = () => {
+    // TODO: Implement appointment booking logic
+    toast.info('Appointment booking feature coming soon!')
+    onClose()
   }
 
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
@@ -266,31 +248,7 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'history' && (
                   <div className="space-y-4">
-                    {/* IMPLEMENTATION OUTLINE: Appointment History
-                         
-                         1. Data Structure & API:
-                         - Create AppointmentHistory interface with fields:
-                           { id, customerId, date, service, status, duration, cost, notes, outcome }
-                         - Add API endpoint: GET /api/customers/:id/appointments
-                         - Implement filtering params: status, dateRange, service
-                         
-                         2. State Management:
-                         - Add appointments state with loading/error states
-                         - Implement useEffect to fetch data when tab becomes active
-                         - Add pagination for large appointment lists
-                         
-                         3. UI Components:
-                         - AppointmentCard: Show date, service, status badge, cost
-                         - Timeline view with chronological ordering
-                         - Filter controls: date picker, status dropdown, service type
-                         - Empty state for customers with no appointments
-                         
-                         4. Features:
-                         - Click to expand appointment details (notes, outcome)
-                         - Status color coding (completed: green, cancelled: red, no-show: orange)
-                         - Quick actions: reschedule, add notes, mark no-show
-                         - Export appointment history to CSV/PDF
-                    */}
+                    {/* TODO: Implement appointment history - see docs/customer-features.md#appointment-history */}
                     <p className="text-gray-400 text-center py-8">
                       Appointment history will be displayed here
                     </p>
@@ -299,46 +257,7 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'notes' && (
                   <div className="space-y-4">
-                    {/* IMPLEMENTATION OUTLINE: Customer Notes & Communication History
-                         
-                         1. Data Structure & API:
-                         - CustomerNote interface: { id, customerId, content, type: 'note'|'sms'|'call', 
-                           createdBy, createdAt, updatedAt, isPrivate, tags[] }
-                         - API endpoints: 
-                           * GET /api/customers/:id/notes (with pagination, filters)
-                           * POST /api/customers/:id/notes (create new note)
-                           * PUT /api/notes/:id (edit existing note)
-                           * DELETE /api/notes/:id (soft delete with audit trail)
-                         
-                         2. State Management:
-                         - notes state with CRUD operations
-                         - Real-time updates via WebSocket for team collaboration
-                         - Optimistic updates for better UX
-                         - Search/filter state (by type, date range, tags, user)
-                         
-                         3. UI Components:
-                         - NoteCard: Display note content, timestamp, author, edit/delete actions
-                         - AddNoteForm: Rich text editor with @ mentions, file attachments
-                         - CommunicationTimeline: Unified view of notes, SMS, calls
-                         - SearchBar: Filter by content, tags, date, communication type
-                         - TagInput: Categorize notes (follow-up, complaint, preference, etc.)
-                         
-                         4. Features:
-                         - Rich text editing with formatting (bold, italic, lists, links)
-                         - File attachments (images, documents) with preview
-                         - @mentions for team notifications
-                         - Quick templates for common note types
-                         - Export notes to PDF/CSV
-                         - Note privacy controls (public vs team-only)
-                         - Auto-generated notes from communication (SMS/call logs)
-                         - Full-text search across all notes and communications
-                         
-                         5. Communication Integration:
-                         - Display SMS message history with send/receive timestamps
-                         - Show call logs with duration, outcome, recording links
-                         - Auto-create notes from missed calls or failed messages
-                         - Link notes to specific appointments or interactions
-                    */}
+                    {/* TODO: Implement customer notes & communication history - see docs/customer-features.md#customer-notes--communication-history */}
                     <p className="text-gray-400 text-center py-8">
                       Customer notes and communication history will be displayed here
                     </p>
@@ -351,28 +270,23 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
                 <div className="grid grid-cols-2 gap-3">
                   <button 
                     onClick={handleSendMessage}
-                    disabled={isLoading || !customer.phone}
+                    disabled={!customer.phone}
                     className={cn(
                       "px-4 py-2 text-white rounded-lg transition-colors flex items-center justify-center gap-2",
                       !customer.phone
                         ? "bg-gray-600 text-gray-400 cursor-not-allowed"
-                        : "bg-gray-700 hover:bg-gray-600",
-                      isLoading && "opacity-50 cursor-not-allowed"
+                        : "bg-gray-700 hover:bg-gray-600"
                     )}
                   >
                     <MessageSquare className="w-4 h-4" />
-                    {isLoading ? 'Sending...' : 'Send Message'}
+                    Send Message
                   </button>
                   <button 
                     onClick={handleBookAppointment}
-                    disabled={isLoading}
-                    className={cn(
-                      "px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2",
-                      isLoading && "opacity-50 cursor-not-allowed"
-                    )}
+                    className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <Calendar className="w-4 h-4" />
-                    {isLoading ? 'Booking...' : 'Book Appointment'}
+                    Book Appointment
                   </button>
                 </div>
               </div>

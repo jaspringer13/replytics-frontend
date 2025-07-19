@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { voiceSynthesisService } from '@/lib/voice-synthesis';
 
 export async function GET(
@@ -6,11 +8,25 @@ export async function GET(
   { params }: { params: { audioId: string } }
 ) {
   try {
+    // Add authentication check
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { audioId } = params;
 
     if (!audioId) {
       return NextResponse.json(
         { error: 'Audio ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate audioId format (e.g., UUID pattern)
+    if (!/^[a-fA-F0-9-]{36}$/.test(audioId)) {
+      return NextResponse.json(
+        { error: 'Invalid audio ID format' },
         { status: 400 }
       );
     }
@@ -25,12 +41,14 @@ export async function GET(
       );
     }
 
-    // Return audio file
+    // Get audio format and return file
+    const contentType = voiceSynthesisService.getAudioFormat(audioId) || 'audio/mpeg';
     return new NextResponse(audioBuffer, {
       status: 200,
       headers: {
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': contentType,
         'Content-Length': audioBuffer.byteLength.toString(),
+        'Content-Disposition': `attachment; filename="audio-${audioId}.mp3"`,
         'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
       },
     });

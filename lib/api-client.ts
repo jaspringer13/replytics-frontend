@@ -1,4 +1,5 @@
 import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules, SMSSettings } from '@/app/models/dashboard';
+import { validateSMSPayload } from './message-validation';
 
 interface AuthResponse {
   token: string;
@@ -584,9 +585,21 @@ class APIClient {
     message: string;
     direction: 'outbound' | 'inbound';
   }): Promise<SMS> {
+    // Validate payload before sending
+    const validation = validateSMSPayload(data);
+    if (!validation.isValid) {
+      throw new Error(`Invalid SMS payload: ${validation.errors.join(', ')}`);
+    }
+
+    // Use sanitized message
+    const sanitizedData = {
+      ...data,
+      message: validation.sanitizedMessage || data.message
+    };
+
     return this.request('/api/v2/dashboard/sms/send', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(sanitizedData),
     });
   }
 

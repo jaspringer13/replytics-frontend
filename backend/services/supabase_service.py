@@ -7,6 +7,7 @@ from supabase import create_client, Client
 from config.settings import get_settings
 import logging
 import re
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class SupabaseService:
         """Check if Supabase is accessible"""
         try:
             # Try a simple query
-            result = self.client.table('users').select('id').limit(1).execute()
+            self.client.table('users').select('id').limit(1).execute()
             return True
         except Exception as e:
             logger.error(f"Supabase health check failed: {e}")
@@ -160,15 +161,30 @@ class SupabaseService:
             answered_calls = len([c for c in (calls_result.data or []) if c.get('status') == 'completed'])
             total_sms = len(sms_result.data) if sms_result.data else 0
             
+            # Calculate today's date for filtering
+            today = datetime.now().strftime('%Y-%m-%d')
+            
+            # Calculate average call duration
+            call_durations = [c.get('duration', 0) for c in (calls_result.data or []) if c.get('duration') is not None]
+            avg_call_duration = sum(call_durations) / len(call_durations) if call_durations else 0
+            
+            # Calculate today's metrics
+            calls_today = len([c for c in (calls_result.data or []) if c.get('created_at', '').startswith(today)])
+            sms_today = len([s for s in (sms_result.data or []) if s.get('created_at', '').startswith(today)])
+            
+            # For bookings, we'll count completed calls as potential bookings
+            bookings_today = len([c for c in (calls_result.data or []) 
+                                if c.get('created_at', '').startswith(today) and c.get('status') == 'completed'])
+            
             return {
                 'totalCalls': total_calls,
                 'answeredCalls': answered_calls,
                 'missedCalls': total_calls - answered_calls,
                 'totalSMS': total_sms,
-                'avgCallDuration': 0,  # Calculate from data
-                'bookingsToday': 0,    # Calculate from data
-                'callsToday': 0,       # Calculate from data
-                'smsToday': 0          # Calculate from data
+                'avgCallDuration': round(avg_call_duration, 2),
+                'bookingsToday': bookings_today,
+                'callsToday': calls_today,
+                'smsToday': sms_today
             }
         except Exception as e:
             logger.error(f"Failed to get analytics: {e}")

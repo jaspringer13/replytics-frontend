@@ -31,9 +31,6 @@ export default function SignInPage() {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     
-    console.log('=== SIGN IN ATTEMPT ===')
-    console.log('Email:', email)
-    console.log('Password length:', password.length)
     
     if (!email || !password) {
       setError("Please enter email and password")
@@ -44,9 +41,7 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
-      console.log('Calling login function...')
       const success = await login(email, password)
-      console.log('Login result:', success)
       
       if (!success) {
         setError("Invalid email or password")
@@ -54,7 +49,6 @@ export default function SignInPage() {
       }
       // If success, AuthContext will handle the navigation
     } catch (err) {
-      console.error('Sign-in error:', err)
       setError("An error occurred. Please try again.")
       setIsLoading(false)
     }
@@ -173,12 +167,8 @@ export default function SignInPage() {
 
               {/* Sign In Button */}
               <button
-                type="button"
+                type="submit"
                 disabled={isLoading}
-                onClick={() => {
-                  console.log('Sign in button clicked!')
-                  handleSubmit()
-                }}
                 className="w-full py-3 px-4 bg-gradient-to-r from-brand-400 to-brand-600 text-white font-medium rounded-lg hover:from-brand-500 hover:to-brand-700 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading ? (

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Plus, Edit2, Trash2, Save, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { validateTemplate } from '@/constants/messageTemplates'
 
 const TEMPLATE_CATEGORIES = ['greeting', 'appointment', 'reminder', 'follow-up', 'custom'] as const
 export type TemplateCategory = typeof TEMPLATE_CATEGORIES[number]
@@ -58,10 +59,41 @@ export function MessageTemplates({
     t => selectedCategory === 'all' || t.category === selectedCategory
   )
 
+  const extractVariables = (content: string): string[] => {
+    const placeholders = content.match(/\{(\w+)\}/g) || [];
+    return placeholders.map(p => p.slice(1, -1));
+  }
+
   const handleSave = () => {
     if (!newTemplate.name || !newTemplate.content) return
     
-    onSaveTemplate?.(newTemplate)
+    // Check for duplicate names
+    if (templates.some(t => t.name.toLowerCase() === newTemplate.name.toLowerCase())) {
+      alert('A template with this name already exists. Please choose a different name.');
+      return;
+    }
+    
+    // Validate lengths
+    if (newTemplate.name.length > 50 || newTemplate.content.length > 500) {
+      alert('Template name must be under 50 characters and content under 500 characters.');
+      return;
+    }
+    
+    // Extract variables from content and add to template
+    const variables = extractVariables(newTemplate.content);
+    const templateWithVariables: MessageTemplate = {
+      ...newTemplate,
+      id: '', // Will be set by parent component
+      variables: variables.length > 0 ? variables : undefined
+    };
+    
+    // Validate template consistency
+    if (!validateTemplate(templateWithVariables)) {
+      alert('Template variables are inconsistent. Please check your placeholders.');
+      return;
+    }
+    
+    onSaveTemplate?.(templateWithVariables)
     setNewTemplate({ name: '', content: '', category: 'custom' })
     setIsCreating(false)
   }
@@ -128,6 +160,12 @@ export function MessageTemplates({
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm placeholder-gray-400 focus:outline-none focus:border-brand-500 resize-none"
                 rows={3}
               />
+              {/* Variables indicator */}
+              {newTemplate.content && extractVariables(newTemplate.content).length > 0 && (
+                <div className="text-xs text-gray-400">
+                  Variables detected: {extractVariables(newTemplate.content).map(v => `{${v}}`).join(', ')}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <select
                   value={newTemplate.category}

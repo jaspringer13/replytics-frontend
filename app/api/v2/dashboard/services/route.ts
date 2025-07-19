@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
-
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing required Supabase environment variables');
+}
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';

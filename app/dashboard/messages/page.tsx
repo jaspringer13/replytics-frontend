@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { ConversationList, Conversation } from '@/components/dashboard/messages/ConversationList'
 import { MessageThread } from '@/components/dashboard/messages/MessageThread'
@@ -10,11 +10,12 @@ import {
   Search, Settings, Bot, ChevronLeft, Phone, 
   Info, FileText, Sparkles, ToggleLeft, ToggleRight 
 } from 'lucide-react'
-import { useSMSConversations } from '@/hooks/useBackendData'
+import { useSMSConversations } from '@/hooks/api/useSMS'
 import { SMS, apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
 import { DEFAULT_MESSAGE_TEMPLATES } from '@/constants/messageTemplates'
+import { validateMessage, messageLimiter, DEFAULT_RATE_LIMIT } from '@/lib/message-validation'
 
 // Helper hook to group messages by conversation - optimized with useMemo
 function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
@@ -68,14 +69,19 @@ export default function MessagesPage() {
   const [showTemplates, setShowTemplates] = useState(false)
   const [aiEnabled, setAiEnabled] = useState(true)
   const [newMessage, setNewMessage] = useState('')
+  const [isSending, setIsSending] = useState(false)
   const { toast } = useToast()
+  const lastSendAttempt = useRef<number>(0)
   
   const { 
-    data: messages, 
-    loading, 
+    data, 
+    isLoading, 
     error, 
     refetch 
   } = useSMSConversations(selectedConversation ?? undefined)
+  
+  // Extract messages from infinite query data
+  const messages: SMS[] = data?.pages?.flatMap(page => page.messages) ?? []
 
   // Group messages into conversations
   const conversations: Conversation[] = useGroupMessagesByConversation(messages)
@@ -96,22 +102,63 @@ export default function MessagesPage() {
     [messages, selectedConversation]
   )
 
-  // Handle sending message
+  // Handle sending message with validation and rate limiting
   const handleSendMessage = async (message: string) => {
-    if (!selectedConversation) return
+    if (!selectedConversation || isSending) return
+
+    // Validate message content
+    const validation = validateMessage(message, { maxLength: 1600 }); // Extended SMS length
+    if (!validation.isValid) {
+      toast.error('Invalid message', validation.errors[0]);
+      return;
+    }
+
+    // Check rate limiting
+    const rateLimitKey = `sms:${selectedConversation}`;
+    if (!messageLimiter.isAllowed(rateLimitKey, DEFAULT_RATE_LIMIT)) {
+      const timeUntilReset = messageLimiter.getTimeUntilReset(rateLimitKey, DEFAULT_RATE_LIMIT);
+      const remainingTime = Math.ceil(timeUntilReset / 1000);
+      toast.error('Rate limit exceeded', `Please wait ${remainingTime} seconds before sending another message.`);
+      return;
+    }
+
+    // Debounce rapid requests (minimum 1 second between sends)
+    const now = Date.now();
+    if (now - lastSendAttempt.current < 1000) {
+      toast.error('Sending too fast', 'Please wait a moment before sending another message.');
+      return;
+    }
+    lastSendAttempt.current = now;
+
+    setIsSending(true);
     
     try {
       await apiClient.sendSMSMessage({
         conversationId: selectedConversation,
-        message,
+        message: validation.sanitizedMessage || message,
         direction: 'outbound'
       })
       
       // Refresh messages to show the new message
       await refetch()
+      toast.success('Message sent successfully');
     } catch (error) {
       console.error('Failed to send message:', error)
-      toast.error('Failed to send message', 'Please check your connection and try again.')
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid SMS payload')) {
+          toast.error('Message validation failed', error.message);
+        } else if (error.message.includes('rate limit') || error.message.includes('throttle')) {
+          toast.error('Rate limit exceeded', 'Please wait before sending another message.');
+        } else {
+          toast.error('Failed to send message', 'Please check your connection and try again.');
+        }
+      } else {
+        toast.error('Failed to send message', 'Please check your connection and try again.');
+      }
+    } finally {
+      setIsSending(false);
     }
   }
 
@@ -156,7 +203,7 @@ export default function MessagesPage() {
   }
 
   // Handle template management
-  const handleSaveTemplate = async (template: MessageTemplate) => {
+  const handleSaveTemplate = async (template: Omit<MessageTemplate, 'id'>) => {
     try {
       // TODO: Implement API call once endpoint is available
       // await apiClient.createTemplate(template)
@@ -271,7 +318,7 @@ export default function MessagesPage() {
                   conversations={filteredConversations}
                   selectedId={selectedConversation}
                   onSelect={setSelectedConversation}
-                  loading={loading}
+                  loading={isLoading}
                 />
               </div>
 
@@ -322,7 +369,8 @@ export default function MessagesPage() {
                       messages={filteredMessages}
                       onSendMessage={handleSendMessage}
                       onOverrideAI={handleOverrideAI}
-                      loading={loading}
+                      loading={isLoading}
+                      disabled={isSending}
                     />
                   </div>
 

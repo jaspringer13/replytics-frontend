@@ -46,19 +46,7 @@ export const chartTheme = {
 }
 
 // Format currency for charts
-export const formatCurrency = (value: number): string => {
-  if (typeof value !== 'number' || isNaN(value)) return '$0'
-  
-  const absValue = Math.abs(value)
-  const sign = value < 0 ? '-' : ''
-  
-  if (absValue >= 1000000) {
-    return `${sign}$${(absValue / 1000000).toFixed(1)}M`
-  } else if (absValue >= 1000) {
-    return `${sign}$${(absValue / 1000).toFixed(1)}K`
-  }
-  return `${sign}$${absValue.toFixed(0)}`
-}
+export { formatCurrencyForCharts as formatCurrency } from '@/lib/utils/currency'
 
 // Format percentage
 export const formatPercentage = (value: number): string => {

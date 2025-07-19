@@ -94,7 +94,7 @@ async def verify_google_token(id_token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid Google token")
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), request: Request):
+async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Get current user from JWT token"""
     try:
         payload = jwt.decode(

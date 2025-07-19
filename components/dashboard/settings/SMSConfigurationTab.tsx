@@ -42,7 +42,7 @@ export function SMSConfigurationTab({ businessId }: SMSConfigurationTabProps) {
 
   useEffect(() => {
     loadSMSData();
-  }, []);
+  }, [businessId]);
 
   const loadSMSData = async () => {
     try {

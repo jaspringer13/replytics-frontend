@@ -123,6 +123,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status, localUser])
 
+  // Logout
+  const logout = useCallback(async () => {
+    try {
+      // Clear backend session if using email/password
+      if (!session) {
+        await apiClient.logout()
+      }
+      
+      // Clear local storage
+      localStorage.removeItem('user')
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('tenant_id')
+      localStorage.removeItem('token_expires_at')
+      
+      // Clear cookies
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      
+      // Sign out from NextAuth if using OAuth
+      if (session) {
+        await signOut({ redirect: false })
+      }
+      
+      router.push('/')
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }, [session, router])
+
   // Token expiration monitoring and automatic refresh
   useEffect(() => {
     // Skip if loading
@@ -259,37 +290,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(error instanceof Error ? error.message : 'Sign in failed')
     }
   }
-
-  // Logout
-  const logout = useCallback(async () => {
-    try {
-      // Clear backend session if using email/password
-      if (!session) {
-        await apiClient.logout()
-      }
-      
-      // Clear local storage
-      localStorage.removeItem('user')
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('tenant_id')
-      localStorage.removeItem('token_expires_at')
-      
-      // Clear cookies
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      
-      // Sign out from NextAuth if using OAuth
-      if (session) {
-        await signOut({ redirect: false })
-      }
-      
-      router.push('/')
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
-  }, [session, router])
 
   // Update onboarding step
   const updateOnboardingStep = async (step: number) => {

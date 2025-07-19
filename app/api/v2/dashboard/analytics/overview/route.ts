@@ -97,6 +97,11 @@ export async function GET(request: NextRequest) {
     const appointmentChange = calculatePercentChange(previousMetrics.totalAppointments, currentMetrics.totalAppointments);
     const customerChange = calculatePercentChange(previousMetrics.totalCustomers, currentMetrics.totalCustomers);
 
+    // Calculate new customer counts for both periods
+    const currentNewCustomers = await countNewCustomers(tenantId, dateRange);
+    const previousNewCustomers = await countNewCustomers(tenantId, previousDateRange);
+    const newCustomerChange = calculatePercentChange(previousNewCustomers, currentNewCustomers);
+
     // Build response
     const overview: DashboardOverview = {
       dateRange,
@@ -115,9 +120,9 @@ export async function GET(request: NextRequest) {
           dataPoints: appointmentTrend
         },
         newCustomers: {
-          current: currentMetrics.totalCustomers - previousMetrics.totalCustomers,
-          previous: previousMetrics.totalCustomers,
-          percentChange: customerChange,
+          current: currentNewCustomers,
+          previous: previousNewCustomers,
+          percentChange: newCustomerChange,
           dataPoints: newCustomerTrend
         }
       },
@@ -285,6 +290,48 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
     .slice(0, 5); // Top 5 services
 
   return services;
+}
+
+async function countNewCustomers(tenantId: string, dateRange: DateRange): Promise<number> {
+  // Find customers who had their first appointment in the specified date range
+  // We need to check all historical appointments to identify truly new customers
+  const { data: allCustomerAppointments, error } = await getSupabaseServer()
+    .from('appointments')
+    .select('customer_id, appointment_time')
+    .eq('business_id', tenantId)
+    .order('appointment_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching customer appointments for new customer count:', error);
+    return 0;
+  }
+
+  // Group by customer and find their first appointment
+  const customerFirstAppointment = new Map<string, Date>();
+  
+  allCustomerAppointments?.forEach(apt => {
+    const customerId = apt.customer_id;
+    const appointmentDate = new Date(apt.appointment_time);
+    
+    if (!customerFirstAppointment.has(customerId)) {
+      customerFirstAppointment.set(customerId, appointmentDate);
+    } else {
+      const existingFirstDate = customerFirstAppointment.get(customerId)!;
+      if (appointmentDate < existingFirstDate) {
+        customerFirstAppointment.set(customerId, appointmentDate);
+      }
+    }
+  });
+
+  // Count customers whose first appointment falls within the date range
+  let newCustomerCount = 0;
+  customerFirstAppointment.forEach((firstAppointmentDate) => {
+    if (firstAppointmentDate >= dateRange.start && firstAppointmentDate <= dateRange.end) {
+      newCustomerCount++;
+    }
+  });
+
+  return newCustomerCount;
 }
 
 async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribution> {
@@ -554,19 +601,19 @@ async function fetchPopularTimes(tenantId: string, dateRange: DateRange): Promis
   const popularTimes: PopularTime[] = [];
   
   for (let hour = 0; hour < 24; hour++) {
-    const bookingCount = hourlyAggregation.get(hour) || 0;
+    const appointmentCount = hourlyAggregation.get(hour) || 0;
     
     // Only include hours with bookings or during typical business hours (7 AM - 8 PM)
-    if (bookingCount > 0 || (hour >= 7 && hour <= 20)) {
+    if (appointmentCount > 0 || (hour >= 7 && hour <= 20)) {
       popularTimes.push({
         hour,
         dayOfWeek: DayOfWeek.MONDAY, // Using Monday as default since we're aggregating across all days
-        bookingCount,
+        appointmentCount,
         label: `${hour.toString().padStart(2, '0')}:00`
       });
     }
   }
 
-  // Sort by booking count descending to get most popular times first
-  return popularTimes.sort((a, b) => b.bookingCount - a.bookingCount);
+  // Sort by appointment count descending to get most popular times first
+  return popularTimes.sort((a, b) => b.appointmentCount - a.appointmentCount);
 }

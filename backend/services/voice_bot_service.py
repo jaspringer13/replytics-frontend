@@ -3,10 +3,10 @@ Voice bot notification service for real-time settings updates
 """
 
 import httpx
-import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from os import getenv
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,49 @@ class VoiceBotService:
     def __init__(self):
         self.voice_bot_url = getenv("VOICE_BOT_URL", "https://replytics-dhhf.onrender.com")
         self.timeout = 10.0
+    
+    async def _send_notification(
+        self, 
+        endpoint: str, 
+        business_id: str, 
+        data: Dict[str, Any],
+        data_type: str
+    ) -> bool:
+        """Common notification logic"""
+        if not self.voice_bot_url:
+            logger.warning("Voice bot URL not configured, skipping notification")
+            return False
+            
+        webhook_url = f"{self.voice_bot_url}{endpoint}"
+        payload = {
+            "business_id": business_id,
+            data_type: data,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    webhook_url,
+                    json=payload,
+                    headers={"Content-Type": "application/json"}
+                )
+                
+                if response.status_code == 200:
+                    logger.info(f"Successfully notified voice bot of {data_type} change for business {business_id}")
+                    return True
+                else:
+                    logger.warning(
+                        f"Voice bot {data_type} notification failed with status {response.status_code}: {response.text}"
+                    )
+                    return False
+                    
+        except httpx.TimeoutException:
+            logger.error(f"Timeout while notifying voice bot of {data_type} change for business {business_id}")
+            return False
+        except Exception as e:
+            logger.error(f"Error notifying voice bot of {data_type} change for business {business_id}: {str(e)}")
+            return False
     
     async def notify_settings_change(self, business_id: str, settings: Dict[str, Any]) -> bool:
         """
@@ -29,41 +72,12 @@ class VoiceBotService:
         Returns:
             bool: True if notification was successful, False otherwise
         """
-        if not self.voice_bot_url:
-            logger.warning("Voice bot URL not configured, skipping notification")
-            return False
-            
-        webhook_url = f"{self.voice_bot_url}/api/v1/webhooks/settings-update"
-        
-        payload = {
-            "business_id": business_id,
-            "settings": settings,
-            "timestamp": None  # Could add datetime.utcnow().isoformat()
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    webhook_url,
-                    json=payload,
-                    headers={"Content-Type": "application/json"}
-                )
-                
-                if response.status_code == 200:
-                    logger.info(f"Successfully notified voice bot of settings change for business {business_id}")
-                    return True
-                else:
-                    logger.warning(
-                        f"Voice bot notification failed with status {response.status_code}: {response.text}"
-                    )
-                    return False
-                    
-        except httpx.TimeoutException:
-            logger.error(f"Timeout while notifying voice bot for business {business_id}")
-            return False
-        except Exception as e:
-            logger.error(f"Error notifying voice bot for business {business_id}: {str(e)}")
-            return False
+        return await self._send_notification(
+            "/api/v1/webhooks/settings-update",
+            business_id,
+            settings,
+            "settings"
+        )
     
     async def notify_conversation_rules_change(
         self, 
@@ -80,38 +94,9 @@ class VoiceBotService:
         Returns:
             bool: True if notification was successful, False otherwise
         """
-        if not self.voice_bot_url:
-            logger.warning("Voice bot URL not configured, skipping notification")
-            return False
-            
-        webhook_url = f"{self.voice_bot_url}/api/v1/webhooks/rules-update"
-        
-        payload = {
-            "business_id": business_id,
-            "rules": rules,
-            "timestamp": None  # Could add datetime.utcnow().isoformat()
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    webhook_url,
-                    json=payload,
-                    headers={"Content-Type": "application/json"}
-                )
-                
-                if response.status_code == 200:
-                    logger.info(f"Successfully notified voice bot of rules change for business {business_id}")
-                    return True
-                else:
-                    logger.warning(
-                        f"Voice bot rules notification failed with status {response.status_code}: {response.text}"
-                    )
-                    return False
-                    
-        except httpx.TimeoutException:
-            logger.error(f"Timeout while notifying voice bot of rules change for business {business_id}")
-            return False
-        except Exception as e:
-            logger.error(f"Error notifying voice bot of rules change for business {business_id}: {str(e)}")
-            return False
+        return await self._send_notification(
+            "/api/v1/webhooks/rules-update",
+            business_id,
+            rules,
+            "rules"
+        )

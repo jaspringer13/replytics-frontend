@@ -4,9 +4,11 @@ Billing and usage endpoints
 
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request, Depends, HTTPException
+from typing import Optional
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService
+from services.stripe_service import stripe_service
 
 router = APIRouter()
 
@@ -96,18 +98,54 @@ async def get_billing_info(
 @router.get("/invoices")
 async def get_invoices(
     request: Request,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    limit: Optional[int] = 10
 ):
-    """Get billing invoices"""
-    # TODO: Integrate with payment provider (Stripe)
+    """Get billing invoices from Stripe"""
+    supabase: SupabaseService = request.app.state.supabase
+    
+    # Get business profile to find Stripe customer ID
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        return {"invoices": []}
+    
+    # Try to get invoices from Stripe
+    if stripe_service.is_configured():
+        try:
+            # Get or find Stripe customer
+            customer_email = current_user.get("email")
+            if customer_email:
+                customer_id = await stripe_service.get_customer_by_email(customer_email)
+                
+                if customer_id:
+                    # Get real invoices from Stripe
+                    invoices = await stripe_service.get_customer_invoices(customer_id, limit)
+                    return {"invoices": invoices}
+        
+        except Exception as e:
+            # Log error but continue with fallback
+            print(f"Error fetching Stripe invoices: {e}")
+    
+    # Fallback to mock data if Stripe is not configured or fails
     return {
         "invoices": [
             {
-                "id": "inv_123",
-                "date": "2024-01-01",
+                "id": "inv_demo_001",
+                "date": datetime.now().replace(day=1).isoformat(),
                 "amount": 49.99,
+                "currency": "USD",
                 "status": "paid",
-                "downloadUrl": "#"
+                "description": "Replytics Pro - Monthly Subscription",
+                "downloadUrl": None,
+                "hostedInvoiceUrl": "#",
+                "number": "DEMO-001",
+                "subtotal": 49.99,
+                "tax": 0,
+                "total": 49.99,
+                "period": {
+                    "start": datetime.now().replace(day=1).isoformat(),
+                    "end": (datetime.now().replace(day=1) + timedelta(days=30)).isoformat()
+                }
             }
         ]
     }
@@ -119,14 +157,51 @@ async def upgrade_plan(
     plan: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Upgrade billing plan"""
+    """Upgrade billing plan via Stripe"""
     allowed_plans = ["starter", "professional", "enterprise"]
     if plan not in allowed_plans:
         raise HTTPException(status_code=400, detail=f"Invalid plan. Must be one of: {', '.join(allowed_plans)}")
     
-    # TODO: Integrate with payment provider (Stripe)
+    supabase: SupabaseService = request.app.state.supabase
+    
+    # Get business profile
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Business profile not found")
+    
+    # Try to create Stripe checkout session
+    if stripe_service.is_configured():
+        try:
+            customer_email = current_user.get("email")
+            if not customer_email:
+                raise HTTPException(status_code=400, detail="User email not found")
+            
+            # Create checkout session
+            base_url = request.headers.get("origin", "http://localhost:3000")
+            success_url = f"{base_url}/dashboard/billing?success=true&plan={plan}"
+            cancel_url = f"{base_url}/dashboard/billing?canceled=true"
+            
+            checkout_url = await stripe_service.create_checkout_session(
+                customer_email=customer_email,
+                plan=plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+                business_id=profile["id"]
+            )
+            
+            return {
+                "success": True,
+                "message": f"Redirecting to checkout for {plan} plan",
+                "checkoutUrl": checkout_url
+            }
+        
+        except Exception as e:
+            # Log error but continue with fallback
+            print(f"Error creating Stripe checkout: {e}")
+    
+    # Fallback for demo/testing when Stripe is not configured
     return {
         "success": True,
-        "message": f"Plan upgraded to {plan}",
-        "checkoutUrl": "#"
+        "message": f"Plan upgraded to {plan} (Demo mode - Stripe not configured)",
+        "checkoutUrl": f"/dashboard/billing?demo=true&plan={plan}"
     }

@@ -9,7 +9,7 @@ export default function BillingPage() {
         <h2 className="text-xl font-semibold mb-4">Current Plan</h2>
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-2xl font-bold">Team Plan</h3>
+            <h3 className="text-2xl font-bold">Professional Plan</h3>
             <p className="text-gray-600">$99/month</p>
           </div>
           <Button variant="outline">Change Plan</Button>

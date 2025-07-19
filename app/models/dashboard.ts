@@ -261,7 +261,7 @@ export type AnalyticsOverview = DashboardOverview;
 export interface PopularTime {
   hour: number;
   dayOfWeek: DayOfWeek;
-  bookingCount: number;
+  appointmentCount: number;
   label: string;
 }
 

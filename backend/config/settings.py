@@ -3,6 +3,7 @@ Application settings and configuration
 """
 
 from typing import List, Optional
+from pydantic import Field
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Security
-    SECRET_KEY: str = "CHANGE-THIS-IN-PRODUCTION-565036f21c4432f389b3fdfddd47d4d1"
+    SECRET_KEY: str = Field(..., description="Secret key for JWT tokens - must be set via environment variable")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_HOURS: int = 24
     
@@ -27,15 +28,15 @@ class Settings(BaseSettings):
     ]
     
     # Database
-    SUPABASE_URL: str = "https://placeholder.supabase.co"
-    SUPABASE_SERVICE_ROLE_KEY: str = "placeholder-key"
+    SUPABASE_URL: str = Field(..., description="Supabase project URL")
+    SUPABASE_SERVICE_ROLE_KEY: str = Field(..., description="Supabase service role key")
     
     # Voice Bot Integration
     VOICE_BOT_URL: str = "https://replytics-dhhf.onrender.com"
-    VOICE_BOT_JWT_SECRET: str = "b26a442d04ee6198e74663f97bd5e9e64aa82a518d918974da2107678df1d694"
+    VOICE_BOT_JWT_SECRET: str = Field(..., description="JWT secret for voice bot integration")
     VOICE_BOT_JWT_ALGORITHM: str = "HS256"
     VOICE_BOT_JWT_EXPIRE_MINUTES: int = 30
-    VOICE_BOT_INTERNAL_TOKEN: str = "9cdd5b1bd1d15577cd12611617fe31abcbdf64e652cb4ce9d79a3f8a9c5885ce"
+    VOICE_BOT_INTERNAL_TOKEN: str = Field(..., description="Internal token for voice bot authentication")
     VOICE_BOT_TIMEOUT: int = 30
     VOICE_BOT_MAX_RETRIES: int = 3
     VOICE_BOT_CACHE_TTL: int = 300  # 5 minutes
@@ -48,8 +49,8 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = None
     
     # Google OAuth
-    GOOGLE_CLIENT_ID: str = "placeholder-google-client-id"
-    GOOGLE_CLIENT_SECRET: str = "placeholder-google-client-secret"
+    GOOGLE_CLIENT_ID: str = Field(..., description="Google OAuth client ID")
+    GOOGLE_CLIENT_SECRET: str = Field(..., description="Google OAuth client secret")
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60

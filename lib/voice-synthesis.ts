@@ -82,11 +82,12 @@ export class VoiceSynthesisService {
         throw new Error(`ElevenLabs API error: ${response.status}`);
       }
 
-      // Get audio buffer
+      // Get audio buffer and content type
       const audioBuffer = await response.arrayBuffer();
+      const contentType = response.headers.get('content-type') || 'audio/mpeg';
       
       // Store audio file (you might want to use cloud storage in production)
-      const audioUrl = await this.storeAudioFile(audioBuffer, tenantId);
+      const audioUrl = await this.storeAudioFile(audioBuffer, tenantId, contentType);
       
       // Estimate duration (rough calculation: ~150 words per minute)
       const wordCount = text.split(' ').length;
@@ -117,26 +118,33 @@ export class VoiceSynthesisService {
     };
   }
 
-  private async storeAudioFile(audioBuffer: ArrayBuffer, tenantId: string): Promise<string> {
+  private async storeAudioFile(audioBuffer: ArrayBuffer, tenantId: string, contentType: string = 'audio/mpeg'): Promise<string> {
     // In production, you'd typically store this in cloud storage (S3, Supabase Storage, etc.)
     // For now, create a temporary URL that references our API endpoint
     const audioId = `${tenantId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
     // Store in memory temporarily (in production, use proper storage)
     this.temporaryAudioStore.set(audioId, audioBuffer);
+    this.audioFormatStore.set(audioId, contentType);
     
     // Clean up after 10 minutes
     setTimeout(() => {
       this.temporaryAudioStore.delete(audioId);
+      this.audioFormatStore.delete(audioId);
     }, 10 * 60 * 1000);
 
     return `/api/v2/dashboard/business/voice-settings/audio/${audioId}`;
   }
 
   private temporaryAudioStore = new Map<string, ArrayBuffer>();
+  private audioFormatStore = new Map<string, string>();
 
   getStoredAudio(audioId: string): ArrayBuffer | null {
     return this.temporaryAudioStore.get(audioId) || null;
+  }
+
+  getAudioFormat(audioId: string): string | null {
+    return this.audioFormatStore.get(audioId) || null;
   }
 
   private generateFallbackAudio(text: string, settings: VoiceSettings, tenantId: string): VoiceSynthesisResult {

@@ -30,11 +30,11 @@ class BusinessProfileUpdate(BaseModel):
     """Business profile update request model."""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     phone: Optional[str] = Field(None, pattern=r'^\+?[\d\s\-\(\)]{10,20}$')
-    email: Optional[str] = Field(None, regex=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+    email: Optional[str] = Field(None, pattern=r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
     timezone: Optional[str] = Field(None, description="IANA timezone identifier")
     industry: Optional[str] = Field(None, max_length=50)
     address: Optional[str] = Field(None, max_length=200)
-    website: Optional[str] = Field(None, regex=r'^https?://.+')
+    website: Optional[str] = Field(None, pattern=r'^https?://.+')
     description: Optional[str] = Field(None, max_length=500)
 
     class Config:
@@ -145,12 +145,17 @@ class HolidayCreate(BaseModel):
         }
 
 
+class ServiceTemplateRequest(BaseModel):
+    """Service template application request."""
+    template_name: str = Field(..., description="Name of service template to apply")
+
+
 class AnalyticsQuery(BaseModel):
     """Analytics query parameters."""
     start_date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$')
     end_date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$')
     metrics: Optional[List[str]] = Field(None, description="Specific metrics to retrieve")
-    granularity: Optional[str] = Field("day", regex=r'^(hour|day|week|month)$')
+    granularity: Optional[str] = Field("day", pattern=r'^(hour|day|week|month)$')
 
 
 # =============================================================================
@@ -262,7 +267,7 @@ async def get_business_profile(
         return profile
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch business profile")
+        raise handle_voice_bot_error(e, "fetch business profile") from e
 
 
 @router.patch("/business")
@@ -296,7 +301,7 @@ async def update_business_profile(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update business profile")
+        raise handle_voice_bot_error(e, "update business profile") from e from e
 
 
 # =============================================================================
@@ -333,7 +338,7 @@ async def get_services(
         return services
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch services")
+        raise handle_voice_bot_error(e, "fetch services") from e from e
 
 
 @router.post("/services")
@@ -362,7 +367,7 @@ async def create_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "create service")
+        raise handle_voice_bot_error(e, "create service") from e from e
 
 
 @router.patch("/services/{service_id}")
@@ -397,7 +402,7 @@ async def update_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"update service {service_id}")
+        raise handle_voice_bot_error(e, f"update service {service_id}") from e from e
 
 
 @router.delete("/services/{service_id}")
@@ -423,7 +428,7 @@ async def delete_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"delete service {service_id}")
+        raise handle_voice_bot_error(e, f"delete service {service_id}") from e from e
 
 
 @router.post("/services/reorder")
@@ -449,13 +454,13 @@ async def reorder_services(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "reorder services")
+        raise handle_voice_bot_error(e, "reorder services") from e from e
 
 
 @router.post("/services/apply-template")
 async def apply_service_template(
     request: Request,
-    template_name: str = Query(..., description="Name of service template to apply"),
+    template_data: ServiceTemplateRequest,
     current_user: dict = Depends(get_current_user),
     voice_bot: VoiceBotClient = Depends(get_voice_bot_client)
 ):
@@ -467,15 +472,15 @@ async def apply_service_template(
     """
     try:
         business_id = await get_business_id_for_user(request, current_user)
-        logger.info(f"Applying service template '{template_name}' for business_id: {business_id}")
+        logger.info(f"Applying service template '{template_data.template_name}' for business_id: {business_id}")
         
-        result = await voice_bot.apply_service_template(business_id, template_name)
+        result = await voice_bot.apply_service_template(business_id, template_data.template_name)
         
-        logger.info(f"Successfully applied template '{template_name}' for business_id: {business_id}")
+        logger.info(f"Successfully applied template '{template_data.template_name}' for business_id: {business_id}")
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"apply service template '{template_name}'")
+        raise handle_voice_bot_error(e, f"apply service template '{template_data.template_name}'") from e from e
 
 
 # =============================================================================
@@ -510,7 +515,7 @@ async def get_business_hours(
         return hours
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch business hours")
+        raise handle_voice_bot_error(e, "fetch business hours") from e from e
 
 
 @router.put("/hours")
@@ -543,7 +548,7 @@ async def update_business_hours(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update business hours")
+        raise handle_voice_bot_error(e, "update business hours") from e from e
 
 
 @router.post("/holidays")
@@ -568,7 +573,7 @@ async def add_holiday(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"add holiday {holiday.date}")
+        raise handle_voice_bot_error(e, f"add holiday {holiday.date}") from e from e
 
 
 @router.delete("/holidays/{holiday_date}")
@@ -594,7 +599,7 @@ async def remove_holiday(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"remove holiday {holiday_date}")
+        raise handle_voice_bot_error(e, f"remove holiday {holiday_date}") from e from e
 
 
 # =============================================================================
@@ -647,7 +652,7 @@ async def get_analytics(
         return analytics
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch analytics")
+        raise handle_voice_bot_error(e, "fetch analytics") from e from e
 
 
 # =============================================================================
@@ -675,7 +680,7 @@ async def get_prompts(
         return prompts
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch prompts")
+        raise handle_voice_bot_error(e, "fetch prompts") from e from e
 
 
 @router.patch("/prompts")
@@ -706,7 +711,7 @@ async def update_prompts(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update prompts")
+        raise handle_voice_bot_error(e, "update prompts") from e from e
 
 
 @router.get("/staff")
@@ -730,7 +735,7 @@ async def get_staff(
         return staff
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch staff")
+        raise handle_voice_bot_error(e, "fetch staff") from e from e
 
 
 @router.get("/integrations")
@@ -754,7 +759,7 @@ async def get_integrations(
         return integrations
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch integrations")
+        raise handle_voice_bot_error(e, "fetch integrations") from e from e
 
 
 # =============================================================================

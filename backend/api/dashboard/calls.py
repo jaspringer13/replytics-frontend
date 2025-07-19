@@ -2,6 +2,7 @@
 Call history and management endpoints
 """
 
+import asyncio
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Request, Depends, Query, HTTPException
@@ -108,58 +109,57 @@ async def get_call_stats(
     today = datetime.now().date()
     week_ago = today - timedelta(days=7)
     
-    # Use database aggregation for better performance
-    # Get today's total calls
-    today_total = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .gte('created_at', today.isoformat())\
-        .execute()
+    # Use single query with conditional aggregation for better performance
+    try:
+        # Use RPC call for efficient aggregation
+        result = supabase.client.rpc('get_call_stats', {
+            'business_id_param': profile["id"],
+            'today_param': today.isoformat(),
+            'week_ago_param': week_ago.isoformat()
+        }).execute()
+        
+        if result.data and len(result.data) > 0:
+            stats = result.data[0]
+            return {
+                "todayTotal": stats.get('today_total', 0),
+                "todayAnswered": stats.get('today_answered', 0),
+                "todayMissed": stats.get('today_missed', 0),
+                "weekTotal": stats.get('week_total', 0),
+                "weekAnswered": stats.get('week_answered', 0),
+                "weekMissed": stats.get('week_missed', 0)
+            }
+    except Exception as e:
+        # Fallback to individual queries if RPC not available
+        print(f"RPC call failed, falling back to individual queries: {e}")
     
-    # Get today's answered calls
-    today_answered = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .eq('status', 'completed')\
-        .gte('created_at', today.isoformat())\
-        .execute()
+    # Fallback: Use optimized individual queries with parallel execution
     
-    # Get today's missed calls
-    today_missed = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .eq('status', 'missed')\
-        .gte('created_at', today.isoformat())\
-        .execute()
+    async def get_count(query_params):
+        query = supabase.client.table('calls').select('*', count='exact')
+        for key, value in query_params.items():
+            if key == 'business_id':
+                query = query.eq('business_id', value)
+            elif key == 'status':
+                query = query.eq('status', value)
+            elif key == 'created_at_gte':
+                query = query.gte('created_at', value)
+        return query.execute().count or 0
     
-    # Get week's total calls
-    week_total = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .gte('created_at', week_ago.isoformat())\
-        .execute()
-    
-    # Get week's answered calls
-    week_answered = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .eq('status', 'completed')\
-        .gte('created_at', week_ago.isoformat())\
-        .execute()
-    
-    # Get week's missed calls
-    week_missed = supabase.client.table('calls')\
-        .select('*', count='exact')\
-        .eq('business_id', profile["id"])\
-        .eq('status', 'missed')\
-        .gte('created_at', week_ago.isoformat())\
-        .execute()
+    # Execute queries in parallel for better performance
+    counts = await asyncio.gather(
+        get_count({'business_id': profile["id"], 'created_at_gte': today.isoformat()}),
+        get_count({'business_id': profile["id"], 'status': 'completed', 'created_at_gte': today.isoformat()}),
+        get_count({'business_id': profile["id"], 'status': 'missed', 'created_at_gte': today.isoformat()}),
+        get_count({'business_id': profile["id"], 'created_at_gte': week_ago.isoformat()}),
+        get_count({'business_id': profile["id"], 'status': 'completed', 'created_at_gte': week_ago.isoformat()}),
+        get_count({'business_id': profile["id"], 'status': 'missed', 'created_at_gte': week_ago.isoformat()})
+    )
     
     return {
-        "todayTotal": today_total.count or 0,
-        "todayAnswered": today_answered.count or 0,
-        "todayMissed": today_missed.count or 0,
-        "weekTotal": week_total.count or 0,
-        "weekAnswered": week_answered.count or 0,
-        "weekMissed": week_missed.count or 0
+        "todayTotal": counts[0],
+        "todayAnswered": counts[1],
+        "todayMissed": counts[2],
+        "weekTotal": counts[3],
+        "weekAnswered": counts[4],
+        "weekMissed": counts[5]
     }

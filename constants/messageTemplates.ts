@@ -1,5 +1,19 @@
 import { MessageTemplate } from '@/components/dashboard/messages/MessageTemplates'
 
+/**
+ * Helper function to validate template consistency
+ * Ensures that the variables array matches the placeholders found in the content string
+ */
+export function validateTemplate(template: MessageTemplate): boolean {
+  if (!template.variables) return true;
+  
+  const placeholders = template.content.match(/\{(\w+)\}/g) || [];
+  const foundVariables = placeholders.map(p => p.slice(1, -1));
+  
+  return template.variables.every(v => foundVariables.includes(v)) &&
+         foundVariables.every(v => template.variables!.includes(v));
+}
+
 export const DEFAULT_MESSAGE_TEMPLATES: MessageTemplate[] = [
   {
     id: '1',
@@ -23,3 +37,10 @@ export const DEFAULT_MESSAGE_TEMPLATES: MessageTemplate[] = [
     variables: ['name']
   }
 ]
+
+// Validate all default templates at module load time
+DEFAULT_MESSAGE_TEMPLATES.forEach(template => {
+  if (!validateTemplate(template)) {
+    console.warn(`Template "${template.name}" has inconsistent variables:`, template);
+  }
+});

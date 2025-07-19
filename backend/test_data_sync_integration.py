@@ -7,15 +7,14 @@ including connectivity tests, mock data synchronization, and error handling.
 
 import asyncio
 import logging
+import os
 import sys
-from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict
 
 # Add the backend directory to path for imports
 sys.path.append('.')
 
 from services.data_sync import (
-    DataSyncService, 
     BusinessSyncConfig, 
     SyncDirection,
     get_data_sync_service
@@ -37,7 +36,7 @@ class DataSyncTester:
     
     def __init__(self):
         self.settings = get_settings()
-        self.test_business_id = "test-business-12345"  # Use a test business ID
+        self.test_business_id = os.getenv('TEST_BUSINESS_ID', 'test-business-12345')
         
     async def run_all_tests(self) -> bool:
         """Run all data sync tests."""

@@ -74,17 +74,7 @@ async def get_segment_counts(
     
     response = query.execute()
     
-    if response.data is None:
-        return {
-            "all": 0,
-            "vip": 0,
-            "regular": 0,
-            "at_risk": 0,
-            "new": 0,
-            "dormant": 0
-        }
-    
-    # Count segments
+    # Count segments efficiently
     segment_counts = {
         "all": 0,
         "vip": 0,
@@ -94,6 +84,7 @@ async def get_segment_counts(
         "dormant": 0
     }
     
+    # Count each segment in a single pass
     for row in response.data:
         segment_counts["all"] += 1
         segment = row.get("segment")

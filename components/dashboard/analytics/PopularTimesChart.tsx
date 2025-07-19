@@ -11,12 +11,12 @@ interface PopularTimesChartProps {
 export function PopularTimesChart({ data, maxItems = 12 }: PopularTimesChartProps) {
   // Get top times and calculate percentages
   const processedData = useMemo(() => {
-    const maxAppointments = Math.max(...data.map(t => t.bookingCount))
+    const maxAppointments = Math.max(...data.map(t => t.appointmentCount))
     return data
       .slice(0, maxItems)
       .map(time => ({
         ...time,
-        percentage: maxAppointments > 0 ? (time.bookingCount / maxAppointments) * 100 : 0,
+        percentage: maxAppointments > 0 ? (time.appointmentCount / maxAppointments) * 100 : 0,
         displayHour: `${time.hour.toString().padStart(2, '0')}:00`
       }))
   }, [data, maxItems])
@@ -36,14 +36,14 @@ export function PopularTimesChart({ data, maxItems = 12 }: PopularTimesChartProp
         <div key={`hour-${time.hour}`} className="group">
           <div 
             role="img" 
-            aria-label={`${time.displayHour}: ${time.bookingCount} appointments, ${time.percentage.toFixed(0)}% of peak`}
+            aria-label={`${time.displayHour}: ${time.appointmentCount} appointments, ${time.percentage.toFixed(0)}% of peak`}
           >
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-gray-400 font-medium">
                 {time.displayHour}
               </span>
               <span className="text-sm text-white font-medium">
-                {time.bookingCount} appointments
+                {time.appointmentCount} appointments
               </span>
             </div>
             <div className="relative h-6 bg-gray-700 rounded overflow-hidden">

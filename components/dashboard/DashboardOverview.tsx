@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, DollarSign, Users, Bot, Settings
@@ -10,12 +10,13 @@ import { useStats } from '@/hooks/api/useStats'
 import { useAnalytics } from '@/hooks/useAnalytics'
 import { useDashboardData } from '@/hooks/useDashboardData'
 import { useVoiceAgentStatus } from '@/hooks/useVoiceAgentStatus'
+import { useAIActivities } from '@/hooks/api/useAIActivities'
 import { markStatsLoaded } from '@/lib/performance/metrics'
 import { cn } from '@/lib/utils'
 import { InsightCards, type InsightCard } from './overview/InsightCards'
 import { QuickActions } from './overview/QuickActions'
 import { ServicePerformanceList } from './overview/ServicePerformance'
-import { AIActivityFeed, type AIActivity } from './overview/AIActivityFeed'
+import { AIActivityFeed } from './overview/AIActivityFeed'
 
 const INSIGHT_THRESHOLDS = {
   REVENUE_GROWTH_STRONG: 20,
@@ -24,32 +25,6 @@ const INSIGHT_THRESHOLDS = {
   PEAK_HOUR_APPOINTMENTS: 10
 } as const
 
-const MOCK_AI_ACTIVITIES: Omit<AIActivity, 'businessId'>[] = [
-  {
-    id: '1',
-    type: 'call',
-    customer: 'Sarah Johnson',
-    action: 'Scheduled haircut appointment for tomorrow at 2 PM',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-    aiConfidence: 95
-  },
-  {
-    id: '2',
-    type: 'sms',
-    customer: 'Mike Chen',
-    action: 'Confirmed appointment reminder and answered pricing question',
-    timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
-    aiConfidence: 88
-  },
-  {
-    id: '3',
-    type: 'call',
-    customer: 'Lisa Brown',
-    action: 'Rescheduled appointment from Friday to Monday',
-    timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-    aiConfidence: 92
-  }
-]
 
 export function DashboardOverview() {
   const { data: dashboardStats, isLoading: statsLoading } = useStats()
@@ -64,8 +39,11 @@ export function DashboardOverview() {
     endDate
   })
   const { isActive: voiceAgentActive } = useVoiceAgentStatus()
-  const [aiActivities, setAiActivities] = useState<AIActivity[]>([])
-  const [activitiesLoading, setActivitiesLoading] = useState(true)
+  const { activities: aiActivities, loading: activitiesLoading } = useAIActivities({
+    limit: 5,
+    autoRefresh: true,
+    refreshInterval: 30000
+  })
 
   // Mark performance metrics when stats are loaded
   useEffect(() => {
@@ -74,29 +52,6 @@ export function DashboardOverview() {
     }
   }, [dashboardStats, statsLoading])
 
-  // Fetch AI activities
-  useEffect(() => {
-    const fetchAIActivity = async () => {
-      if (!businessProfile?.id) return
-
-      try {
-        setActivitiesLoading(true)
-        // Mock AI activities for now - replace with real API call
-        const mockActivities = MOCK_AI_ACTIVITIES.map(activity => ({
-          ...activity,
-          businessId: businessProfile.id
-        }))
-        setAiActivities(mockActivities)
-      } catch (error) {
-        console.error('Error fetching AI activities:', error)
-        setAiActivities([])
-      } finally {
-        setActivitiesLoading(false)
-      }
-    }
-
-    fetchAIActivity()
-  }, [businessProfile?.id])
   
   // Generate insights based on analytics
   const insights: InsightCard[] = []

@@ -10,6 +10,7 @@ import {
   createVoiceSpeed, 
   createVoicePitch 
 } from '@/app/models/dashboard';
+import { voiceSynthesisService } from '@/lib/voice-synthesis';
 
 export class VoiceSettingsService {
   /**
@@ -296,28 +297,112 @@ export class VoiceSettingsService {
   }
 
   /**
-   * Test voice configuration
+   * Test voice configuration with actual voice synthesis
    */
   async testVoiceConfiguration(
     businessId: string,
     testMessage: string = 'Hello! This is a test of your voice settings.'
-  ): Promise<{ success: boolean; audioUrl?: string; error?: string }> {
+  ): Promise<{ success: boolean; audioUrl?: string; error?: string; duration?: number }> {
     try {
       const config = await this.getVoiceConfiguration(businessId);
       if (!config) {
-        return { success: false, error: 'Configuration not found' };
+        return { success: false, error: 'Voice configuration not found' };
       }
 
-      // In a real implementation, this would call the voice synthesis API
-      // For now, return a mock response
+      // Validate voice settings before synthesis
+      const validation = this.validateVoiceSettings(config.voiceSettings);
+      if (!validation.isValid) {
+        return { success: false, error: `Invalid voice settings: ${validation.error}` };
+      }
+
+      // Generate cache key for test audio (to avoid re-generating identical tests)
+      const cacheKey = this.generateTestCacheKey(config.voiceSettings, testMessage);
+      
+      // Check if we have a cached version (simple in-memory cache)
+      const cached = this.testAudioCache.get(cacheKey);
+      if (cached && cached.timestamp > Date.now() - 300000) { // 5 minute cache
+        console.log('Returning cached voice test audio');
+        return { 
+          success: true, 
+          audioUrl: cached.audioUrl,
+          duration: cached.duration 
+        };
+      }
+
+      // Synthesize voice using ElevenLabs integration
+      console.log(`Synthesizing test voice for business ${businessId}`);
+      const synthesisResult = await voiceSynthesisService.synthesizeVoice({
+        text: testMessage,
+        settings: config.voiceSettings,
+        tenantId: businessId
+      });
+
+      if (!synthesisResult.success) {
+        return { 
+          success: false, 
+          error: synthesisResult.error || 'Voice synthesis failed' 
+        };
+      }
+
+      // Cache the result for future requests
+      if (synthesisResult.audioUrl) {
+        this.testAudioCache.set(cacheKey, {
+          audioUrl: synthesisResult.audioUrl,
+          duration: synthesisResult.duration,
+          timestamp: Date.now()
+        });
+
+        // Clean up old cache entries (keep only last 10)
+        if (this.testAudioCache.size > 10) {
+          const oldestKey = this.testAudioCache.keys().next().value;
+          this.testAudioCache.delete(oldestKey);
+        }
+      }
+
       return {
         success: true,
-        audioUrl: `/api/v2/voice/test?voice=${config.voiceSettings.voiceId}`
+        audioUrl: synthesisResult.audioUrl,
+        duration: synthesisResult.duration
       };
+
     } catch (error) {
       console.error('Voice test error:', error);
-      return { success: false, error: 'Test failed' };
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          return { success: false, error: 'Voice synthesis service not configured' };
+        }
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          return { success: false, error: 'Network error - please try again' };
+        }
+        if (error.message.includes('quota') || error.message.includes('limit')) {
+          return { success: false, error: 'Voice synthesis quota exceeded' };
+        }
+      }
+      
+      return { success: false, error: 'Voice test failed - please try again' };
     }
+  }
+
+  // Simple in-memory cache for test audio
+  private testAudioCache = new Map<string, { 
+    audioUrl: string; 
+    duration?: number; 
+    timestamp: number; 
+  }>();
+
+  /**
+   * Generate cache key for test audio
+   */
+  private generateTestCacheKey(settings: VoiceSettings, message: string): string {
+    const settingsHash = JSON.stringify({
+      voiceId: settings.voiceId,
+      speakingStyle: settings.speakingStyle,
+      speed: settings.speed,
+      pitch: settings.pitch
+    });
+    return `${Buffer.from(settingsHash + message).toString('base64').slice(0, 32)}`;
   }
 }
 

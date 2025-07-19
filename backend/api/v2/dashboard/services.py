@@ -68,7 +68,7 @@ async def create_service(
         raise HTTPException(status_code=404, detail="Business profile not found")
     
     # Get current services to determine display order
-    existing_services = await supabase.get_services(profile["id"], include_inactive=True)
+    existing_services = await supabase.get_services(profile["id"], includeInactive=True)
     display_order = len(existing_services)
     
     service_data = {
@@ -167,7 +167,7 @@ async def reorder_services(
     reorder_data: ServiceReorder,
     current_user: dict = Depends(get_current_user)
 ):
-    """Reorder services"""
+    """Reorder services using atomic bulk update"""
     supabase: SupabaseService = request.app.state.supabase
     
     # Get business profile
@@ -185,10 +185,45 @@ async def reorder_services(
     if not services.data or len(services.data) != len(reorder_data.serviceIds):
         raise HTTPException(status_code=404, detail="One or more services not found or unauthorized")
     
-    # Update display order for each service
-    for index, service_id in enumerate(reorder_data.serviceIds):
-        await supabase.client.table('services').update({
-            'display_order': index
-        }).eq('id', service_id).eq('business_id', profile["id"]).execute()
-    
-    return {"success": True, "message": "Services reordered"}
+    try:
+        # Create a list of service updates for bulk operation
+        business_id = profile["id"]
+        updates = []
+        
+        # Prepare all updates first, including business_id for security
+        for index, service_id in enumerate(reorder_data.serviceIds):
+            updates.append({
+                'id': service_id,
+                'business_id': business_id,  # Include business_id for security
+                'display_order': index,
+                'updated_at': datetime.now().isoformat()
+            })
+        
+        # Execute bulk update using upsert for atomic operation
+        # This ensures all updates succeed or all fail together
+        result = await supabase.client.table('services').upsert(
+            updates,
+            on_conflict='id'
+        ).execute()
+        
+        # Verify all services were updated successfully
+        if not result.data or len(result.data) != len(reorder_data.serviceIds):
+            raise HTTPException(status_code=500, detail="Failed to reorder all services")
+        
+        # Double-check that all returned services belong to the correct business
+        for service in result.data:
+            if service.get('business_id') != business_id:
+                raise HTTPException(status_code=403, detail="Unauthorized service modification detected")
+            
+        return {"success": True, "message": "Services reordered successfully"}
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
+    except Exception as e:
+        # Log the error for debugging
+        print(f"Error reordering services: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Failed to reorder services - operation rolled back"
+        )

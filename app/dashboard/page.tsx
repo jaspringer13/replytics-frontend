@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { DashboardClient } from "@/components/dashboard/DashboardClient"
+import { DashboardOverview } from "@/components/dashboard/DashboardOverview"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
 import { useAuth } from "@/contexts/AuthContext"
 
@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <DashboardClient />
+      <DashboardOverview />
     </DashboardLayout>
   )
 }

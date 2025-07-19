@@ -4,7 +4,7 @@
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/lib/supabase-client';
+import { getSupabaseClient, RealtimeSubscription } from '@/lib/supabase-client';
 
 // Conditional logging for production environment
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -15,9 +15,6 @@ const log = (...args: any[]) => {
   }
 };
 
-export interface RealtimeSubscription {
-  unsubscribe: () => void;
-}
 
 export interface VoiceSettingsUpdate<T = unknown> {
   businessId: string;
@@ -62,7 +59,12 @@ export function subscribeToVoiceSettings(
       { event: 'voice_settings_updated' },
       (payload) => {
         log('Voice settings update received:', payload);
-        onUpdate(payload.payload as VoiceSettingsUpdate);
+        const update = payload.payload;
+        if (update && typeof update === 'object' && 'businessId' in update) {
+          onUpdate(update as VoiceSettingsUpdate);
+        } else {
+          log('Invalid voice settings update payload:', update);
+        }
       }
     )
     .subscribe((status) => {
@@ -116,11 +118,23 @@ export function subscribeToServices(
       { event: '*' },
       (payload) => {
         log('Service update received:', payload);
-        const eventType = payload.event.replace('service_', '').replace('services_', '');
-        onUpdate({
-          ...payload.payload,
-          type: eventType
-        } as ServiceUpdate);
+        // Map event names to ServiceUpdate types
+        const eventTypeMap: Record<string, ServiceUpdate['type']> = {
+          'service_created': 'created',
+          'service_updated': 'updated',
+          'service_deleted': 'deleted',
+          'services_reordered': 'reordered'
+        };
+        
+        const type = eventTypeMap[payload.event];
+        if (type) {
+          onUpdate({
+            ...payload.payload,
+            type
+          } as ServiceUpdate);
+        } else {
+          log('Unknown service event type:', payload.event);
+        }
       }
     )
     .subscribe();
@@ -183,7 +197,7 @@ export function subscribeToOperatingHours(
       { event: 'hours_updated' },
       (payload) => {
         log('Operating hours update received:', payload);
-        onUpdate(payload.payload);
+        onUpdate(payload.payload as OperatingHoursUpdate);
       }
     )
     .subscribe();

@@ -2,7 +2,7 @@
 Authentication middleware
 """
 
-from fastapi import Request, HTTPException
+from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from jose import JWTError, jwt
@@ -10,16 +10,18 @@ from config.settings import get_settings
 
 settings = get_settings()
 
-# Public endpoints that don't require authentication
-PUBLIC_ENDPOINTS = [
-    "/",
-    "/health",
-    "/docs",
-    "/redoc",
-    "/openapi.json",
-    "/api/dashboard/auth",
-    "/api/dashboard/auth/google",
-]
+
+def get_public_endpoints():
+    """Get public endpoints from settings or return defaults"""
+    return getattr(settings, 'PUBLIC_ENDPOINTS', [
+        "/",
+        "/health", 
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/api/dashboard/auth",
+        "/api/dashboard/auth/google",
+    ])
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -27,7 +29,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
     
     async def dispatch(self, request: Request, call_next):
         # Skip authentication for public endpoints
-        if any(request.url.path.startswith(endpoint) for endpoint in PUBLIC_ENDPOINTS):
+        path = request.url.path
+        
+        public_endpoints = get_public_endpoints()
+        
+        if any(path.startswith(endpoint + "/") or path == endpoint for endpoint in public_endpoints):
             return await call_next(request)
         
         # Get token from Authorization header
@@ -41,6 +47,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         token = auth_header.split(" ")[1]
         
         try:
+            if not settings.SECRET_KEY:
+                return JSONResponse(
+                    status_code=500,
+                    content={"error": "JWT configuration missing"}
+                )
+                
             # Verify token
             payload = jwt.decode(
                 token,
@@ -48,9 +60,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 algorithms=[settings.JWT_ALGORITHM]
             )
             
+            # Validate required payload fields
+            user_id = payload.get("sub")
+            user_email = payload.get("email")
+            
+            if not user_id:
+                return JSONResponse(
+                    status_code=401,
+                    content={"error": "Invalid token: missing user ID"}
+                )
+            
             # Add user info to request state
-            request.state.user_id = payload.get("sub")
-            request.state.user_email = payload.get("email")
+            request.state.user_id = user_id
+            request.state.user_email = user_email
             
         except JWTError:
             return JSONResponse(

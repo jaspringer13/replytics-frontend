@@ -28,11 +28,12 @@ class SendSMSRequest(BaseModel):
         if len(v) > 1600:
             raise ValueError('Message too long (max 1600 characters)')
         
-        # Basic content filtering
+        # Basic content filtering - configurable patterns for business use
         spam_patterns = [
-            r'\b(viagra|cialis|buy now|click here|free money|win now)\b',
-            r'\b(urgent|limited time|act now|call now)\b',
-            r'(http://|https://)[^\s]+',  # Suspicious links
+            r'\b(viagra|cialis|free money|win now)\b',
+            # Removed overly restrictive patterns for legitimate business use:
+            # - "urgent", "limited time" can be valid for appointment reminders
+            # - Links may be needed for business communications
         ]
         
         message_lower = v.lower()

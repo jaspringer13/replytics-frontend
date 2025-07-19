@@ -24,19 +24,7 @@ export function ToastContainer() {
   const toasts = useToasts();
   const { dismiss } = useToast();
 
-  // Auto-dismiss toasts based on duration
-  useEffect(() => {
-    const timers = toasts.map((toast) => {
-      if (toast.duration && toast.duration > 0) {
-        return setTimeout(() => dismiss(toast.id), toast.duration);
-      }
-      return null;
-    }).filter(Boolean);
-
-    return () => {
-      timers.forEach((timer) => timer && clearTimeout(timer));
-    };
-  }, [toasts, dismiss]);
+  // Auto-dismiss is handled by the toast store
 
   return (
     <div 

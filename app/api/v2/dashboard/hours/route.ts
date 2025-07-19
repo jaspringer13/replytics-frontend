@@ -253,6 +253,12 @@ export async function PATCH(request: NextRequest) {
             { status: 400 }
           );
         }
+        
+        // Optionally validate overnight hours
+        if (closeMinutes < openMinutes) {
+          // This is valid for overnight hours (e.g., 22:00 to 02:00)
+          console.log(`Overnight hours detected for ${DAYS_OF_WEEK[update.dayOfWeek]}`);
+        }
       }
     }
 

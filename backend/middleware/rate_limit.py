@@ -35,21 +35,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if req_time > minute_ago
         ]
         
-        # Remove client entries with no recent requests
-        if not self.requests[client_id]:
-            del self.requests[client_id]
-            # Record this request for new client
-            self.requests[client_id] = [now]
-        else:
-            # Check rate limit
-            if len(self.requests[client_id]) >= settings.RATE_LIMIT_PER_MINUTE:
-                return JSONResponse(
-                    status_code=429,
-                    content={"error": "Rate limit exceeded. Please try again later."}
-                )
-            
-            # Record this request
-            self.requests[client_id].append(now)
+        # Check rate limit
+        if len(self.requests[client_id]) >= settings.RATE_LIMIT_PER_MINUTE:
+            return JSONResponse(
+                status_code=429,
+                content={"error": "Rate limit exceeded. Please try again later."}
+            )
+        
+        # Record this request
+        self.requests[client_id].append(now)
         
         # Process request
         response = await call_next(request)

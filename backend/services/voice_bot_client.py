@@ -11,7 +11,6 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, TypeVar, Generic
-from functools import wraps
 
 import httpx
 import jwt
@@ -342,24 +341,24 @@ class VoiceBotClient:
             
             try:
                 error_data = e.response.json()
-            except:
+            except (json.JSONDecodeError, AttributeError):
                 error_data = {"error": e.response.text}
                 
             raise VoiceBotAPIError(
                 error_message,
                 status_code=e.response.status_code,
                 response_data=error_data
-            )
+            ) from e
             
         except httpx.TimeoutException as e:
             error_message = f"Timeout error for {method} {endpoint}"
             logger.error(error_message)
-            raise VoiceBotAPIError(error_message, response_data={"error": "Request timeout"})
+            raise VoiceBotAPIError(error_message, response_data={"error": "Request timeout"}) from e
             
         except Exception as e:
             error_message = f"Unexpected error for {method} {endpoint}: {str(e)}"
             logger.error(error_message, exc_info=True)
-            raise VoiceBotAPIError(error_message, response_data={"error": str(e)})
+            raise VoiceBotAPIError(error_message, response_data={"error": str(e)}) from e
 
     # =============================================================================
     # BUSINESS MANAGEMENT ENDPOINTS

@@ -77,7 +77,7 @@ export default function CustomersPage() {
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Customers</h1>
             <p className="text-gray-400">
-              Manage and engage with your {segmentCounts.all || totalCount} customers
+              Manage and engage with your {countsLoading ? '...' : (segmentCounts.all || totalCount)} customers
             </p>
           </div>
 
@@ -144,7 +144,7 @@ export default function CustomersPage() {
         {/* Results Summary */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-400">
-            Showing {customers.length} of {segmentCounts.all || totalCount} customers
+            Showing {customers.length} of {countsLoading ? '...' : (segmentCounts.all || totalCount)} customers
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
         </div>

@@ -19,7 +19,9 @@ def validate_date(date_string: Optional[str]) -> Optional[str]:
     if date_string:
         try:
             # Try to parse ISO format dates, handling both with and without timezone
-            datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+            parsed_date = datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+            # Return normalized ISO format with timezone
+            return parsed_date.isoformat()
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f"Invalid date format: {date_string}. Use ISO format (YYYY-MM-DDTHH:MM:SS)") from e
     return date_string

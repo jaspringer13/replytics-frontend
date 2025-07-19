@@ -15,6 +15,7 @@ interface MessageThreadProps {
   onSendMessage: (message: string) => Promise<void>
   onOverrideAI?: (messageId: string, newMessage: string) => Promise<void>
   loading?: boolean
+  disabled?: boolean
 }
 
 interface AIMessageMetadata {
@@ -33,7 +34,8 @@ export function MessageThread({
   messages, 
   onSendMessage, 
   onOverrideAI,
-  loading = false 
+  loading = false,
+  disabled = false
 }: MessageThreadProps) {
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
@@ -48,7 +50,7 @@ export function MessageThread({
   }, [messages])
 
   const handleSend = async () => {
-    if (!newMessage.trim() || sending) return
+    if (!newMessage.trim() || disabled) return
     
     setSending(true)
     try {
@@ -56,7 +58,7 @@ export function MessageThread({
       setNewMessage('')
     } catch (error) {
       console.error('Failed to send message:', error)
-      toast.error('Message Failed', 'Unable to send message. Please try again.')
+      // Don't show error toast here as the parent handles it with more specific messages
     } finally {
       setSending(false)
     }
@@ -285,7 +287,7 @@ export function MessageThread({
                 }
               }}
               className="w-full px-4 py-2 pr-10 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              disabled={sending}
+              disabled={disabled || sending}
             />
             <button
               className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-brand-400 transition-colors"
@@ -296,7 +298,7 @@ export function MessageThread({
           </div>
           <button
             onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
+            disabled={!newMessage.trim() || disabled || sending}
             className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {sending ? (

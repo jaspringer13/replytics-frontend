@@ -240,7 +240,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { message = 'Hello! This is a test of your voice settings.', settings } = await request.json();
+    const body = await request.json();
+    const message = body.message || 'Hello! This is a test of your voice settings.';
+    const settings = body.settings;
+
+    // Validate message length
+    if (message.length > 500) {
+      return NextResponse.json(
+        { error: 'Message too long. Maximum 500 characters allowed.' },
+        { status: 400 }
+      );
+    }
 
     // Get current voice settings if not provided
     let voiceSettings: VoiceSettings;

@@ -9,11 +9,10 @@ handling, transaction management, and comprehensive logging.
 import asyncio
 import logging
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
-from supabase import Client as SupabaseClient
 
 from .voice_bot_client import VoiceBotClient, get_voice_bot_client, VoiceBotAPIError
 from .supabase_service import SupabaseService
@@ -603,7 +602,7 @@ class DataSyncService:
     ) -> None:
         """Upsert business profile data to Dashboard database."""
         try:
-            result = await asyncio.to_thread(
+            await asyncio.to_thread(
                 lambda: self.supabase_service.client.table('businesses')
                 .upsert(profile_data)
                 .execute()
@@ -616,7 +615,7 @@ class DataSyncService:
     async def _upsert_service(self, service_data: Dict[str, Any]) -> None:
         """Upsert service data to Dashboard database."""
         try:
-            result = await asyncio.to_thread(
+            await asyncio.to_thread(
                 lambda: self.supabase_service.client.table('services')
                 .upsert(service_data)
                 .execute()
@@ -643,7 +642,7 @@ class DataSyncService:
             
             # Insert new hours
             if hours_data:
-                result = await asyncio.to_thread(
+                await asyncio.to_thread(
                     lambda: self.supabase_service.client.table('operating_hours')
                     .insert(hours_data)
                     .execute()
@@ -657,7 +656,7 @@ class DataSyncService:
     async def _upsert_staff_member(self, staff_data: Dict[str, Any]) -> None:
         """Upsert staff member data to Dashboard database."""
         try:
-            result = await asyncio.to_thread(
+            await asyncio.to_thread(
                 lambda: self.supabase_service.client.table('staff_members')
                 .upsert(staff_data)
                 .execute()

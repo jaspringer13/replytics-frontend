@@ -40,17 +40,34 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
 
-    // Use a single aggregation query for all segment counts
-    let aggregationQuery = getSupabaseServer()
+    // Use database-level aggregation for better performance
+    const supabase = getSupabaseServer();
+    
+    // Build the base query with search filter if provided
+    let baseQuery = supabase
       .from('customer_segments')
-      .select('segment')
       .eq('tenant_id', tenantId);
 
     if (search) {
-      aggregationQuery = buildSearchFilter(aggregationQuery, search);
+      baseQuery = buildSearchFilter(baseQuery, search);
     }
 
-    const { data: segmentData, error: segmentError } = await aggregationQuery;
+    // Get total count
+    const { count: totalCount, error: totalError } = await baseQuery
+      .select('*', { count: 'exact', head: true });
+
+    if (totalError) {
+      console.error('Error fetching total count:', totalError);
+      return NextResponse.json(
+        { error: 'Failed to fetch customer counts' },
+        { status: 500 }
+      );
+    }
+
+    // Get segment-specific counts using database aggregation
+    const { data: segmentData, error: segmentError } = await baseQuery
+      .select('segment, count(*)', { count: 'exact' })
+      .group('segment');
 
     if (segmentError) {
       console.error('Error fetching segment data:', segmentError);
@@ -60,9 +77,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Count segments in memory
+    // Initialize segment counts
     const segmentCounts: SegmentCounts = {
-      all: 0,
+      all: totalCount || 0,
       vip: 0,
       regular: 0,
       at_risk: 0,
@@ -70,10 +87,12 @@ export async function GET(request: NextRequest) {
       dormant: 0
     };
 
-    segmentData?.forEach(item => {
-      segmentCounts.all++;
-      if (item.segment in segmentCounts) {
-        segmentCounts[item.segment as CustomerSegment]++;
+    // Populate counts from aggregated data
+    segmentData?.forEach((item: any) => {
+      const segment = item.segment as CustomerSegment;
+      const count = item.count || 0;
+      if (segment in segmentCounts) {
+        segmentCounts[segment] = count;
       }
     });
 

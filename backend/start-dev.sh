@@ -10,12 +10,21 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
 fi
 
-# Activate virtual environment
-source venv/bin/activate
+# Activate virtual environment (compatible with different shells)
+. venv/bin/activate
+
+# Verify activation worked
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "ERROR: Failed to activate virtual environment"
+    exit 1
+fi
 
 # Install/update dependencies
 echo "Installing dependencies..."
-pip install -r requirements.txt
+if ! pip install -r requirements.txt; then
+    echo "ERROR: Failed to install dependencies"
+    exit 1
+fi
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then

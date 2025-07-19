@@ -5,7 +5,9 @@ import { cn } from "@/lib/utils"
 
 const Slider = React.forwardRef<
   React.ElementRef<typeof SliderPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+  React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & {
+    'aria-label'?: string;
+  }
 >(({ className, ...props }, ref) => (
   <SliderPrimitive.Root
     ref={ref}

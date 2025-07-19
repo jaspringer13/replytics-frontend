@@ -13,6 +13,11 @@ from services.voice_bot_service import VoiceBotService
 router = APIRouter()
 
 
+def get_voice_bot_service() -> VoiceBotService:
+    """Dependency for VoiceBotService injection"""
+    return VoiceBotService()
+
+
 class BusinessProfileUpdate(BaseModel):
     businessName: Optional[str] = None
     industry: Optional[str] = None
@@ -83,7 +88,7 @@ async def update_business_profile(
     supabase: SupabaseService = request.app.state.supabase
     
     # Convert to dict and remove None values
-    update_data = {k: v for k, v in updates.dict().items() if v is not None}
+    update_data = {k: v for k, v in updates.model_dump().items() if v is not None}
     
     if not update_data:
         return {"message": "No updates provided"}
@@ -129,7 +134,8 @@ async def get_voice_settings(request: Request, current_user: dict = Depends(get_
 async def update_voice_settings(
     request: Request,
     settings: VoiceSettingsUpdate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    voice_bot: VoiceBotService = Depends(get_voice_bot_service)
 ):
     """Update voice settings"""
     supabase: SupabaseService = request.app.state.supabase
@@ -140,7 +146,7 @@ async def update_voice_settings(
         raise HTTPException(status_code=404, detail="Business profile not found")
     
     # Convert to dict and remove None values
-    update_data = {k: v for k, v in settings.dict().items() if v is not None}
+    update_data = {k: v for k, v in settings.model_dump().items() if v is not None}
     
     if not update_data:
         return {"message": "No updates provided"}
@@ -150,7 +156,6 @@ async def update_voice_settings(
         raise HTTPException(status_code=500, detail="Failed to update voice settings")
     
     # Notify voice bot service of settings change
-    voice_bot = VoiceBotService()
     await voice_bot.notify_settings_change(profile["id"], updated_settings)
     
     return updated_settings
@@ -185,7 +190,8 @@ async def get_conversation_rules(request: Request, current_user: dict = Depends(
 async def update_conversation_rules(
     request: Request,
     rules: ConversationRulesUpdate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    voice_bot: VoiceBotService = Depends(get_voice_bot_service)
 ):
     """Update conversation rules"""
     supabase: SupabaseService = request.app.state.supabase
@@ -196,7 +202,7 @@ async def update_conversation_rules(
         raise HTTPException(status_code=404, detail="Business profile not found")
     
     # Convert to dict and remove None values
-    update_data = {k: v for k, v in rules.dict().items() if v is not None}
+    update_data = {k: v for k, v in rules.model_dump().items() if v is not None}
     
     if not update_data:
         return {"message": "No updates provided"}
@@ -214,7 +220,6 @@ async def update_conversation_rules(
         raise HTTPException(status_code=500, detail="Failed to update conversation rules")
     
     # Notify voice bot service of conversation rules change
-    voice_bot = VoiceBotService()
     await voice_bot.notify_conversation_rules_change(profile["id"], current_rules)
     
     return current_rules

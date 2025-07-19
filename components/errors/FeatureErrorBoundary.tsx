@@ -115,7 +115,8 @@ export class FeatureErrorBoundary extends Component<Props, State> {
               
               <Button
                 onClick={() => {
-                  // Use window.location for error boundary navigation to ensure full reset
+                  // Use window.location.href instead of Next.js router to force a full page reload
+                  // This ensures complete reset of application state when recovering from errors
                   window.location.href = '/dashboard';
                 }}
                 className="w-full"

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Phone, Calendar, DollarSign, Clock, AlertCircle, Star, TrendingDown } from 'lucide-react'
 import { Customer } from '@/app/models/dashboard'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils/currency'
 
 interface CustomerCardProps {
   customer: Customer
@@ -83,15 +84,6 @@ export function CustomerCard({ customer, onClick, delay = 0 }: CustomerCardProps
     return phone
   }
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value)
-  }
 
   // Calculate days since last visit
   const daysSinceLastVisit = () => {
