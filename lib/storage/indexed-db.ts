@@ -1,23 +1,23 @@
 import Dexie, { type Table } from 'dexie';
 
-export interface HistoricalDataPoint {
+export interface HistoricalDataPoint<T = unknown> {
   id?: number;
   timestamp: Date;
   type: 'stats' | 'calls' | 'sms' | 'bookings';
-  data: any;
+  data: T;
   metadata?: {
     source?: string;
     version?: number;
   };
 }
 
-export interface CachedQuery {
+export interface CachedQuery<T = unknown> {
   id?: number;
   key: string;
-  data: any;
+  data: T;
   timestamp: Date;
   ttl: number; // Time to live in milliseconds
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PerformanceMetric {
@@ -26,7 +26,7 @@ export interface PerformanceMetric {
   name: string;
   value: number;
   rating?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class ReplyticsDB extends Dexie {
@@ -34,6 +34,9 @@ export class ReplyticsDB extends Dexie {
   historicalData!: Table<HistoricalDataPoint>;
   cachedQueries!: Table<CachedQuery>;
   performanceMetrics!: Table<PerformanceMetric>;
+  
+  private lastCleanup?: Date;
+  private readonly CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor() {
     super('ReplyticsDB');
@@ -47,8 +50,13 @@ export class ReplyticsDB extends Dexie {
 
     // Add hooks for cleanup
     this.on('ready', () => {
-      // Clean up old data on database open
-      this.cleanupOldData();
+      const now = new Date();
+      if (!this.lastCleanup || now.getTime() - this.lastCleanup.getTime() > this.CLEANUP_INTERVAL) {
+        this.cleanupOldData().catch(error => {
+          console.error('Failed to cleanup old data:', error);
+        });
+        this.lastCleanup = now;
+      }
     });
   }
 
@@ -82,10 +90,10 @@ export class ReplyticsDB extends Dexie {
   /**
    * Store historical data point
    */
-  async storeHistoricalData(
-    type: HistoricalDataPoint['type'], 
-    data: any,
-    metadata?: HistoricalDataPoint['metadata']
+  async storeHistoricalData<T = unknown>(
+    type: HistoricalDataPoint<T>['type'], 
+    data: T,
+    metadata?: HistoricalDataPoint<T>['metadata']
   ): Promise<number> {
     return this.historicalData.add({
       timestamp: new Date(),
@@ -112,23 +120,26 @@ export class ReplyticsDB extends Dexie {
   /**
    * Cache a query result
    */
-  async cacheQuery(
+  async cacheQuery<T = unknown>(
     key: string,
-    data: any,
+    data: T,
     ttl: number = 5 * 60 * 1000, // Default 5 minutes
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<number> {
-    // Remove existing cache for this key
-    await this.cachedQueries.where('key').equals(key).delete();
-    
-    // Add new cache entry
-    return this.cachedQueries.add({
+    // Use put() with a key-based approach for atomic upsert
+    const existing = await this.cachedQueries.where('key').equals(key).first();
+    const entry = {
+      id: existing?.id,
       key,
       data,
       timestamp: new Date(),
       ttl,
       metadata,
-    });
+    };
+    
+    return existing?.id 
+      ? this.cachedQueries.put(entry)
+      : this.cachedQueries.add(entry);
   }
 
   /**
@@ -218,13 +229,24 @@ export class ReplyticsDB extends Dexie {
     const values = metrics.map(m => m.value).sort((a, b) => a - b);
     const sum = values.reduce((acc, val) => acc + val, 0);
     
+    const getPercentile = (arr: number[], p: number): number => {
+      if (arr.length === 0) return 0;
+      const index = (arr.length - 1) * p;
+      const lower = Math.floor(index);
+      const upper = Math.ceil(index);
+      const weight = index % 1;
+      
+      if (upper >= arr.length) return arr[arr.length - 1];
+      return arr[lower] * (1 - weight) + arr[upper] * weight;
+    };
+    
     return {
       count: values.length,
       average: sum / values.length,
       min: values[0],
       max: values[values.length - 1],
-      p50: values[Math.floor(values.length * 0.5)],
-      p95: values[Math.floor(values.length * 0.95)],
+      p50: getPercentile(values, 0.5),
+      p95: getPercentile(values, 0.95),
     };
   }
 

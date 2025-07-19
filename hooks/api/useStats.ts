@@ -20,7 +20,8 @@ export function useStats() {
         ? (stats.answeredCalls / stats.totalCalls) * 100 
         : 0;
       
-      const avgCallsPerDay = stats.callsToday;
+      // Note: This is today's calls, not an average over multiple days
+      const callsToday = stats.callsToday;
       
       const conversionRate = stats.callsToday > 0
         ? (stats.bookingsToday / stats.callsToday) * 100
@@ -29,12 +30,12 @@ export function useStats() {
       return {
         ...stats,
         answerRate,
-        avgCallsPerDay,
+        avgCallsPerDay: callsToday, // Keep interface compatibility
         conversionRate,
       };
     },
-    // Refetch every 30 seconds to keep stats fresh
-    refetchInterval: 30000,
+    // Refetch every 2 minutes to balance freshness with performance
+    refetchInterval: 120000,
     // Keep data fresh for 1 minute (overrides global staleTime for this query)
     staleTime: 60000,
   });

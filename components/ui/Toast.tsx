@@ -24,8 +24,26 @@ export function ToastContainer() {
   const toasts = useToasts();
   const { dismiss } = useToast();
 
+  // Auto-dismiss toasts based on duration
+  useEffect(() => {
+    const timers = toasts.map((toast) => {
+      if (toast.duration && toast.duration > 0) {
+        return setTimeout(() => dismiss(toast.id), toast.duration);
+      }
+      return null;
+    }).filter(Boolean);
+
+    return () => {
+      timers.forEach((timer) => timer && clearTimeout(timer));
+    };
+  }, [toasts, dismiss]);
+
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <div 
+      className="fixed bottom-4 right-4 z-50 flex flex-col gap-2"
+      aria-live="polite"
+      aria-label="Notifications"
+    >
       <AnimatePresence mode="sync">
         {toasts.map((toast) => {
           const Icon = toastIcons[toast.type];
@@ -41,6 +59,8 @@ export function ToastContainer() {
                 'flex items-start gap-3 min-w-[300px] max-w-[400px] p-4 rounded-lg border backdrop-blur-sm shadow-lg',
                 toastStyles[toast.type]
               )}
+              role="alert"
+              aria-live="assertive"
             >
               <Icon className="w-5 h-5 text-white flex-shrink-0 mt-0.5" />
               <div className="flex-1">
@@ -52,6 +72,7 @@ export function ToastContainer() {
               <button
                 onClick={() => dismiss(toast.id)}
                 className="text-gray-400 hover:text-white transition-colors"
+                aria-label={`Dismiss ${toast.type} notification`}
               >
                 <X className="w-4 h-4" />
               </button>

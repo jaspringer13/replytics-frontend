@@ -4,7 +4,7 @@ import React, { Component, ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { AppError } from '@/lib/errors/types';
-import { ErrorFactory } from '@/lib/errors/factory';
+import { fromError } from '@/lib/errors/factory';
 
 declare global {
   interface Window {
@@ -35,8 +35,12 @@ export class FeatureErrorBoundary extends Component<Props, State> {
     };
   }
 
+  private static normalizeError(error: Error): AppError {
+    return error instanceof AppError ? error : fromError(error);
+  }
+
   static getDerivedStateFromError(error: Error): Partial<State> {
-    const appError = error instanceof AppError ? error : ErrorFactory.fromError(error);
+    const appError = FeatureErrorBoundary.normalizeError(error);
     return {
       hasError: true,
       error: appError,
@@ -44,7 +48,7 @@ export class FeatureErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const appError = error instanceof AppError ? error : ErrorFactory.fromError(error);
+    const appError = FeatureErrorBoundary.normalizeError(error);
     
     console.error(`[${this.props.feature} Error Boundary]`, {
       error: appError,
@@ -110,7 +114,10 @@ export class FeatureErrorBoundary extends Component<Props, State> {
               </Button>
               
               <Button
-                onClick={() => window.location.href = '/dashboard'}
+                onClick={() => {
+                  // Use window.location for error boundary navigation to ensure full reset
+                  window.location.href = '/dashboard';
+                }}
                 className="w-full"
                 variant="outline"
               >

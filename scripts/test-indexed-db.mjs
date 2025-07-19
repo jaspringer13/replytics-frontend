@@ -36,22 +36,6 @@ class MockDexie {
 // Test the schema
 const db = new MockDexie('ReplyticsDB');
 
-// Add version method before using it
-db.version = function(v) {
-  this.version = v;
-  return {
-    stores: (schema) => {
-      Object.entries(schema).forEach(([tableName, indexDef]) => {
-        this.tables[tableName] = {
-          name: tableName,
-          indexes: indexDef,
-        };
-        console.log(`✅ Table created: ${tableName}`);
-        console.log(`   Indexes: ${indexDef}`);
-      });
-    }
-  };
-};
 
 // Define schema (mirroring indexed-db.ts)
 db.version(1).stores({

@@ -20,30 +20,48 @@ import {
   ThirdPartyError,
   ErrorContext,
 } from './types';
+
+interface CompositeError extends ThirdPartyError {
+  allCauses?: Error[];
+}
 import { isAxiosError, isErrorLike } from './guards';
 
 // Helper to extract error message from various formats
-function extractErrorMessage(data: any): string | undefined {
+function extractErrorMessage(data: unknown): string | undefined {
   if (typeof data === 'string') return data;
-  if (data?.message) return data.message;
-  if (data?.error?.message) return data.error.message;
-  if (data?.error && typeof data.error === 'string') return data.error;
-  if (data?.errors && Array.isArray(data.errors)) {
-    return data.errors.map((e: any) => e.message || e).join(', ');
+  if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
+    return data.message;
+  }
+  if (data && typeof data === 'object' && 'error' in data) {
+    const error = data.error;
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+      return error.message;
+    }
+    if (typeof error === 'string') return error;
+  }
+  if (data && typeof data === 'object' && 'errors' in data && Array.isArray(data.errors)) {
+    return data.errors.map((e: unknown) => {
+      if (e && typeof e === 'object' && 'message' in e && typeof e.message === 'string') {
+        return e.message;
+      }
+      return String(e);
+    }).join(', ');
   }
   return undefined;
 }
 
 // Helper to extract validation errors
-function extractValidationErrors(data: any): Record<string, string[]> | undefined {
-  if (data?.errors && typeof data.errors === 'object' && !Array.isArray(data.errors)) {
-    return data.errors;
-  }
-  if (data?.validationErrors) {
-    return data.validationErrors;
-  }
-  if (data?.details && typeof data.details === 'object') {
-    return data.details;
+function extractValidationErrors(data: unknown): Record<string, string[]> | undefined {
+  if (data && typeof data === 'object') {
+    if ('errors' in data && data.errors && typeof data.errors === 'object' && !Array.isArray(data.errors)) {
+      return data.errors as Record<string, string[]>;
+    }
+    if ('validationErrors' in data && data.validationErrors && typeof data.validationErrors === 'object') {
+      return data.validationErrors as Record<string, string[]>;
+    }
+    if ('details' in data && data.details && typeof data.details === 'object') {
+      return data.details as Record<string, string[]>;
+    }
   }
   return undefined;
 }
@@ -54,7 +72,7 @@ function withContext<T extends AppError>(error: T, context?: ErrorContext): T {
     // Merge contexts if error already has one
     const mergedContext = { ...error.context, ...context };
     // We need to recreate the error to add context since properties are readonly
-    const ErrorClass = error.constructor as new (...args: any[]) => T;
+    const ErrorClass = error.constructor as new (...args: unknown[]) => T;
     const newError = Object.create(ErrorClass.prototype);
     Object.assign(newError, error, { context: mergedContext });
     return newError;
@@ -62,11 +80,10 @@ function withContext<T extends AppError>(error: T, context?: ErrorContext): T {
   return error;
 }
 
-export class ErrorFactory {
-  /**
-   * Convert API response to our domain error
-   */
-  static fromAPIResponse(status: number, data: any, context?: ErrorContext): AppError {
+/**
+ * Convert API response to our domain error
+ */
+export function fromAPIResponse(status: number, data: unknown, context?: ErrorContext): AppError {
     const message = extractErrorMessage(data) || `HTTP ${status} error`;
     const endpoint = context?.metadata?.endpoint as string | undefined;
 
@@ -83,12 +100,12 @@ export class ErrorFactory {
       }
 
       case 401: {
-        const reason = data?.reason || 
+        const reason = (data && typeof data === 'object' && 'reason' in data ? data.reason : undefined) || 
           (message.includes('expired') ? 'token_expired' : 
            message.includes('invalid') ? 'token_invalid' : 
            undefined);
         return new AuthenticationError(
-          reason as any,
+          reason as 'token_expired' | 'token_invalid' | undefined,
           endpoint,
           context
         );
@@ -164,10 +181,10 @@ export class ErrorFactory {
     }
   }
 
-  /**
-   * Convert Axios error to our domain error
-   */
-  static fromAxiosError(axiosError: any, context?: ErrorContext): AppError {
+/**
+ * Convert Axios error to our domain error
+ */
+export function fromAxiosError(axiosError: unknown, context?: ErrorContext): AppError {
     // Type guard check
     if (!isAxiosError(axiosError)) {
       return new ThirdPartyError(
@@ -184,7 +201,7 @@ export class ErrorFactory {
 
     // Network error - no response received
     if (!response) {
-      if (axiosError.code === 'ECONNABORTED' || (axiosError.message && axiosError.message.includes('timeout'))) {
+      if (axiosError.code === 'ECONNABORTED' || axiosError.message?.includes('timeout')) {
         return new TimeoutError(
           config?.timeout || 0,
           context
@@ -249,12 +266,12 @@ export class ErrorFactory {
       }
 
       case 401: {
-        const reason = data?.reason || 
+        const reason = (data && typeof data === 'object' && 'reason' in data ? data.reason : undefined) || 
           (message.includes('expired') ? 'token_expired' : 
            message.includes('invalid') ? 'token_invalid' : 
            undefined);
         return new AuthenticationError(
-          reason as any,
+          reason as 'token_expired' | 'token_invalid' | undefined,
           endpoint,
           context
         );
@@ -278,11 +295,13 @@ export class ErrorFactory {
       }
 
       case 429: {
-        const retryAfter = response.headers['retry-after'] 
-          ? parseInt(response.headers['retry-after']) 
+        const retryAfterHeader = response.headers['retry-after'];
+        const retryAfter = retryAfterHeader 
+          ? (isNaN(parseInt(retryAfterHeader)) ? undefined : parseInt(retryAfterHeader))
           : data?.retryAfter;
-        const limit = response.headers['x-rate-limit-limit'] 
-          ? parseInt(response.headers['x-rate-limit-limit'])
+        const limitHeader = response.headers['x-rate-limit-limit'];
+        const limit = limitHeader
+          ? (isNaN(parseInt(limitHeader)) ? undefined : parseInt(limitHeader))
           : data?.limit;
         
         return new RateLimitError(
@@ -339,10 +358,10 @@ export class ErrorFactory {
   }
 
 
-  /**
-   * Convert a standard Error to AppError
-   */
-  static fromError(error: Error, context?: ErrorContext): AppError {
+/**
+ * Convert a standard Error to AppError
+ */
+export function fromError(error: Error, context?: ErrorContext): AppError {
     // If already an AppError, return with additional context if provided
     if (error instanceof AppError) {
       return withContext(error, context);
@@ -366,10 +385,10 @@ export class ErrorFactory {
     );
   }
 
-  /**
-   * Convert any unknown error to AppError
-   */
-  static fromUnknown(error: unknown, defaultMessage: string = 'An error occurred', context?: ErrorContext): AppError {
+/**
+ * Convert any unknown error to AppError
+ */
+export function fromUnknown(error: unknown, defaultMessage: string = 'An error occurred', context?: ErrorContext): AppError {
     // Already our error type
     if (error instanceof AppError) {
       return withContext(error, context);
@@ -414,21 +433,21 @@ export class ErrorFactory {
     return new ThirdPartyError('unknown', defaultMessage, context);
   }
 
-  /**
-   * Helper to create error with additional context
-   */
-  static withContext<T extends AppError>(error: T, context: ErrorContext): T {
-    return withContext(error, context);
-  }
+/**
+ * Helper to create error with additional context
+ */
+export function withErrorContext<T extends AppError>(error: T, context: ErrorContext): T {
+  return withContext(error, context);
+}
 
-  /**
-   * Create a composite error that preserves multiple causes
-   */
-  static createComposite(
-    message: string,
-    errors: Error[],
-    context?: ErrorContext
-  ): ThirdPartyError {
+/**
+ * Create a composite error that preserves multiple causes
+ */
+export function createComposite(
+  message: string,
+  errors: Error[],
+  context?: ErrorContext
+): ThirdPartyError {
     const causes = errors.map(e => e.message).join('; ');
     const compositeError = new ThirdPartyError(
       'composite',
@@ -438,15 +457,15 @@ export class ErrorFactory {
     );
 
     // Store all errors for later inspection
-    (compositeError as any).allCauses = errors;
+    (compositeError as CompositeError).allCauses = errors;
     
     return compositeError;
   }
 
-  /**
-   * Extract root cause from error chain
-   */
-  static getRootCause(error: Error): Error {
+/**
+ * Extract root cause from error chain
+ */
+export function getRootCause(error: Error): Error {
     let current = error;
     while ((current as any).originalError || (current as any).cause) {
       current = (current as any).originalError || (current as any).cause;
@@ -454,10 +473,10 @@ export class ErrorFactory {
     return current;
   }
 
-  /**
-   * Get full error chain for debugging
-   */
-  static getErrorChain(error: Error): Error[] {
+/**
+ * Get full error chain for debugging
+ */
+export function getErrorChain(error: Error): Error[] {
     const chain: Error[] = [];
     let current: Error | undefined = error;
     
@@ -469,14 +488,13 @@ export class ErrorFactory {
     return chain;
   }
 
-  /**
-   * Format error chain for logging
-   */
-  static formatErrorChain(error: Error): string {
-    const chain = this.getErrorChain(error);
+/**
+ * Format error chain for logging
+ */
+export function formatErrorChain(error: Error): string {
+    const chain = getErrorChain(error);
     return chain.map((e, i) => {
       const indent = '  '.repeat(i);
       return `${indent}${i > 0 ? '↳ ' : ''}${e.name}: ${e.message}`;
     }).join('\n');
-  }
 }

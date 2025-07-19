@@ -14,6 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
 import { LiveCallIndicator } from './LiveCallIndicator'
 import { ConnectionStatus } from './ConnectionStatus'
+import { AIChatWidget } from './AIChatWidget'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -247,6 +248,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       
       {/* Connection Status */}
       <ConnectionStatus />
+      <AIChatWidget />
     </div>
   )
 }

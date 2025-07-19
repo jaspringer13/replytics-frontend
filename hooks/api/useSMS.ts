@@ -67,15 +67,24 @@ export function useSendSMS() {
       
       // Add to the conversation immediately
       queryClient.setQueryData(queryKeys.sms(), (old: any) => {
-        if (!old) return old;
+        if (!old || !old.pages || !Array.isArray(old.pages)) {
+          return {
+            pages: [{
+              messages: [optimisticMessage],
+              total: 1,
+              hasMore: false,
+            }],
+            pageParams: [0],
+          };
+        }
         return {
           ...old,
           pages: old.pages.map((page: any, index: number) => {
             if (index === 0) {
               return {
                 ...page,
-                messages: [optimisticMessage, ...page.messages],
-                total: page.total + 1,
+                messages: [optimisticMessage, ...(page.messages || [])],
+                total: (page.total || 0) + 1,
               };
             }
             return page;
@@ -89,17 +98,17 @@ export function useSendSMS() {
       // Remove optimistic message on error
       if (context?.optimisticMessage) {
         queryClient.setQueryData(queryKeys.sms(), (old: any) => {
-          if (!old) return old;
+          if (!old || !old.pages || !Array.isArray(old.pages)) return old;
           return {
             ...old,
             pages: old.pages.map((page: any, index: number) => {
               if (index === 0) {
                 return {
                   ...page,
-                  messages: page.messages.filter(
+                  messages: (page.messages || []).filter(
                     (msg: SMS) => msg.id !== context.optimisticMessage.id
                   ),
-                  total: page.total - 1,
+                  total: Math.max((page.total || 1) - 1, 0),
                 };
               }
               return page;

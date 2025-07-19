@@ -88,6 +88,10 @@ async function fetchAndDisplayMetrics() {
     // Calculate and display averages
     console.log('\nMetric Averages:');
     Object.entries(grouped).forEach(([name, values]) => {
+      if (values.length === 0) {
+        console.log(`- ${name}: No data available`);
+        return;
+      }
       const avg = values.reduce((a, b) => a + b, 0) / values.length;
       const rating = getMetricRating(name, avg);
       console.log(`- ${name}: ${avg.toFixed(0)}${name === 'CLS' ? '' : 'ms'} (${rating}) - ${values.length} measurements`);

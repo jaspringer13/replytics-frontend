@@ -72,7 +72,7 @@ class APIClient {
   private requestQueue: Array<() => void> = [];
   private isRefreshing = false;
 
-  constructor() {
+  constructor(private requestTimeout: number = 30000) {
     this.baseURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
     if (!this.baseURL) {
       console.warn('Backend API URL not configured. Please set NEXT_PUBLIC_BACKEND_API_URL in .env.local');
@@ -110,7 +110,10 @@ class APIClient {
         this.requestQueue = [];
       });
     }
-    return this.refreshPromise!;
+    if (!this.refreshPromise) {
+      throw new Error('Token refresh promise not initialized');
+    }
+    return this.refreshPromise;
   }
 
   private isTokenExpiringSoon(): boolean {
@@ -156,8 +159,15 @@ class APIClient {
       (headers as Record<string, string>)['X-Tenant-ID'] = this.tenantId;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+
     try {
-      const response = await this.executeRequest(url, options, headers);
+      const response = await this.executeRequest(url, {
+        ...options,
+        signal: controller.signal
+      }, headers);
+      clearTimeout(timeoutId);
 
       // Handle 401 errors with token refresh
       if (response.status === 401 && retryCount === 0) {
@@ -201,6 +211,10 @@ class APIClient {
 
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
       console.error(`API request failed: ${endpoint}`, error);
       throw error;
     }
@@ -409,6 +423,116 @@ class APIClient {
       isExpiringSoon: this.isTokenExpiringSoon(),
       minutesUntilExpiry: msUntilExpiry > 0 ? minutesUntilExpiry : null,
     };
+  }
+
+  // V2 Dashboard API Methods
+
+  // Business Configuration
+  async getBusinessProfile() {
+    return this.request('/api/v2/dashboard/business/profile');
+  }
+
+  async updateBusinessProfile(updates: any) {
+    return this.request('/api/v2/dashboard/business/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async getVoiceSettings() {
+    return this.request('/api/v2/dashboard/business/voice-settings');
+  }
+
+  async updateVoiceSettings(settings: any) {
+    return this.request('/api/v2/dashboard/business/voice-settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async getConversationRules() {
+    return this.request('/api/v2/dashboard/business/conversation-rules');
+  }
+
+  async updateConversationRules(rules: any) {
+    return this.request('/api/v2/dashboard/business/conversation-rules', {
+      method: 'PATCH',
+      body: JSON.stringify(rules),
+    });
+  }
+
+  // Services Management
+  async getServices(includeInactive = false) {
+    const params = new URLSearchParams();
+    if (includeInactive) params.append('includeInactive', 'true');
+    return this.request(`/api/v2/dashboard/services?${params.toString()}`);
+  }
+
+  async createService(service: any) {
+    return this.request('/api/v2/dashboard/services', {
+      method: 'POST',
+      body: JSON.stringify(service),
+    });
+  }
+
+  async updateService(id: string, updates: any) {
+    return this.request(`/api/v2/dashboard/services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteService(id: string) {
+    return this.request(`/api/v2/dashboard/services/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reorderServices(serviceIds: string[]) {
+    return this.request('/api/v2/dashboard/services/reorder', {
+      method: 'POST',
+      body: JSON.stringify({ serviceIds }),
+    });
+  }
+
+  // Operating Hours
+  async getBusinessHours() {
+    return this.request('/api/v2/dashboard/hours');
+  }
+
+  async updateBusinessHours(hours: any[]) {
+    return this.request('/api/v2/dashboard/hours', {
+      method: 'PATCH',
+      body: JSON.stringify(hours),
+    });
+  }
+
+  // Analytics
+  async getAnalyticsOverview(startDate?: string, endDate?: string) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return this.request(`/api/v2/dashboard/analytics/overview?${params.toString()}`);
+  }
+
+  // Customers
+  async getCustomers(filters?: {
+    search?: string;
+    segment?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    page?: number;
+    pageSize?: number;
+  }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    return this.request(`/api/v2/dashboard/customers?${params.toString()}`);
   }
 }
 

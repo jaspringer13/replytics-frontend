@@ -45,7 +45,6 @@ export function useCall(callId: string) {
   return useQuery({
     queryKey: queryKeys.callById(callId),
     queryFn: async () => {
-      // Fetch single call details
       const response = await apiClient.request<Call>(`/api/dashboard/calls/${callId}`);
       return response;
     },
@@ -64,16 +63,16 @@ export function useCallRecording(callId: string) {
 }
 
 // Helper hook for today's calls
-export function useTodaysCalls() {
+export function useTodaysCalls(limit = 100) {
   const today = new Date().toISOString().split('T')[0];
   
   return useQuery({
-    queryKey: [...queryKeys.calls(), 'today', today],
+    queryKey: [...queryKeys.calls(), 'today', today, limit],
     queryFn: async () => {
       const response = await apiClient.fetchCalls({
         startDate: today,
         endDate: today,
-        limit: 100, // Get all calls for today
+        limit,
       });
       return response;
     },

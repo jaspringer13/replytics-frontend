@@ -9,7 +9,18 @@ export interface ErrorContext {
   tenantId?: string;
   bookingId?: string;
   action?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+// Serialized error interface for toJSON method
+export interface SerializedError {
+  name: string;
+  message: string;
+  code: string;
+  timestamp: Date;
+  context?: ErrorContext;
+  stack?: string;
+  isOperational: boolean;
 }
 
 // Base error class with all best practices
@@ -45,7 +56,7 @@ export abstract class AppError extends Error {
   }
 
   // Serialize for logging
-  toJSON(): Record<string, any> {
+  toJSON(): SerializedError {
     return {
       name: this.name,
       message: this.message,
@@ -93,14 +104,14 @@ export class DNSError extends NetworkError {
 export class APIError extends AppError {
   public readonly statusCode?: number;
   public readonly endpoint?: string;
-  public readonly responseData?: any;
+  public readonly responseData?: unknown;
 
   constructor(
     message: string,
     code: string,
     statusCode?: number,
     endpoint?: string,
-    responseData?: any,
+    responseData?: unknown,
     context?: ErrorContext,
     originalError?: Error
   ) {
@@ -389,11 +400,6 @@ export class PaymentError extends IntegrationError {
 
 // Helper function to check if an error is retryable
 export function isRetryableError(error: unknown): boolean {
-  if (error instanceof NetworkError) {
-    // Network errors are generally retryable
-    return true;
-  }
-  
   if (error instanceof TimeoutError) {
     // Timeouts are retryable
     return true;
@@ -406,6 +412,11 @@ export function isRetryableError(error: unknown): boolean {
   
   if (error instanceof RateLimitError) {
     // Rate limits can be retried after delay
+    return true;
+  }
+  
+  if (error instanceof NetworkError) {
+    // Network errors are generally retryable
     return true;
   }
   

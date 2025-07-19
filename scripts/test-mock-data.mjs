@@ -21,8 +21,16 @@ console.log(`✅ Generated ${smallData.bookings.length} bookings`);
 console.log('\nTest 2: Verifying data patterns...');
 
 // Check missed call rate
-const missedRate = smallData.stats.missedCalls / smallData.stats.totalCalls;
-console.log(`✅ Missed call rate: ${(missedRate * 100).toFixed(1)}% (target: ~15%)`);
+const missedRate = smallData.stats.totalCalls > 0 
+  ? smallData.stats.missedCalls / smallData.stats.totalCalls 
+  : 0;
+const missedRatePercent = (missedRate * 100).toFixed(1);
+console.log(`✅ Missed call rate: ${missedRatePercent}% (target: ~15%)`);
+
+// Validate ranges
+if (missedRate < 0.05 || missedRate > 0.25) {
+  console.warn(`⚠️  Missed call rate ${missedRatePercent}% outside expected range (5-25%)`);
+}
 
 // Check peak hour
 console.log(`✅ Peak hour: ${smallData.stats.peakHour}:00 (expected: 10-12 or 14-16)`);
@@ -71,10 +79,14 @@ console.log(`✅ Generated 1000 calls, 200 SMS, 500 bookings in ${duration}ms`);
 
 // Test 5: Verify return customer pattern
 console.log('\nTest 5: Checking return customer patterns...');
-const phoneNumbers = new Set(largeData.calls.map(c => c.phoneNumber));
-const uniqueCustomers = phoneNumbers.size;
-const returnRate = (largeData.calls.length - uniqueCustomers) / largeData.calls.length;
-console.log(`✅ Return customer rate: ${(returnRate * 100).toFixed(1)}% (target: ~30%)`);
+if (largeData.calls.length === 0) {
+  console.warn('⚠️  No calls in dataset, skipping return customer rate calculation');
+} else {
+  const phoneNumbers = new Set(largeData.calls.map(c => c.phoneNumber));
+  const uniqueCustomers = phoneNumbers.size;
+  const returnRate = (largeData.calls.length - uniqueCustomers) / largeData.calls.length;
+  console.log(`✅ Return customer rate: ${(returnRate * 100).toFixed(1)}% (target: ~30%)`);
+}
 
 // Test 6: Verify realistic patterns
 console.log('\nTest 6: Verifying realistic patterns...');
@@ -90,7 +102,10 @@ const confirmed = largeData.bookings.filter(b => b.status === 'confirmed').lengt
 const cancelled = largeData.bookings.filter(b => b.status === 'cancelled').length;
 const pending = largeData.bookings.filter(b => b.status === 'pending').length;
 console.log(`✅ Confirmed bookings: ${confirmed}`);
-console.log(`✅ Cancelled bookings: ${cancelled} (${(cancelled/largeData.bookings.length*100).toFixed(1)}%)`);
+const cancellationRate = largeData.bookings.length > 0 
+  ? (cancelled/largeData.bookings.length*100).toFixed(1) 
+  : '0.0';
+console.log(`✅ Cancelled bookings: ${cancelled} (${cancellationRate}%)`);
 console.log(`✅ Pending bookings: ${pending}`);
 
 console.log('\n✅ All tests passed! Mock data generator is working correctly.');

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import { FeatureErrorBoundary } from './FeatureErrorBoundary';
 import { Button } from '@/components/ui/Button';
 import { BarChart3, RefreshCw } from 'lucide-react';
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export function DashboardErrorBoundary({ children }: Props) {
+  const router = useRouter();
+
   return (
     <FeatureErrorBoundary
       feature="dashboard"
@@ -27,7 +30,7 @@ export function DashboardErrorBoundary({ children }: Props) {
             
             <div className="space-y-3">
               <Button
-                onClick={() => window.location.reload()}
+                onClick={() => router.refresh()}
                 className="w-full"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -36,14 +39,14 @@ export function DashboardErrorBoundary({ children }: Props) {
               
               <div className="grid grid-cols-2 gap-3">
                 <Button
-                  onClick={() => window.location.href = '/dashboard/calls'}
+                  onClick={() => router.push('/dashboard/calls')}
                   variant="outline"
                   size="sm"
                 >
                   View Calls
                 </Button>
                 <Button
-                  onClick={() => window.location.href = '/dashboard/sms'}
+                  onClick={() => router.push('/dashboard/sms')}
                   variant="outline"
                   size="sm"
                 >

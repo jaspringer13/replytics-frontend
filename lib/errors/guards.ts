@@ -157,7 +157,7 @@ export function isPaymentError(error: unknown): error is PaymentError {
 
 // Composite guards for error categories
 export function isNetworkRelated(error: unknown): error is NetworkError {
-  return isNetworkError(error);
+  return isNetworkError(error) || isTimeoutError(error) || isOfflineError(error) || isDNSError(error);
 }
 
 export function isAuthRelated(error: unknown): error is AuthenticationError | AuthorizationError | GoogleAuthError {
@@ -243,14 +243,14 @@ export function isAxiosError(error: unknown): error is {
   isAxiosError: true; 
   response?: { 
     status: number; 
-    data: any;
-    headers?: any;
+    data: unknown;
+    headers?: Record<string, string | string[]>;
   };
   config?: {
     url?: string;
     timeout?: number;
   };
-  request?: any;
+  request?: unknown;
   code?: string;
   message?: string;
   name?: string;

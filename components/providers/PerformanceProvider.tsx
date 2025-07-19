@@ -10,16 +10,24 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
     
     // Optional: Send metrics to analytics after page load
     if (typeof window !== 'undefined') {
-      window.addEventListener('load', () => {
+      const handleLoad = () => {
         // Wait a bit to collect all metrics
         setTimeout(() => {
           const metrics = tracker.getMetrics();
-          console.log('[Performance] Final metrics:', metrics);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Performance] Final metrics:', metrics);
+          }
           
           // You can send to analytics here
           // tracker.sendToAnalytics('/api/analytics/performance');
-        }, 5000);
-      });
+        }, 5000); // TODO: Make this timeout configurable
+      };
+      
+      window.addEventListener('load', handleLoad);
+      
+      return () => {
+        window.removeEventListener('load', handleLoad);
+      };
     }
   }, []);
 

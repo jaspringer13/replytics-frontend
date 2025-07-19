@@ -21,10 +21,11 @@ export class DataCoordinator {
   private updateQueue: DataUpdate<any>[] = [];
   private isProcessing = false;
   private debouncers: Map<string, NodeJS.Timeout> = new Map();
-  private readonly DEBOUNCE_DELAY = 1000; // 1 second debounce for poll updates
+  private readonly DEBOUNCE_DELAY: number;
 
-  constructor(queryClient: QueryClient) {
+  constructor(queryClient: QueryClient, options?: { debounceDelay?: number }) {
     this.queryClient = queryClient;
+    this.DEBOUNCE_DELAY = options?.debounceDelay ?? 1000;
   }
 
   /**
@@ -53,17 +54,24 @@ export class DataCoordinator {
 
     this.isProcessing = true;
 
-    while (this.updateQueue.length > 0) {
-      const update = this.updateQueue.shift()!;
-      
-      // Check if this update should be applied based on conflict resolution
-      if (this.shouldApplyUpdate(update)) {
-        this.queryClient.setQueryData([update.key], update.data);
-        this.lastUpdate.set(update.key, update.metadata);
+    try {
+      while (this.updateQueue.length > 0) {
+        const update = this.updateQueue.shift()!;
+        
+        // Check if this update should be applied based on conflict resolution
+        if (this.shouldApplyUpdate(update)) {
+          try {
+            this.queryClient.setQueryData([update.key], update.data);
+            this.lastUpdate.set(update.key, update.metadata);
+          } catch (error) {
+            console.error(`Failed to apply update for key ${update.key}:`, error);
+            // Optionally, you could re-queue the update or emit an error event
+          }
+        }
       }
+    } finally {
+      this.isProcessing = false;
     }
-
-    this.isProcessing = false;
   }
 
   /**

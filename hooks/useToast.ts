@@ -17,10 +17,12 @@ interface ToastStore {
   clearToasts: () => void;
 }
 
+let counter = 0;
+
 const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   addToast: (toast) => {
-    const id = Date.now().toString();
+    const id = `${Date.now()}-${++counter}`;
     const newToast = { ...toast, id };
     
     set((state) => ({
@@ -74,9 +76,12 @@ export function useToasts() {
 export function useApiErrorToast() {
   const { toast } = useToast();
   
-  return (error: any) => {
-    const status = error?.response?.status;
-    const message = error?.response?.data?.message || error?.message;
+  return (error: unknown) => {
+    // Type guard for axios-like errors
+    const axiosError = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+    const status = axiosError?.response?.status;
+    const message = axiosError?.response?.data?.message || 
+                   (error instanceof Error ? error.message : String(error));
     
     if (status === 401) {
       toast.info('Refreshing authentication...', 'Please wait a moment');

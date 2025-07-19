@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const storedMetric = {
       metric,
       timestamp: new Date().toISOString(),
-      id: `${metric.name}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `${metric.name}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`,
     };
     
     metricsStore.push(storedMetric);

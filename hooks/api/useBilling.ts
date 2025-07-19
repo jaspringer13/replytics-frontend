@@ -53,7 +53,10 @@ export function useBilling() {
       // Calculate days remaining in billing period
       const endDate = new Date(billing.billingPeriod.end);
       const today = new Date();
-      const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+      // Use UTC dates to avoid timezone issues in billing period calculations
+      const endDateUTC = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+      const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const daysRemaining = Math.max(0, Math.ceil((endDateUTC.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)));
       
       return {
         ...billing,

@@ -19,6 +19,8 @@ async function checkEndpoint() {
       rating: 'good',
       delta: 0,
       id: `test-${Date.now()}`,
+      navigationType: 'navigate',
+      entries: [],
     };
 
     const postResponse = await fetch(METRICS_ENDPOINT, {

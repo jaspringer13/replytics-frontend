@@ -16,7 +16,7 @@ const defaultQueryOptions: DefaultOptions = {
       // Exponential backoff: 1s, 2s, 4s
       return Math.min(1000 * Math.pow(2, attemptIndex), 4000);
     },
-    refetchOnWindowFocus: false, // Disable for development
+    refetchOnWindowFocus: process.env.NODE_ENV === 'production',
   },
   mutations: {
     retry: false,

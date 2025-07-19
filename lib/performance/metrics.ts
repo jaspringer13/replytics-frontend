@@ -14,6 +14,7 @@ class PerformanceTracker {
   private metrics: PerformanceMetrics = {};
   private navigationStart: number;
   private metricsCallbacks: ((metrics: PerformanceMetrics) => void)[] = [];
+  private ttiCleanup: (() => void) | null = null;
 
   constructor() {
     this.navigationStart = performance.timeOrigin || Date.now();
@@ -67,8 +68,10 @@ class PerformanceTracker {
     // Time to Interactive approximation using Long Tasks API
     if ('PerformanceObserver' in window && 'PerformanceLongTaskTiming' in window) {
       let lastLongTask = 0;
+      let checkTTI: NodeJS.Timeout;
+      let observer: PerformanceObserver;
       
-      const observer = new PerformanceObserver((list) => {
+      observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           lastLongTask = entry.startTime + entry.duration;
         }
@@ -77,7 +80,7 @@ class PerformanceTracker {
       observer.observe({ entryTypes: ['longtask'] });
 
       // Check for TTI every 500ms
-      const checkTTI = setInterval(() => {
+      checkTTI = setInterval(() => {
         const now = performance.now();
         // Consider interactive if no long tasks for 5 seconds
         if (now - lastLongTask > 5000 && this.metrics.FCP) {
@@ -86,13 +89,21 @@ class PerformanceTracker {
           this.notifyCallbacks();
           clearInterval(checkTTI);
           observer.disconnect();
+          this.ttiCleanup = null;
         }
       }, 500);
 
+      // Store cleanup function
+      this.ttiCleanup = () => {
+        if (checkTTI) clearInterval(checkTTI);
+        if (observer) observer.disconnect();
+      };
+
       // Stop checking after 30 seconds
       setTimeout(() => {
-        clearInterval(checkTTI);
-        observer.disconnect();
+        if (checkTTI) clearInterval(checkTTI);
+        if (observer) observer.disconnect();
+        this.ttiCleanup = null;
       }, 30000);
     }
   }
@@ -219,6 +230,14 @@ class PerformanceTracker {
       navigator.sendBeacon(endpoint, JSON.stringify(data));
     }
   }
+
+  cleanup() {
+    if (this.ttiCleanup) {
+      this.ttiCleanup();
+      this.ttiCleanup = null;
+    }
+    this.metricsCallbacks = [];
+  }
 }
 
 // Create singleton instance
@@ -245,4 +264,11 @@ export const onPerformanceMetrics = (callback: (metrics: PerformanceMetrics) => 
 export const sendPerformanceMetrics = (endpoint?: string) => {
   const t = getPerformanceTracker();
   if (t) t.sendToAnalytics(endpoint);
+};
+
+export const cleanupPerformanceTracker = () => {
+  if (tracker) {
+    tracker.cleanup();
+    tracker = null;
+  }
 };

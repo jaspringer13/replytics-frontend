@@ -36,13 +36,35 @@ const statusConfig = {
   },
 };
 
-export function ConnectionStatusIndicator() {
+interface ConnectionStatusIndicatorProps {
+  position?: {
+    bottom?: string;
+    left?: string;
+    right?: string;
+    top?: string;
+  };
+}
+
+export function ConnectionStatusIndicator({ 
+  position = { bottom: '4', left: '4' } 
+}: ConnectionStatusIndicatorProps) {
   const { status, lastSyncTime, isTokenRefreshing, message, isLoading, retry } = useConnectionStatus();
   const config = statusConfig[status];
   const Icon = config.icon;
 
   return (
-    <div className="fixed bottom-4 left-4 z-40">
+    <div 
+      className="fixed z-40"
+      style={{
+        bottom: position.bottom ? `${position.bottom}rem` : undefined,
+        left: position.left ? `${position.left}rem` : undefined,
+        right: position.right ? `${position.right}rem` : undefined,
+        top: position.top ? `${position.top}rem` : undefined,
+      }}
+      role="status" 
+      aria-live="polite" 
+      aria-atomic="true"
+    >
       <AnimatePresence mode="wait">
         {(status !== 'connected' || isTokenRefreshing) && (
           <motion.div
@@ -62,6 +84,7 @@ export function ConnectionStatusIndicator() {
                 config.color,
                 (status === 'connecting' || isTokenRefreshing) && 'animate-spin'
               )}
+              aria-hidden="true"
             />
             <div className="flex flex-col">
               <span className={cn('text-sm font-medium', config.color)}>
@@ -75,6 +98,8 @@ export function ConnectionStatusIndicator() {
               <button
                 onClick={retry}
                 className="ml-2 text-xs text-gray-400 hover:text-white transition-colors"
+                aria-label="Retry connection"
+                type="button"
               >
                 Retry
               </button>

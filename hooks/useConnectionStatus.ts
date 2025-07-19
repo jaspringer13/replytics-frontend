@@ -11,7 +11,12 @@ interface ConnectionStatusData {
   message?: string;
 }
 
-export function useConnectionStatus() {
+interface UseConnectionStatusOptions {
+  pollingInterval?: number;
+}
+
+export function useConnectionStatus(options?: UseConnectionStatusOptions) {
+  const pollingInterval = options?.pollingInterval ?? 30000;
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatusData>({
     status: 'connecting',
     lastSyncTime: null,
@@ -34,15 +39,20 @@ export function useConnectionStatus() {
         lastSyncTime: new Date(),
         message: undefined,
       }));
-    } catch (error: any) {
-      if (error?.response?.status === 401) {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error && 
+          (error as any).response?.status === 401) {
         setConnectionStatus(prev => ({
           ...prev,
           status: 'connecting',
           isTokenRefreshing: true,
           message: 'Refreshing authentication...',
         }));
-      } else if (error?.message?.includes('fetch')) {
+      } else if (error instanceof Error && 
+                (error.message.includes('fetch') || 
+                 error.message.includes('network') || 
+                 error.message.includes('Network') ||
+                 error.name === 'NetworkError')) {
         setConnectionStatus(prev => ({
           ...prev,
           status: 'disconnected',
@@ -52,7 +62,7 @@ export function useConnectionStatus() {
         setConnectionStatus(prev => ({
           ...prev,
           status: 'error',
-          message: error?.message || 'Something went wrong',
+          message: error instanceof Error ? error.message : 'Something went wrong',
         }));
       }
     }
@@ -82,8 +92,8 @@ export function useConnectionStatus() {
       handleOffline();
     }
     
-    // Periodic connection check every 30 seconds
-    const interval = setInterval(checkConnection, 30000);
+    // Periodic connection check
+    const interval = setInterval(checkConnection, pollingInterval);
     
     return () => {
       window.removeEventListener('online', handleOnline);

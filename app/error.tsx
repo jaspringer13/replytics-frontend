@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { AlertCircle } from 'lucide-react';
 
@@ -11,11 +12,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+  
   useEffect(() => {
+    // Log error with limited information to avoid exposing sensitive data
     console.error('[Error Boundary]', {
-      message: error.message,
+      message: error.message.substring(0, 100), // Limit message length
       digest: error.digest,
       timestamp: new Date().toISOString(),
+      type: error.name,
     });
   }, [error]);
   
@@ -50,7 +55,7 @@ export default function GlobalError({
           </Button>
           
           <Button
-            onClick={() => window.location.href = '/'}
+            onClick={() => router.push('/')}
             className="w-full"
             variant="outline"
           >

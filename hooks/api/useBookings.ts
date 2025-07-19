@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format, addDays } from 'date-fns';
 import { apiClient, Booking } from '@/lib/api-client';
 import { queryKeys } from '@/lib/react-query';
 
@@ -23,6 +24,11 @@ interface UpdateBookingData extends Partial<CreateBookingData> {
   status?: 'confirmed' | 'pending' | 'cancelled';
 }
 
+interface BookingsQueryData {
+  bookings: Booking[];
+  total: number;
+}
+
 // Hook for fetching bookings
 export function useBookings(filters?: BookingsFilters) {
   return useQuery({
@@ -30,7 +36,7 @@ export function useBookings(filters?: BookingsFilters) {
       ? queryKeys.bookingsByDate(filters.date)
       : queryKeys.bookingsList(filters),
     queryFn: () => apiClient.fetchBookings(filters),
-    refetchInterval: filters?.date === new Date().toISOString().split('T')[0] 
+    refetchInterval: filters?.date === format(new Date(), 'yyyy-MM-dd') 
       ? 60000 // Refresh today's bookings every minute
       : undefined,
   });
@@ -38,7 +44,7 @@ export function useBookings(filters?: BookingsFilters) {
 
 // Hook for today's bookings
 export function useTodaysBookings() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = format(new Date(), 'yyyy-MM-dd');
   
   return useQuery({
     queryKey: queryKeys.bookingsByDate(today),
@@ -50,13 +56,13 @@ export function useTodaysBookings() {
 // Hook for upcoming bookings (next 7 days)
 export function useUpcomingBookings() {
   const today = new Date();
-  const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const nextWeek = addDays(today, 7);
   
   return useQuery({
     queryKey: [...queryKeys.bookings(), 'upcoming'],
     queryFn: async () => {
       const response = await apiClient.request<{ bookings: Booking[]; total: number }>(
-        `/api/dashboard/bookings?startDate=${today.toISOString().split('T')[0]}&endDate=${nextWeek.toISOString().split('T')[0]}&limit=100`
+        `/api/dashboard/bookings?startDate=${format(today, 'yyyy-MM-dd')}&endDate=${format(nextWeek, 'yyyy-MM-dd')}&limit=100`
       );
       return response;
     },
@@ -85,7 +91,7 @@ export function useCreateBooking() {
       
       // Optimistically update to the new value
       if (previousBookings) {
-        queryClient.setQueryData(queryKeys.bookingsByDate(newBooking.date), (old: any) => ({
+        queryClient.setQueryData(queryKeys.bookingsByDate(newBooking.date), (old: BookingsQueryData | undefined) => ({
           ...old,
           bookings: [...(old?.bookings || []), {
             ...newBooking,
@@ -114,7 +120,7 @@ export function useCreateBooking() {
   });
 }
 
-// Mutation for updating a booking
+// Mutation for updating a booking with optimistic updates
 export function useUpdateBooking() {
   const queryClient = useQueryClient();
   
@@ -126,13 +132,46 @@ export function useUpdateBooking() {
       });
       return response;
     },
-    onSuccess: () => {
+    onMutate: async (updatedBooking) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.bookings() });
+      
+      // Snapshot the previous value
+      const previousBookings = queryClient.getQueriesData({ queryKey: queryKeys.bookings() });
+      
+      // Optimistically update the booking in all relevant queries
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.bookings() },
+        (old: BookingsQueryData | undefined) => {
+          if (!old?.bookings) return old;
+          
+          return {
+            ...old,
+            bookings: old.bookings.map(booking => 
+              booking.id === updatedBooking.id 
+                ? { ...booking, ...updatedBooking }
+                : booking
+            ),
+          };
+        }
+      );
+      
+      return { previousBookings };
+    },
+    onError: (err, updatedBooking, context) => {
+      // If the mutation fails, roll back
+      if (context?.previousBookings) {
+        context.previousBookings.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings() });
     },
   });
 }
 
-// Mutation for canceling a booking
+// Mutation for canceling a booking with optimistic updates
 export function useCancelBooking() {
   const queryClient = useQueryClient();
   
@@ -144,7 +183,40 @@ export function useCancelBooking() {
       });
       return response;
     },
-    onSuccess: () => {
+    onMutate: async (bookingId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.bookings() });
+      
+      // Snapshot the previous value
+      const previousBookings = queryClient.getQueriesData({ queryKey: queryKeys.bookings() });
+      
+      // Optimistically update the booking status to cancelled
+      queryClient.setQueriesData(
+        { queryKey: queryKeys.bookings() },
+        (old: BookingsQueryData | undefined) => {
+          if (!old?.bookings) return old;
+          
+          return {
+            ...old,
+            bookings: old.bookings.map(booking => 
+              booking.id === bookingId 
+                ? { ...booking, status: 'cancelled' as const }
+                : booking
+            ),
+          };
+        }
+      );
+      
+      return { previousBookings };
+    },
+    onError: (err, bookingId, context) => {
+      // If the mutation fails, roll back
+      if (context?.previousBookings) {
+        context.previousBookings.forEach(([queryKey, data]) => {
+          queryClient.setQueryData(queryKey, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.bookings() });
     },
   });

@@ -1,6 +1,6 @@
 # Replytics Website File Structure
 
-```
+```text
 replytics-frontend/
 ├── app/                          # Next.js 14 App Router
 │   ├── api/
