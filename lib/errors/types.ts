@@ -7,7 +7,6 @@
 export interface ErrorContext {
   userId?: string;
   tenantId?: string;
-  callId?: string;
   bookingId?: string;
   action?: string;
   metadata?: Record<string, any>;
@@ -217,85 +216,6 @@ export class BusinessLogicError extends APIError {
   }
 }
 
-// Voice Call Errors (CRITICAL - must preserve call state)
-export class VoiceCallError extends AppError {
-  public readonly callState?: {
-    callId: string;
-    phoneNumber: string;
-    duration: number;
-    isActive: boolean;
-    transcriptSoFar?: string;
-  };
-
-  constructor(
-    message: string,
-    code: string,
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext,
-    originalError?: Error
-  ) {
-    super(message, code, true, { ...context, callId: callState?.callId }, originalError);
-    this.callState = callState;
-  }
-}
-
-export class CallDroppedError extends VoiceCallError {
-  public readonly reason: 'network' | 'twilio' | 'user_hangup' | 'unknown';
-
-  constructor(
-    reason: 'network' | 'twilio' | 'user_hangup' | 'unknown',
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext
-  ) {
-    super(`Call dropped: ${reason}`, 'VOICE_CALL_DROPPED', callState, context);
-    this.reason = reason;
-  }
-}
-
-export class AudioQualityError extends VoiceCallError {
-  public readonly metrics?: {
-    jitter?: number;
-    packetLoss?: number;
-    latency?: number;
-  };
-
-  constructor(
-    metrics?: AudioQualityError['metrics'],
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext
-  ) {
-    super('Poor audio quality detected', 'VOICE_AUDIO_QUALITY', callState, context);
-    this.metrics = metrics;
-  }
-}
-
-export class TranscriptionError extends VoiceCallError {
-  public readonly provider: 'deepgram' | 'fallback';
-
-  constructor(
-    provider: 'deepgram' | 'fallback',
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext,
-    originalError?: Error
-  ) {
-    super(`Transcription failed with ${provider}`, 'VOICE_TRANSCRIPTION', callState, context, originalError);
-    this.provider = provider;
-  }
-}
-
-export class TwilioWebhookError extends VoiceCallError {
-  public readonly webhookType: string;
-
-  constructor(
-    webhookType: string,
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext,
-    originalError?: Error
-  ) {
-    super(`Twilio webhook error: ${webhookType}`, 'VOICE_TWILIO_WEBHOOK', callState, context, originalError);
-    this.webhookType = webhookType;
-  }
-}
 
 // Calendar Errors
 export class CalendarError extends AppError {
@@ -438,27 +358,6 @@ export class IntegrationError extends AppError {
   }
 }
 
-export class WebSocketError extends IntegrationError {
-  public readonly eventType?: string;
-  public readonly closeCode?: number;
-
-  constructor(
-    eventType?: string,
-    closeCode?: number,
-    context?: ErrorContext,
-    originalError?: Error
-  ) {
-    super(
-      'websocket',
-      `WebSocket error${eventType ? ` during ${eventType}` : ''}${closeCode ? ` (code: ${closeCode})` : ''}`,
-      'INTEGRATION_WEBSOCKET',
-      context,
-      originalError
-    );
-    this.eventType = eventType;
-    this.closeCode = closeCode;
-  }
-}
 
 export class ThirdPartyError extends IntegrationError {
   constructor(

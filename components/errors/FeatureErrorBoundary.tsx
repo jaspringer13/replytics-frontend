@@ -6,6 +6,12 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { AppError } from '@/lib/errors/types';
 import { ErrorFactory } from '@/lib/errors/factory';
 
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, parameters: any) => void;
+  }
+}
+
 interface Props {
   children: ReactNode;
   feature: 'dashboard' | 'calls' | 'settings' | 'analytics' | 'billing';

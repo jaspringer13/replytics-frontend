@@ -17,11 +17,6 @@ import {
   RateLimitError,
   ServerError,
   BusinessLogicError,
-  VoiceCallError,
-  CallDroppedError,
-  AudioQualityError,
-  TranscriptionError,
-  TwilioWebhookError,
   CalendarError,
   GoogleAuthError,
   BookingConflictError,
@@ -34,7 +29,6 @@ import {
   HydrationError,
   AssetLoadError,
   IntegrationError,
-  WebSocketError,
   ThirdPartyError,
   PaymentError,
 } from './types';
@@ -99,26 +93,6 @@ export function isBusinessLogicError(error: unknown): error is BusinessLogicErro
   return error instanceof BusinessLogicError;
 }
 
-// Voice call error guards
-export function isVoiceCallError(error: unknown): error is VoiceCallError {
-  return error instanceof VoiceCallError;
-}
-
-export function isCallDroppedError(error: unknown): error is CallDroppedError {
-  return error instanceof CallDroppedError;
-}
-
-export function isAudioQualityError(error: unknown): error is AudioQualityError {
-  return error instanceof AudioQualityError;
-}
-
-export function isTranscriptionError(error: unknown): error is TranscriptionError {
-  return error instanceof TranscriptionError;
-}
-
-export function isTwilioWebhookError(error: unknown): error is TwilioWebhookError {
-  return error instanceof TwilioWebhookError;
-}
 
 // Calendar error guards
 export function isCalendarError(error: unknown): error is CalendarError {
@@ -172,9 +146,6 @@ export function isIntegrationError(error: unknown): error is IntegrationError {
   return error instanceof IntegrationError;
 }
 
-export function isWebSocketError(error: unknown): error is WebSocketError {
-  return error instanceof WebSocketError;
-}
 
 export function isThirdPartyError(error: unknown): error is ThirdPartyError {
   return error instanceof ThirdPartyError;
@@ -185,8 +156,8 @@ export function isPaymentError(error: unknown): error is PaymentError {
 }
 
 // Composite guards for error categories
-export function isNetworkRelated(error: unknown): error is NetworkError | WebSocketError {
-  return isNetworkError(error) || isWebSocketError(error);
+export function isNetworkRelated(error: unknown): error is NetworkError {
+  return isNetworkError(error);
 }
 
 export function isAuthRelated(error: unknown): error is AuthenticationError | AuthorizationError | GoogleAuthError {
@@ -210,15 +181,6 @@ export function isRetryable(error: unknown): error is TimeoutError | ServerError
   return false;
 }
 
-// Special guard for call-critical errors that must preserve call state
-export function isCallCritical(error: unknown): error is VoiceCallError {
-  if (!isVoiceCallError(error)) {
-    return false;
-  }
-  
-  // Check if call state exists and call is still active
-  return error.callState !== undefined && error.callState.isActive === true;
-}
 
 // Guard to check if error requires immediate user action
 export function requiresUserAction(error: unknown): boolean {
@@ -236,9 +198,8 @@ export function shouldLogExternally(error: unknown): boolean {
     return true;
   }
   
-  // Log server errors, critical voice errors, and payment errors
+  // Log server errors and payment errors
   return isServerError(error) || 
-         isCallCritical(error) || 
          isPaymentError(error) ||
          !error.isOperational;
 }
@@ -260,10 +221,6 @@ export function isExternalServiceError(error: unknown): boolean {
          isMessagingError(error);
 }
 
-// Guard for checking if error has call state that needs preservation
-export function hasCallState(error: unknown): error is VoiceCallError & { callState: NonNullable<VoiceCallError['callState']> } {
-  return isVoiceCallError(error) && error.callState !== undefined;
-}
 
 // Guard for plain Error objects (not our custom errors)
 export function isPlainError(error: unknown): error is Error {

@@ -1,11 +1,3 @@
-import { ErrorFactory } from '@/lib/errors/factory';
-import { 
-  NetworkError, 
-  AuthenticationError, 
-  ValidationError,
-  isRetryableError 
-} from '@/lib/errors/types';
-
 interface AuthResponse {
   token: string;
   user: {
@@ -13,8 +5,8 @@ interface AuthResponse {
     email: string;
     name: string;
   };
-  expires_at?: string; // ISO timestamp when token expires
-  expires_in?: number; // Seconds until expiry
+  expires_at?: string;
+  expires_in?: number;
 }
 
 interface DashboardStats {
@@ -79,8 +71,6 @@ class APIClient {
   private refreshPromise: Promise<AuthResponse> | null = null;
   private requestQueue: Array<() => void> = [];
   private isRefreshing = false;
-  private readonly MAX_RETRIES = 3;
-  private readonly RETRY_DELAY = 1000;
 
   constructor() {
     this.baseURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
@@ -134,29 +124,6 @@ class APIClient {
     return expiresAt <= fiveMinutesFromNow;
   }
 
-  private async retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    retryCount: number,
-    delay: number
-  ): Promise<T> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (retryCount <= 0 || !isRetryableError(error)) {
-        throw error;
-      }
-      
-      console.log(`Retrying request, attempts remaining: ${retryCount}`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      return this.retryWithBackoff(
-        fn,
-        retryCount - 1,
-        delay * 2 // Exponential backoff
-      );
-    }
-  }
-
   async request<T>(
     endpoint: string,
     options: RequestInit = {},
@@ -189,104 +156,54 @@ class APIClient {
       (headers as Record<string, string>)['X-Tenant-ID'] = this.tenantId;
     }
 
-    const makeRequest = async (): Promise<T> => {
-      try {
-        const response = await this.executeRequest(url, options, headers);
+    try {
+      const response = await this.executeRequest(url, options, headers);
 
-        // Handle 401 errors with token refresh
-        if (response.status === 401 && retryCount === 0) {
-          // Don't try to refresh if this is already a refresh request
-          if (endpoint === '/api/dashboard/auth/refresh') {
-            throw new AuthenticationError(
-              'token_invalid',
-              endpoint,
-              { metadata: { statusCode: 401 } }
-            );
-          }
-
-          // Wait for ongoing refresh or start a new one
-          if (this.isRefreshing) {
-            await new Promise<void>(resolve => {
-              this.requestQueue.push(resolve);
-            });
-          } else {
-            try {
-              const authResponse = await this.handleTokenRefresh();
-              this.setToken(authResponse.token, authResponse.expires_at, authResponse.expires_in);
-            } catch (refreshError) {
-              // Refresh failed, redirect to sign in
-              this.setToken(null);
-              this.setTenantId(null);
-              if (typeof window !== 'undefined') {
-                window.location.href = '/auth/signin';
-              }
-              throw new AuthenticationError(
-                'token_expired',
-                endpoint,
-                { metadata: { originalError: refreshError } }
-              );
-            }
-          }
-
-          // Retry the original request with new token
-          return this.request<T>(endpoint, options, retryCount + 1);
+      // Handle 401 errors with token refresh
+      if (response.status === 401 && retryCount === 0) {
+        // Don't try to refresh if this is already a refresh request
+        if (endpoint === '/api/dashboard/auth/refresh') {
+          throw new Error('Token refresh failed');
         }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({
-            message: `HTTP error! status: ${response.status}`,
-          }));
-          
-          // Use error factory to create appropriate error type
-          const error = ErrorFactory.fromAPIResponse(response.status, errorData, {
-            metadata: {
-              endpoint,
-              method: options.method || 'GET',
-            }
+        // Wait for ongoing refresh or start a new one
+        if (this.isRefreshing) {
+          await new Promise<void>(resolve => {
+            this.requestQueue.push(resolve);
           });
-          
-          throw error;
+        } else {
+          try {
+            const authResponse = await this.handleTokenRefresh();
+            this.setToken(authResponse.token, authResponse.expires_at, authResponse.expires_in);
+          } catch (refreshError) {
+            // Refresh failed, redirect to sign in
+            this.setToken(null);
+            this.setTenantId(null);
+            if (typeof window !== 'undefined') {
+              window.location.href = '/auth/signin';
+            }
+            throw refreshError;
+          }
         }
 
-        return await response.json();
-      } catch (error) {
-        // Handle network errors
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-          throw new NetworkError(
-            'Network request failed',
-            'NETWORK_FAILED',
-            {
-              metadata: {
-                url,
-                method: options.method || 'GET',
-                retryable: true,
-              }
-            },
-            error
-          );
-        }
-        
-        // Re-throw if already an AppError
-        if (error instanceof Error && 'code' in error) {
-          throw error;
-        }
-        
-        // Wrap unknown errors
-        throw ErrorFactory.fromError(error as Error, { 
-          metadata: { 
-            endpoint, 
-            method: options.method 
-          } 
-        });
+        // Retry the original request with new token
+        return this.request<T>(endpoint, options, retryCount + 1);
       }
-    };
 
-    // Use retry mechanism for retryable errors
-    return this.retryWithBackoff(
-      makeRequest,
-      this.MAX_RETRIES,
-      this.RETRY_DELAY
-    );
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({
+          message: `HTTP error! status: ${response.status}`,
+        }));
+        const apiError = new Error(error.message || `Request failed: ${response.statusText}`);
+        (apiError as any).response = { status: response.status, data: error };
+        throw apiError;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`API request failed: ${endpoint}`, error);
+      throw error;
+    }
   }
 
   setToken(token: string | null, expiresAt?: string, expiresIn?: number) {

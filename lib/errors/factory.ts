@@ -17,12 +17,6 @@ import {
   RateLimitError,
   ServerError,
   BusinessLogicError,
-  VoiceCallError,
-  CallDroppedError,
-  AudioQualityError,
-  TranscriptionError,
-  TwilioWebhookError,
-  WebSocketError,
   ThirdPartyError,
   ErrorContext,
 } from './types';
@@ -344,109 +338,6 @@ export class ErrorFactory {
     }
   }
 
-  /**
-   * Convert Twilio error to our domain error
-   */
-  static fromTwilioError(twilioError: any, callState?: VoiceCallError['callState'], context?: ErrorContext): VoiceCallError {
-    const message = twilioError?.message || twilioError?.toString() || 'Twilio error';
-    const code = twilioError?.code || twilioError?.status;
-
-    // Map Twilio error codes to our error types
-    if (code >= 31000 && code < 32000) {
-      // Connection errors
-      if (code === 31005 || code === 31009) {
-        // Connection timeout or failed
-        return new CallDroppedError(
-          'network',
-          callState,
-          context
-        );
-      }
-      
-      // Audio quality issues
-      if (code === 31201 || code === 31202) {
-        return new AudioQualityError(
-          {
-            jitter: twilioError.jitter,
-            packetLoss: twilioError.packetLoss,
-            latency: twilioError.latency,
-          },
-          callState,
-          context
-        );
-      }
-    }
-
-    // Webhook errors
-    if (message.includes('webhook') || code >= 11200 && code < 11300) {
-      return new TwilioWebhookError(
-        twilioError.webhookType || 'unknown',
-        callState,
-        context,
-        twilioError instanceof Error ? twilioError : undefined
-      );
-    }
-
-    // Default to generic voice call error
-    return new VoiceCallError(
-      message,
-      `TWILIO_${code || 'UNKNOWN'}`,
-      callState,
-      context,
-      twilioError instanceof Error ? twilioError : undefined
-    );
-  }
-
-  /**
-   * Convert WebSocket error to our domain error
-   */
-  static fromWebSocketError(wsError: any, context?: ErrorContext): WebSocketError {
-    let eventType: string | undefined;
-    let closeCode: number | undefined;
-    let originalError: Error | undefined;
-
-    // Handle CloseEvent
-    if (wsError?.type === 'close' && typeof wsError.code === 'number') {
-      eventType = 'close';
-      closeCode = wsError.code;
-    }
-    // Handle Event
-    else if (wsError?.type) {
-      eventType = wsError.type;
-    }
-    // Handle Error object
-    else if (wsError instanceof Error) {
-      originalError = wsError;
-    }
-
-    return new WebSocketError(
-      eventType,
-      closeCode,
-      context,
-      originalError || (isErrorLike(wsError) ? wsError as Error : undefined)
-    );
-  }
-
-  /**
-   * Convert Deepgram/transcription error
-   */
-  static fromTranscriptionError(
-    error: any, 
-    provider: 'deepgram' | 'fallback',
-    callState?: VoiceCallError['callState'],
-    context?: ErrorContext
-  ): TranscriptionError {
-    const originalError = error instanceof Error ? error : 
-                         isErrorLike(error) ? new Error(error.message) : 
-                         undefined;
-
-    return new TranscriptionError(
-      provider,
-      callState,
-      context,
-      originalError
-    );
-  }
 
   /**
    * Convert a standard Error to AppError
