@@ -22,8 +22,12 @@ export function useAnalytics({
   const [error, setError] = useState<Error | null>(null)
 
   const fetchAnalytics = useCallback(async () => {
-    if (!tenantId) return
+    if (!tenantId) {
+      setLoading(false)
+      return
+    }
 
+    setLoading(true)
     try {
       const analytics = await apiClient.getAnalyticsOverview(startDate, endDate)
       setData(analytics)

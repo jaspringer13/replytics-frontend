@@ -156,7 +156,7 @@ export function isPaymentError(error: unknown): error is PaymentError {
 }
 
 // Composite guards for error categories
-export function isNetworkRelated(error: unknown): error is NetworkError {
+export function isNetworkRelated(error: unknown): error is NetworkError | TimeoutError | OfflineError | DNSError {
   return isNetworkError(error) || isTimeoutError(error) || isOfflineError(error) || isDNSError(error);
 }
 
@@ -168,7 +168,7 @@ export function isUserFacing(error: unknown): error is ValidationError | Busines
   return isValidationError(error) || isBusinessLogicError(error) || isBookingConflictError(error);
 }
 
-export function isRetryable(error: unknown): error is TimeoutError | ServerError | RateLimitError | NetworkError {
+export function isRetryable(error: unknown): error is TimeoutError | ServerError | RateLimitError | NetworkError | OfflineError | DNSError {
   if (isTimeoutError(error) || isServerError(error) || isNetworkRelated(error)) {
     return true;
   }

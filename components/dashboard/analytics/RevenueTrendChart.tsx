@@ -19,15 +19,22 @@ export function RevenueTrendChart({ data, height = 300 }: RevenueTrendChartProps
   const formattedData = useMemo(() => {
     return data.map(item => ({
       ...item,
-      displayDate: new Date(item.date).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      })
+      displayDate: (() => {
+        const date = new Date(item.date)
+        return isNaN(date.getTime()) ? item.date : date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      })()
     }))
   }, [data])
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: {
+    active?: boolean;
+    payload?: Array<{ value: number }>;
+    label?: string;
+  }) => {
     if (active && payload && payload.length) {
       return (
         <div 
@@ -48,6 +55,7 @@ export function RevenueTrendChart({ data, height = 300 }: RevenueTrendChartProps
 
   // Calculate Y-axis domain with some padding
   const yAxisDomain = useMemo(() => {
+    if (data.length === 0) return [0, 100]
     const values = data.map(d => d.amount)
     const min = Math.min(...values)
     const max = Math.max(...values)

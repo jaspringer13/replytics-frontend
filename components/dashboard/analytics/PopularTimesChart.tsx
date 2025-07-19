@@ -11,12 +11,12 @@ interface PopularTimesChartProps {
 export function PopularTimesChart({ data, maxItems = 12 }: PopularTimesChartProps) {
   // Get top times and calculate percentages
   const processedData = useMemo(() => {
-    const maxAppointments = Math.max(...data.map(t => t.appointments))
+    const maxAppointments = Math.max(...data.map(t => t.bookingCount))
     return data
       .slice(0, maxItems)
       .map(time => ({
         ...time,
-        percentage: maxAppointments > 0 ? (time.appointments / maxAppointments) * 100 : 0,
+        percentage: maxAppointments > 0 ? (time.bookingCount / maxAppointments) * 100 : 0,
         displayHour: `${time.hour.toString().padStart(2, '0')}:00`
       }))
   }, [data, maxItems])
@@ -32,25 +32,31 @@ export function PopularTimesChart({ data, maxItems = 12 }: PopularTimesChartProp
 
   return (
     <div className="space-y-3">
-      {processedData.map((time, index) => (
-        <div key={index} className="group">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm text-gray-400 font-medium">
-              {time.displayHour}
-            </span>
-            <span className="text-sm text-white font-medium">
-              {time.appointments} appointments
-            </span>
-          </div>
-          <div className="relative h-6 bg-gray-700 rounded overflow-hidden">
-            <div 
-              className={`absolute inset-y-0 left-0 ${getBarColor(time.percentage)} transition-all duration-500 ease-out`}
-              style={{ width: `${time.percentage}%` }}
-            />
-            <div className="absolute inset-0 flex items-center px-2">
-              <span className="text-xs text-white font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                {time.percentage.toFixed(0)}% of peak
+      {processedData.map((time) => (
+        <div key={`hour-${time.hour}`} className="group">
+          <div 
+            role="img" 
+            aria-label={`${time.displayHour}: ${time.bookingCount} appointments, ${time.percentage.toFixed(0)}% of peak`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm text-gray-400 font-medium">
+                {time.displayHour}
               </span>
+              <span className="text-sm text-white font-medium">
+                {time.bookingCount} appointments
+              </span>
+            </div>
+            <div className="relative h-6 bg-gray-700 rounded overflow-hidden">
+              <div 
+                className={`absolute inset-y-0 left-0 ${getBarColor(time.percentage)} transition-all duration-500 ease-out`}
+                style={{ width: `${time.percentage}%` }}
+                aria-hidden="true"
+              />
+              <div className="absolute inset-0 flex items-center px-2">
+                <span className="text-xs text-white font-medium opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity">
+                  {time.percentage.toFixed(0)}% of peak
+                </span>
+              </div>
             </div>
           </div>
         </div>

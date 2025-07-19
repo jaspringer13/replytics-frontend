@@ -31,11 +31,17 @@ try {
   console.log('✅ Performance tracker initialized');
   
   // Simulate marking stats loaded
-  setTimeout(() => {
-    markStatsLoaded();
-    console.log('✅ Stats loaded marked successfully');
-    console.log('\nPerformance metrics module is ready for use!');
-  }, 100);
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      markStatsLoaded();
+      console.log('✅ Stats loaded marked successfully');
+      console.log('\nPerformance metrics module is ready for use!');
+      resolve();
+    }, 100);
+  });
+  
+  process.exit(0);
 } catch (error) {
   console.error('❌ Error:', error.message);
+  process.exit(1);
 }

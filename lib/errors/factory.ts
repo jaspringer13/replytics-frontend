@@ -81,104 +81,172 @@ function withContext<T extends AppError>(error: T, context?: ErrorContext): T {
 }
 
 /**
+ * Map HTTP status codes to specific error types
+ */
+function mapStatusToError(
+  status: number,
+  message: string,
+  data: unknown,
+  endpoint: string | undefined,
+  context?: ErrorContext,
+  originalError?: Error,
+  response?: { headers?: Record<string, string>; config?: { timeout?: number } }
+): AppError {
+  // Map status codes to specific error types
+  switch (status) {
+    case 400: {
+      const validationErrors = extractValidationErrors(data);
+      return new ValidationError(
+        message,
+        validationErrors,
+        endpoint,
+        context
+      );
+    }
+
+    case 422: {
+      // Check if it's a business logic error (Axios-specific)
+      const businessCode = data && typeof data === 'object' && 'businessCode' in data
+        ? (data as any).businessCode
+        : undefined;
+      if (businessCode) {
+        return new BusinessLogicError(
+          message,
+          businessCode,
+          endpoint,
+          context
+        );
+      }
+      // Otherwise treat as validation error
+      const validationErrors = extractValidationErrors(data);
+      return new ValidationError(
+        message,
+        validationErrors,
+        endpoint,
+        context
+      );
+    }
+
+    case 401: {
+      const reason = (data && typeof data === 'object' && 'reason' in data ? data.reason : undefined) || 
+        (message.includes('expired') ? 'token_expired' : 
+         message.includes('invalid') ? 'token_invalid' : 
+         undefined);
+      return new AuthenticationError(
+        reason as 'token_expired' | 'token_invalid' | undefined,
+        endpoint,
+        context
+      );
+    }
+
+    case 403: {
+      const requiredPermission = data && typeof data === 'object' && 'requiredPermission' in data
+        ? (data as any).requiredPermission
+        : undefined;
+      return new AuthorizationError(
+        requiredPermission,
+        endpoint,
+        context
+      );
+    }
+
+    case 404: {
+      const resourceType = data && typeof data === 'object' && 'resourceType' in data
+        ? (data as any).resourceType
+        : undefined;
+      const resourceId = data && typeof data === 'object' && 'resourceId' in data
+        ? (data as any).resourceId
+        : undefined;
+      return new NotFoundError(
+        resourceType,
+        resourceId,
+        endpoint,
+        context
+      );
+    }
+
+    case 429: {
+      // Handle both direct data and Axios headers
+      const retryAfterHeader = response?.headers?.['retry-after'];
+      const dataRetryAfter = data && typeof data === 'object' && 'retryAfter' in data
+        ? (data as any).retryAfter
+        : undefined;
+      const retryAfter = retryAfterHeader 
+        ? (isNaN(parseInt(retryAfterHeader)) ? undefined : parseInt(retryAfterHeader))
+        : dataRetryAfter;
+      
+      const limitHeader = response?.headers?.['x-rate-limit-limit'];
+      const dataLimit = data && typeof data === 'object' && 'limit' in data
+        ? (data as any).limit
+        : undefined;
+      const limit = limitHeader
+        ? (isNaN(parseInt(limitHeader)) ? undefined : parseInt(limitHeader))
+        : dataLimit;
+      
+      return new RateLimitError(
+        retryAfter,
+        limit,
+        endpoint,
+        context
+      );
+    }
+
+    case 408:
+    case 504:
+    case 524: {
+      return new TimeoutError(
+        response?.config?.timeout || 30000,
+        context
+      );
+    }
+
+    case 500:
+    case 502:
+    case 503: {
+      return new ServerError(
+        message,
+        status,
+        endpoint,
+        context
+      );
+    }
+
+    default: {
+      // Check if it's a business logic error (4xx range)
+      const businessCode = data && typeof data === 'object' && 'businessCode' in data
+        ? (data as any).businessCode
+        : undefined;
+      if (status >= 400 && status < 500 && businessCode) {
+        return new BusinessLogicError(
+          message,
+          businessCode,
+          endpoint,
+          context
+        );
+      }
+      
+      // Generic API error
+      return new APIError(
+        message,
+        `HTTP_${status}`,
+        status,
+        endpoint,
+        data,
+        context,
+        originalError
+      );
+    }
+  }
+}
+
+/**
  * Convert API response to our domain error
  */
 export function fromAPIResponse(status: number, data: unknown, context?: ErrorContext): AppError {
     const message = extractErrorMessage(data) || `HTTP ${status} error`;
     const endpoint = context?.metadata?.endpoint as string | undefined;
-
-    // Map status codes to specific error types
-    switch (status) {
-      case 400: {
-        const validationErrors = extractValidationErrors(data);
-        return new ValidationError(
-          message,
-          validationErrors,
-          endpoint,
-          context
-        );
-      }
-
-      case 401: {
-        const reason = (data && typeof data === 'object' && 'reason' in data ? data.reason : undefined) || 
-          (message.includes('expired') ? 'token_expired' : 
-           message.includes('invalid') ? 'token_invalid' : 
-           undefined);
-        return new AuthenticationError(
-          reason as 'token_expired' | 'token_invalid' | undefined,
-          endpoint,
-          context
-        );
-      }
-
-      case 403: {
-        return new AuthorizationError(
-          data?.requiredPermission,
-          endpoint,
-          context
-        );
-      }
-
-      case 404: {
-        return new NotFoundError(
-          data?.resourceType,
-          data?.resourceId,
-          endpoint,
-          context
-        );
-      }
-
-      case 429: {
-        return new RateLimitError(
-          data?.retryAfter,
-          data?.limit,
-          endpoint,
-          context
-        );
-      }
-
-      case 408:
-      case 504:
-      case 524: {
-        return new TimeoutError(
-          30000,
-          context
-        );
-      }
-
-      case 500:
-      case 502:
-      case 503: {
-        return new ServerError(
-          message,
-          status,
-          endpoint,
-          context
-        );
-      }
-
-      default: {
-        // Check if it's a business logic error (4xx range)
-        if (status >= 400 && status < 500 && data?.businessCode) {
-          return new BusinessLogicError(
-            message,
-            data.businessCode,
-            endpoint,
-            context
-          );
-        }
-        
-        // Generic API error
-        return new APIError(
-          message,
-          `HTTP_${status}`,
-          status,
-          endpoint,
-          data,
-          context
-        );
-      }
-    }
+    
+    return mapStatusToError(status, message, data, endpoint, context);
   }
 
 /**
@@ -233,128 +301,8 @@ export function fromAxiosError(axiosError: unknown, context?: ErrorContext): App
     const message = extractErrorMessage(data) || axiosError.message || `HTTP ${status} error`;
     const endpoint = config?.url;
 
-    // Map status codes to specific error types
-    switch (status) {
-      case 400: {
-        const validationErrors = extractValidationErrors(data);
-        return new ValidationError(
-          message,
-          validationErrors,
-          endpoint,
-          context
-        );
-      }
-
-      case 422: {
-        // Check if it's a business logic error
-        if (data?.businessCode) {
-          return new BusinessLogicError(
-            message,
-            data.businessCode,
-            endpoint,
-            context
-          );
-        }
-        // Otherwise treat as validation error
-        const validationErrors = extractValidationErrors(data);
-        return new ValidationError(
-          message,
-          validationErrors,
-          endpoint,
-          context
-        );
-      }
-
-      case 401: {
-        const reason = (data && typeof data === 'object' && 'reason' in data ? data.reason : undefined) || 
-          (message.includes('expired') ? 'token_expired' : 
-           message.includes('invalid') ? 'token_invalid' : 
-           undefined);
-        return new AuthenticationError(
-          reason as 'token_expired' | 'token_invalid' | undefined,
-          endpoint,
-          context
-        );
-      }
-
-      case 403: {
-        return new AuthorizationError(
-          data?.requiredPermission,
-          endpoint,
-          context
-        );
-      }
-
-      case 404: {
-        return new NotFoundError(
-          data?.resourceType,
-          data?.resourceId,
-          endpoint,
-          context
-        );
-      }
-
-      case 429: {
-        const retryAfterHeader = response.headers['retry-after'];
-        const retryAfter = retryAfterHeader 
-          ? (isNaN(parseInt(retryAfterHeader)) ? undefined : parseInt(retryAfterHeader))
-          : data?.retryAfter;
-        const limitHeader = response.headers['x-rate-limit-limit'];
-        const limit = limitHeader
-          ? (isNaN(parseInt(limitHeader)) ? undefined : parseInt(limitHeader))
-          : data?.limit;
-        
-        return new RateLimitError(
-          retryAfter,
-          limit,
-          endpoint,
-          context
-        );
-      }
-
-      case 408:
-      case 504:
-      case 524: {
-        return new TimeoutError(
-          config?.timeout || 30000,
-          context
-        );
-      }
-
-      case 500:
-      case 502:
-      case 503: {
-        return new ServerError(
-          message,
-          status,
-          endpoint,
-          context
-        );
-      }
-
-      default: {
-        // Check if it's a business logic error (4xx range)
-        if (status >= 400 && status < 500 && data?.businessCode) {
-          return new BusinessLogicError(
-            message,
-            data.businessCode,
-            endpoint,
-            context
-          );
-        }
-        
-        // Generic API error
-        return new APIError(
-          message,
-          `HTTP_${status}`,
-          status,
-          endpoint,
-          data,
-          context,
-          axiosError as Error
-        );
-      }
-    }
+    // Use shared status mapping function
+    return mapStatusToError(status, message, data, endpoint, context, axiosError as Error, { headers: response.headers, config });
   }
 
 
@@ -462,13 +410,18 @@ export function createComposite(
     return compositeError;
   }
 
+interface ErrorWithCause {
+  originalError?: Error;
+  cause?: Error;
+}
+
 /**
  * Extract root cause from error chain
  */
 export function getRootCause(error: Error): Error {
     let current = error;
-    while ((current as any).originalError || (current as any).cause) {
-      current = (current as any).originalError || (current as any).cause;
+    while ((current as ErrorWithCause).originalError || (current as ErrorWithCause).cause) {
+      current = (current as ErrorWithCause).originalError || (current as ErrorWithCause).cause!;
     }
     return current;
   }
@@ -482,7 +435,8 @@ export function getErrorChain(error: Error): Error[] {
     
     while (current) {
       chain.push(current);
-      current = (current as any).originalError || (current as any).cause;
+      const errorWithCause = current as ErrorWithCause;
+      current = errorWithCause.originalError || errorWithCause.cause;
     }
     
     return chain;

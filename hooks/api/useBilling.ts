@@ -54,9 +54,9 @@ export function useBilling() {
       const endDate = new Date(billing.billingPeriod.end);
       const today = new Date();
       // Use UTC dates to avoid timezone issues in billing period calculations
-      const endDateUTC = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-      const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const daysRemaining = Math.max(0, Math.ceil((endDateUTC.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)));
+      const endDateUTC = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
+      const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+      const daysRemaining = Math.max(0, Math.ceil((endDateUTC - todayUTC) / (1000 * 60 * 60 * 24)));
       
       return {
         ...billing,
@@ -91,14 +91,14 @@ export function useBillingAlerts() {
       alerts.push({
         type: 'critical' as const,
         resource,
-        message: `${resource} usage is at ${Math.round(percentage)}% of limit`,
+        message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} usage is at ${Math.round(percentage)}% of limit`,
         percentage,
       });
     } else if (percentage >= WARNING_THRESHOLD) {
       alerts.push({
         type: 'warning' as const,
         resource,
-        message: `${resource} usage is at ${Math.round(percentage)}% of limit`,
+        message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} usage is at ${Math.round(percentage)}% of limit`,
         percentage,
       });
     }

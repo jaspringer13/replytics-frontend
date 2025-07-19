@@ -61,26 +61,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update display_order for each service
-    const updatePromises = serviceIds.map((serviceId, index) =>
-      supabase
-        .from('services')
-        .update({
-          display_order: index,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', serviceId)
-        .eq('business_id', tenantId)
-    );
+    // Use database transaction for atomic service reordering
+    const { data, error: reorderError } = await supabase.rpc('reorder_services', {
+      p_business_id: tenantId,
+      p_service_ids: serviceIds
+    });
 
-    const results = await Promise.all(updatePromises);
-
-    // Check if any updates failed
-    const failedUpdates = results.filter(result => result.error);
-    if (failedUpdates.length > 0) {
-      console.error('Some service updates failed:', failedUpdates);
+    if (reorderError) {
+      console.error('Error reordering services:', reorderError);
       return NextResponse.json(
-        { error: 'Failed to update some services' },
+        { error: 'Failed to reorder services' },
         { status: 500 }
       );
     }
@@ -96,6 +86,10 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
     });
+
+    // Clean up the channel
+    await channel.unsubscribe();
+    supabase.removeChannel(channel);
 
     return NextResponse.json({
       success: true,

@@ -4,20 +4,24 @@ import { motion } from 'framer-motion'
 import { Star, TrendingDown, Clock, AlertCircle, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+type SegmentId = 'all' | 'vip' | 'regular' | 'at_risk' | 'new' | 'dormant'
+
 interface SegmentFilterProps {
   selectedSegment: string
   onSegmentChange: (segment: string) => void
   segmentCounts?: {
-    all: number
-    vip: number
-    regular: number
-    at_risk: number
-    new: number
-    dormant: number
+    [K in SegmentId]: number
   }
 }
 
-const segments = [
+const segments: Array<{
+  id: SegmentId
+  label: string
+  icon: any
+  color: string
+  bgColor: string
+  borderColor: string
+}> = [
   {
     id: 'all',
     label: 'All Customers',
@@ -78,7 +82,7 @@ export function SegmentFilter({
       {segments.map((segment, index) => {
         const Icon = segment.icon
         const isSelected = selectedSegment === segment.id
-        const count = segmentCounts?.[segment.id as keyof typeof segmentCounts] || 0
+        const count = segmentCounts?.[segment.id] || 0
         
         return (
           <motion.button

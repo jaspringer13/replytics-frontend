@@ -5,35 +5,58 @@
 
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 
+// Conditional logging for production environment
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+const log = (...args: any[]) => {
+  if (isDevelopment) {
+    console.log(...args);
+  }
+};
+
+// Validate required environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
 // Initialize Supabase client for real-time
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 export interface RealtimeSubscription {
   unsubscribe: () => void;
 }
 
-export interface VoiceSettingsUpdate {
+export interface VoiceSettingsUpdate<T = unknown> {
   businessId: string;
-  settings: any;
+  settings: T;
   timestamp: string;
   requiresReload?: boolean;
 }
 
-export interface ServiceUpdate {
+export interface ServiceUpdate<T = unknown> {
   businessId: string;
   type: 'created' | 'updated' | 'deleted' | 'reordered';
-  service?: any;
+  service?: T;
   serviceId?: string;
   timestamp: string;
 }
 
-export interface BusinessUpdate {
+export interface ConversationRulesUpdate {
+  businessId: string;
+  rules: unknown;
+  timestamp: string;
+}
+
+export interface BusinessUpdate<T = unknown> {
   businessId: string;
   type: string;
-  data: any;
+  data: T;
   timestamp: string;
 }
 
@@ -51,12 +74,12 @@ export function subscribeToVoiceSettings(
       'broadcast',
       { event: 'voice_settings_updated' },
       (payload) => {
-        console.log('Voice settings update received:', payload);
+        log('Voice settings update received:', payload);
         onUpdate(payload.payload as VoiceSettingsUpdate);
       }
     )
     .subscribe((status) => {
-      console.log('Voice settings subscription status:', status);
+      log('Voice settings subscription status:', status);
     });
 
   return {
@@ -71,7 +94,7 @@ export function subscribeToVoiceSettings(
  */
 export function subscribeToConversationRules(
   businessId: string,
-  onUpdate: (update: any) => void
+  onUpdate: (update: ConversationRulesUpdate) => void
 ): RealtimeSubscription {
   const channel = supabase
     .channel(`conversation-rules:${businessId}`)
@@ -79,7 +102,7 @@ export function subscribeToConversationRules(
       'broadcast',
       { event: 'conversation_rules_updated' },
       (payload) => {
-        console.log('Conversation rules update received:', payload);
+        log('Conversation rules update received:', payload);
         onUpdate(payload.payload);
       }
     )
@@ -105,7 +128,7 @@ export function subscribeToServices(
       'broadcast',
       { event: '*' },
       (payload) => {
-        console.log('Service update received:', payload);
+        log('Service update received:', payload);
         const eventType = payload.event.replace('service_', '').replace('services_', '');
         onUpdate({
           ...payload.payload,
@@ -135,7 +158,7 @@ export function subscribeToBusinessUpdates(
       'broadcast',
       { event: '*' },
       (payload) => {
-        console.log('Business update received:', payload);
+        log('Business update received:', payload);
         onUpdate(payload.payload as BusinessUpdate);
       }
     )
@@ -148,12 +171,23 @@ export function subscribeToBusinessUpdates(
   };
 }
 
+export interface OperatingHoursUpdate {
+  businessId: string;
+  hours: Array<{
+    dayOfWeek: number;
+    openTime: string;
+    closeTime: string;
+    isClosed: boolean;
+  }>;
+  timestamp: string;
+}
+
 /**
  * Subscribe to operating hours changes
  */
 export function subscribeToOperatingHours(
   businessId: string,
-  onUpdate: (update: any) => void
+  onUpdate: (update: OperatingHoursUpdate) => void
 ): RealtimeSubscription {
   const channel = supabase
     .channel(`hours:${businessId}`)
@@ -161,7 +195,7 @@ export function subscribeToOperatingHours(
       'broadcast',
       { event: 'hours_updated' },
       (payload) => {
-        console.log('Operating hours update received:', payload);
+        log('Operating hours update received:', payload);
         onUpdate(payload.payload);
       }
     )
@@ -174,13 +208,21 @@ export function subscribeToOperatingHours(
   };
 }
 
+export interface TableChangePayload<T = unknown> {
+  type: 'INSERT' | 'UPDATE' | 'DELETE';
+  table: string;
+  schema: string;
+  old: T | null;
+  new: T | null;
+}
+
 /**
  * Subscribe to database table changes (for direct table monitoring)
  */
-export function subscribeToTableChanges(
+export function subscribeToTableChanges<T = unknown>(
   table: string,
-  filter?: { column: string; value: any },
-  onChange?: (payload: any) => void
+  filter?: { column: string; value: string | number | boolean },
+  onChange?: (payload: TableChangePayload<T>) => void
 ): RealtimeSubscription {
   let channel = supabase.channel(`db-${table}`);
   
@@ -193,7 +235,7 @@ export function subscribeToTableChanges(
       filter: filter ? `${filter.column}=eq.${filter.value}` : undefined,
     },
     (payload) => {
-      console.log(`Table ${table} change:`, payload);
+      log(`Table ${table} change:`, payload);
       if (onChange) {
         onChange(payload);
       }
@@ -214,10 +256,14 @@ export function subscribeToTableChanges(
  */
 export class DashboardRealtimeManager {
   private subscriptions: Map<string, RealtimeSubscription> = new Map();
-  private businessId: string;
+  private readonly businessId: string;
 
   constructor(businessId: string) {
     this.businessId = businessId;
+  }
+
+  getBusinessId(): string {
+    return this.businessId;
   }
 
   /**
@@ -227,7 +273,7 @@ export class DashboardRealtimeManager {
     onVoiceSettingsUpdate?: (update: VoiceSettingsUpdate) => void;
     onServiceUpdate?: (update: ServiceUpdate) => void;
     onBusinessUpdate?: (update: BusinessUpdate) => void;
-    onConversationRulesUpdate?: (update: any) => void;
+    onConversationRulesUpdate?: (update: ConversationRulesUpdate) => void;
     onOperatingHoursUpdate?: (update: any) => void;
   }) {
     // Voice settings subscription (highest priority for real-time voice agent updates)
@@ -270,7 +316,7 @@ export class DashboardRealtimeManager {
       );
     }
 
-    console.log(`Started ${this.subscriptions.size} real-time subscriptions for business ${this.businessId}`);
+    log(`Started ${this.subscriptions.size} real-time subscriptions for business ${this.businessId}`);
   }
 
   /**
@@ -279,7 +325,7 @@ export class DashboardRealtimeManager {
   stopAll() {
     this.subscriptions.forEach((subscription, key) => {
       subscription.unsubscribe();
-      console.log(`Unsubscribed from ${key}`);
+      log(`Unsubscribed from ${key}`);
     });
     this.subscriptions.clear();
   }
@@ -292,7 +338,7 @@ export class DashboardRealtimeManager {
     if (subscription) {
       subscription.unsubscribe();
       this.subscriptions.delete(key);
-      console.log(`Unsubscribed from ${key}`);
+      log(`Unsubscribed from ${key}`);
     }
   }
 
@@ -308,7 +354,7 @@ export class DashboardRealtimeManager {
 let realtimeManager: DashboardRealtimeManager | null = null;
 
 export function getRealtimeManager(businessId: string): DashboardRealtimeManager {
-  if (!realtimeManager || realtimeManager['businessId'] !== businessId) {
+  if (!realtimeManager || realtimeManager.getBusinessId() !== businessId) {
     if (realtimeManager) {
       realtimeManager.stopAll();
     }

@@ -1,6 +1,16 @@
 import { onCLS, onFCP, onLCP, onTTFB, onINP, Metric } from 'web-vitals';
 
-interface PerformanceMetrics {
+interface CustomMetric {
+  name: string;
+  value: number;
+  rating: 'good' | 'needs-improvement' | 'poor';
+  delta: number;
+  id: string;
+  navigationType: string;
+  entries: any[];
+}
+
+export interface PerformanceMetrics {
   FCP?: number;
   LCP?: number;
   TTI?: number;
@@ -10,14 +20,28 @@ interface PerformanceMetrics {
   statsLoaded?: number;
 }
 
+export interface PerformanceBudget {
+  FCP?: number;
+  LCP?: number;
+  TTI?: number;
+  statsLoaded?: number;
+}
+
 class PerformanceTracker {
   private metrics: PerformanceMetrics = {};
   private navigationStart: number;
   private metricsCallbacks: ((metrics: PerformanceMetrics) => void)[] = [];
   private ttiCleanup: (() => void) | null = null;
+  private performanceBudget: PerformanceBudget;
 
-  constructor() {
+  constructor(budget?: PerformanceBudget) {
     this.navigationStart = performance.timeOrigin || Date.now();
+    this.performanceBudget = budget || {
+      FCP: 500,
+      LCP: 1000,
+      TTI: 1500,
+      statsLoaded: 1000,
+    };
     this.initializeWebVitals();
     this.measureTTI();
   }
@@ -108,6 +132,20 @@ class PerformanceTracker {
     }
   }
 
+  private async sendCustomMetric(name: string, value: number, rating: 'good' | 'needs-improvement' | 'poor') {
+    const customMetric: CustomMetric = {
+      name,
+      value,
+      rating,
+      delta: 0,
+      id: `${name}-${Date.now()}`,
+      navigationType: 'navigate',
+      entries: [],
+    };
+    
+    await this.sendMetricToEndpoint(customMetric as Metric);
+  }
+
   private async sendMetricToEndpoint(metric: Metric) {
     try {
       // Add browser console logging with clear prefix
@@ -125,11 +163,15 @@ class PerformanceTracker {
         return;
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const response = await fetch('/api/performance', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           name: metric.name,
           value: metric.value,
@@ -140,6 +182,7 @@ class PerformanceTracker {
           entries: metric.entries,
         }),
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -156,17 +199,10 @@ class PerformanceTracker {
     this.metrics.statsLoaded = performance.now();
     console.log('[Performance] Stats Loaded:', this.metrics.statsLoaded, 'ms');
     
-    // Send custom metric for stats loaded
-    // Using a type assertion since statsLoaded is not a standard web-vitals metric
-    this.sendMetricToEndpoint({
-      name: 'statsLoaded' as any,
-      value: this.metrics.statsLoaded,
-      rating: this.metrics.statsLoaded < 1000 ? 'good' : this.metrics.statsLoaded < 3000 ? 'needs-improvement' : 'poor',
-      delta: 0,
-      id: `stats-${Date.now()}`,
-      navigationType: 'navigate',
-      entries: [],
-    } as unknown as Metric);
+    // Send custom metric for stats loaded with proper typing
+    const rating = this.metrics.statsLoaded < 1000 ? 'good' : 
+                   this.metrics.statsLoaded < 3000 ? 'needs-improvement' : 'poor';
+    this.sendCustomMetric('statsLoaded', this.metrics.statsLoaded, rating);
     
     this.notifyCallbacks();
     
@@ -175,18 +211,13 @@ class PerformanceTracker {
   }
 
   private checkPerformanceBudget() {
-    const budget = {
-      FCP: 500,
-      LCP: 1000,
-      TTI: 1500,
-      statsLoaded: 1000,
-    };
+    const budget = this.performanceBudget;
 
     console.log('\n=== Performance Budget Status ===');
     
     Object.entries(budget).forEach(([metric, target]) => {
       const value = this.metrics[metric as keyof PerformanceMetrics];
-      if (value !== undefined) {
+      if (value !== undefined && target !== undefined) {
         const status = value <= target ? '✅' : '❌';
         const diff = value - target;
         console.log(
@@ -243,11 +274,14 @@ class PerformanceTracker {
 // Create singleton instance
 let tracker: PerformanceTracker | null = null;
 
-export const getPerformanceTracker = (): PerformanceTracker => {
+export const getPerformanceTracker = (budget?: PerformanceBudget): PerformanceTracker => {
   if (!tracker && typeof window !== 'undefined') {
-    tracker = new PerformanceTracker();
+    tracker = new PerformanceTracker(budget);
   }
-  return tracker!;
+  if (!tracker) {
+    throw new Error('PerformanceTracker not available in this environment');
+  }
+  return tracker;
 };
 
 // Export convenience functions

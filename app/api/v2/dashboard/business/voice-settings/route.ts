@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { VoiceSettings } from '@/app/models/dashboard';
 
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Required environment variables are not set: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+}
+
 // Initialize Supabase client with service role
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -162,30 +167,40 @@ export async function PATCH(request: NextRequest) {
     // CRITICAL: Broadcast real-time update for voice agent
     const channel = supabase.channel(`voice-settings:${tenantId}`);
     
-    // Send immediate notification
-    await channel.send({
-      type: 'broadcast',
-      event: 'voice_settings_updated',
-      payload: {
-        businessId: tenantId,
-        settings: newSettings,
-        timestamp: new Date().toISOString(),
-        requiresReload: true // Signal to voice agent to hot-reload config
-      }
-    });
+    try {
+      // Send immediate notification
+      await channel.send({
+        type: 'broadcast',
+        event: 'voice_settings_updated',
+        payload: {
+          businessId: tenantId,
+          settings: newSettings,
+          timestamp: new Date().toISOString(),
+          requiresReload: true // Signal to voice agent to hot-reload config
+        }
+      });
+    } finally {
+      // Clean up channel
+      await supabase.removeChannel(channel);
+    }
 
     // Also update via general business channel
     const businessChannel = supabase.channel(`business:${tenantId}`);
-    await businessChannel.send({
-      type: 'broadcast',
-      event: 'settings_updated',
-      payload: {
-        businessId: tenantId,
-        type: 'voice_settings',
-        settings: newSettings,
-        timestamp: new Date().toISOString()
-      }
-    });
+    try {
+      await businessChannel.send({
+        type: 'broadcast',
+        event: 'settings_updated',
+        payload: {
+          businessId: tenantId,
+          type: 'voice_settings',
+          settings: newSettings,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } finally {
+      // Clean up channel
+      await supabase.removeChannel(businessChannel);
+    }
 
     return NextResponse.json({
       success: true,
@@ -225,7 +240,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Voice test initiated',
-      audioUrl: `/api/v2/dashboard/business/voice-settings/test-audio?voice=${settings?.voiceId || 'default'}`,
+      audioUrl: `/api/v2/dashboard/business/voice-settings/test-audio?voice=${encodeURIComponent(settings?.voiceId || 'default')}`,
       duration: 3.5
     });
 

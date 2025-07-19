@@ -114,9 +114,18 @@ All requirements have been successfully implemented and tested. The dashboard no
 ## 🚀 Getting Started
 
 1. **Ensure backend is running** and accessible
-2. **Set environment variable**: `NEXT_PUBLIC_BACKEND_API_URL` in `.env.local`
-3. **Sign in** to get a valid auth token
-4. **Navigate to dashboard** to see real data loading
+2. **Verify backend API version** is v2.x or later for compatibility
+3. **Set environment variable**: `NEXT_PUBLIC_BACKEND_API_URL` in `.env.local`
+   - Verify the URL is correct and the backend responds to health checks
+   - Test with: `curl ${NEXT_PUBLIC_BACKEND_API_URL}/health` or similar endpoint
+4. **Sign in** to get a valid auth token
+5. **Navigate to dashboard** to see real data loading
+
+### Backend Compatibility Requirements
+- **API Version**: v2.x or later required
+- **Authentication**: JWT token-based auth with refresh mechanism
+- **Endpoints**: Must support `/api/v2/*` routes as defined in the API client
+- **Headers**: Must accept `X-Tenant-ID` header for multi-tenant support
 
 ## 📊 Dashboard Now Shows
 - Total calls (real-time)
@@ -143,6 +152,14 @@ All requirements have been successfully implemented and tested. The dashboard no
 3. Adjust cache times based on usage patterns
 4. Add more optimistic updates as needed
 5. Implement remaining mutations for full CRUD operations
+6. Set up production monitoring for API errors and performance
+7. Configure alerting for high error rates or slow response times
+
+### Production Monitoring Recommendations
+- **Error Tracking**: Implement Sentry or similar for React Query errors
+- **Performance Monitoring**: Track query response times and cache hit rates
+- **API Health**: Monitor backend endpoint availability and response times
+- **User Experience**: Track loading states and failed request patterns
 
 ## 🛠️ Maintenance
 - Query keys are centralized in `/lib/react-query.ts`

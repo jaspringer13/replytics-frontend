@@ -14,6 +14,16 @@ interface ChartWrapperProps {
   subtitle?: string
 }
 
+const AnimatedContainer = ({ children, className }: { children: ReactNode; className: string }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className={className}
+  >
+    {children}
+  </motion.div>
+)
+
 export function ChartWrapper({
   title,
   children,
@@ -23,34 +33,29 @@ export function ChartWrapper({
   className = '',
   subtitle
 }: ChartWrapperProps) {
+  const containerClass = `bg-gray-800 rounded-xl p-6 border border-gray-700 ${className}`
+
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`bg-gray-800 rounded-xl p-6 border border-gray-700 ${className}`}
-      >
+      <AnimatedContainer className={containerClass}>
         <div className="animate-pulse">
           <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
           <div className="h-64 bg-gray-700 rounded"></div>
         </div>
-      </motion.div>
+      </AnimatedContainer>
     )
   }
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className={`bg-gray-800 rounded-xl p-6 border border-gray-700 ${className}`}
-      >
+      <AnimatedContainer className={containerClass}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">{title}</h3>
           {onRefresh && (
             <button
               onClick={onRefresh}
               className="p-2 text-gray-400 hover:text-white transition-colors"
+              aria-label="Refresh chart data"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -68,16 +73,12 @@ export function ChartWrapper({
             </button>
           )}
         </div>
-      </motion.div>
+      </AnimatedContainer>
     )
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className={`bg-gray-800 rounded-xl p-6 border border-gray-700 ${className}`}
-    >
+    <AnimatedContainer className={containerClass}>
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-semibold text-white">{title}</h3>
@@ -87,12 +88,13 @@ export function ChartWrapper({
           <button
             onClick={onRefresh}
             className="p-2 text-gray-400 hover:text-white transition-colors"
+            aria-label="Refresh chart data"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         )}
       </div>
       <div className="w-full">{children}</div>
-    </motion.div>
+    </AnimatedContainer>
   )
 }

@@ -1,8 +1,11 @@
 "use client"
 
+import { useMemo, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { User, Bot, Clock, MessageSquare, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatRelativeTime } from '@/lib/time-utils'
+import { AI_CONFIDENCE } from '@/lib/constants'
 
 export interface Conversation {
   id: string
@@ -32,24 +35,8 @@ export function ConversationList({
   onSelect,
   loading = false 
 }: ConversationListProps) {
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    
-    if (diffInHours < 1) {
-      const diffInMinutes = Math.floor(diffInHours * 60)
-      return `${diffInMinutes}m`
-    } else if (diffInHours < 24) {
-      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-    } else if (diffInHours < 168) {
-      return date.toLocaleDateString('en-US', { weekday: 'short' })
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    }
-  }
 
-  const sortedConversations = [...conversations].sort((a, b) => {
+  const sortedConversations = useMemo(() => [...conversations].sort((a, b) => {
     // Prioritize conversations that need attention
     if (a.needsAttention && !b.needsAttention) return -1
     if (!a.needsAttention && b.needsAttention) return 1
@@ -60,7 +47,7 @@ export function ConversationList({
     
     // Finally by time
     return new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-  })
+  }), [conversations])
 
   if (loading && conversations.length === 0) {
     return (
@@ -102,6 +89,9 @@ export function ConversationList({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: index * 0.05 }}
           onClick={() => onSelect(conversation.id)}
+          aria-label={`Conversation with ${conversation.customerName || conversation.phoneNumber}, ${conversation.unreadCount} unread messages, last message: ${conversation.lastMessage}`}
+          role="button"
+          tabIndex={0}
           className={cn(
             "w-full p-4 text-left hover:bg-gray-700/50 transition-colors relative",
             selectedId === conversation.id && "bg-gray-700/50",
@@ -113,7 +103,7 @@ export function ConversationList({
             <div className="flex items-center gap-2 flex-1">
               <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="text-white font-medium truncate">
-                {conversation.customerName || 'Unknown'}
+                {conversation.customerName || conversation.phoneNumber || 'Unknown'}
               </span>
               {conversation.isAIHandled && (
                 <div className="flex items-center gap-1 px-2 py-0.5 bg-purple-500/20 rounded-full">
@@ -123,7 +113,7 @@ export function ConversationList({
               )}
             </div>
             <span className="text-xs text-gray-500 flex-shrink-0">
-              {formatTime(conversation.lastMessageTime)}
+              {formatRelativeTime(conversation.lastMessageTime)}
             </span>
           </div>
 
@@ -151,8 +141,8 @@ export function ConversationList({
             {conversation.lastAIResponse && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-500">
                 <Clock className="w-3 h-3" />
-                AI: {formatTime(conversation.lastAIResponse.timestamp)}
-                {conversation.lastAIResponse.confidence < 70 && (
+                AI: {formatRelativeTime(conversation.lastAIResponse.timestamp)}
+                {conversation.lastAIResponse.confidence < AI_CONFIDENCE.LOW_THRESHOLD && (
                   <span className="text-orange-400">
                     ({conversation.lastAIResponse.confidence}%)
                   </span>

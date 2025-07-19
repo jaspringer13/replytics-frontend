@@ -171,7 +171,7 @@ export class ReplyticsDB extends Dexie {
     name: string,
     value: number,
     rating?: string,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<number> {
     return this.performanceMetrics.add({
       timestamp: new Date(),

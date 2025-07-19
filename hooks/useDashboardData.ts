@@ -27,31 +27,44 @@ export function useDashboardData(): UseDashboardDataReturn {
   const fetchData = useCallback(async () => {
     if (!tenantId) return
 
+    const abortController = new AbortController()
+    
     try {
       setLoading(true)
       
       // Fetch all data in parallel
       const [profile, voice, rules] = await Promise.all([
-        apiClient.getBusinessProfile(),
-        apiClient.getVoiceSettings(),
-        apiClient.getConversationRules()
+        apiClient.getBusinessProfile({ signal: abortController.signal }),
+        apiClient.getVoiceSettings({ signal: abortController.signal }),
+        apiClient.getConversationRules({ signal: abortController.signal })
       ])
+      
+      // Check if the request was aborted
+      if (abortController.signal.aborted) return
       
       setBusinessProfile(profile)
       setVoiceSettings(voice)
       setConversationRules(rules)
       setError(null)
     } catch (err) {
+      // Ignore abort errors
+      if ((err as Error).name === 'AbortError') return
+      
       console.error('Failed to fetch dashboard data:', err)
       setError(err as Error)
     } finally {
-      setLoading(false)
+      if (!abortController.signal.aborted) {
+        setLoading(false)
+      }
     }
+    
+    return () => abortController.abort()
   }, [tenantId])
 
   // Initial fetch
   useEffect(() => {
-    fetchData()
+    const cleanup = fetchData()
+    return () => cleanup?.()
   }, [fetchData])
 
   // Set up real-time subscriptions

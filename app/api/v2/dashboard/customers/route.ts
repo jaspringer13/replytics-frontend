@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Customer, CustomerSegment, PaginatedResponse, FilterOptions } from '@/app/models/dashboard';
 
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Required Supabase environment variables are not set');
+}
+
 // Initialize Supabase client with service role
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 /**
@@ -38,16 +43,23 @@ export async function GET(request: NextRequest) {
     if (filters.page! < 1) filters.page = 1;
     if (filters.pageSize! < 1 || filters.pageSize! > 100) filters.pageSize = 20;
 
-    // Fetch customers from caller_memory table
+    // Use materialized view for efficient segment filtering
     let query = supabase
-      .from('caller_memory')
+      .from('customer_segments')
       .select('*', { count: 'exact' })
       .eq('tenant_id', tenantId);
 
+    // Apply segment filter at database level
+    if (filters.segment) {
+      query = query.eq('segment', filters.segment);
+    }
+
     // Apply search filter
     if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,ani_hash.ilike.%${searchTerm}%`);
+      const raw = filters.search.toLowerCase();
+      const escaped = raw.replace(/[%_,]/g, '\\$&');
+      const searchTerm = `%${escaped}%`;
+      query = query.or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},ani_hash.ilike.${searchTerm}`);
     }
 
     // Apply sorting
@@ -68,48 +80,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch appointment data for each customer
-    const customerIds = customers?.map(c => c.ani_hash) || [];
-    const appointmentData = await fetchAppointmentData(tenantId, customerIds);
-
-    // Transform and segment customers
-    const transformedCustomers: Customer[] = (customers || []).map(customer => {
-      const appointments = appointmentData.get(customer.ani_hash) || {
-        total: 0,
-        noShows: 0,
-        totalRevenue: 0,
-        firstVisit: null,
-        lastVisit: null
-      };
-
-      const segment = calculateSegment(customer, appointments);
-
-      return {
-        id: customer.ani_hash,
-        businessId: tenantId,
-        firstName: customer.first_name,
-        lastName: customer.last_name,
-        phone: customer.ani_hash, // This is a hash, not the actual phone
-        email: customer.email,
-        totalAppointments: appointments.total,
-        noShowCount: appointments.noShows,
-        lifetimeValue: appointments.totalRevenue,
-        averageServiceValue: appointments.total > 0 ? appointments.totalRevenue / appointments.total : 0,
-        lastInteraction: appointments.lastVisit || new Date(customer.updated_at),
-        firstInteraction: appointments.firstVisit || new Date(customer.created_at),
-        segment,
-        preferences: customer.preferences,
-        flags: customer.flags
-      };
-    });
-
-    // Filter by segment if specified
-    const filteredCustomers = filters.segment
-      ? transformedCustomers.filter(c => c.segment === filters.segment)
-      : transformedCustomers;
+    // Transform customers (segments already calculated in view)
+    const transformedCustomers: Customer[] = (customers || []).map(customer => ({
+      id: customer.ani_hash,
+      businessId: tenantId,
+      firstName: customer.first_name,
+      lastName: customer.last_name,
+      phone: customer.ani_hash, // This is a hash, not the actual phone
+      email: customer.email,
+      totalAppointments: customer.total_appointments,
+      noShowCount: customer.no_show_count,
+      lifetimeValue: customer.total_revenue,
+      averageServiceValue: customer.average_service_value,
+      lastInteraction: customer.last_visit || new Date(customer.updated_at),
+      firstInteraction: customer.first_visit || new Date(customer.created_at),
+      segment: customer.segment as CustomerSegment,
+      preferences: customer.preferences,
+      flags: customer.flags
+    }));
 
     const response: PaginatedResponse<Customer> = {
-      data: filteredCustomers,
+      data: transformedCustomers,
       total: count || 0,
       page: filters.page!,
       pageSize: filters.pageSize!,
@@ -134,87 +125,12 @@ export async function GET(request: NextRequest) {
 
 function getSortColumn(sortBy: string): string {
   const sortMap: Record<string, string> = {
-    lastInteraction: 'updated_at',
+    lastInteraction: 'last_visit',
     firstName: 'first_name',
     lastName: 'last_name',
-    totalAppointments: 'updated_at', // We'll sort in memory for these
-    lifetimeValue: 'updated_at'
+    totalAppointments: 'total_appointments',
+    lifetimeValue: 'total_revenue'
   };
-  return sortMap[sortBy] || 'updated_at';
+  return sortMap[sortBy] || 'last_visit';
 }
 
-async function fetchAppointmentData(tenantId: string, customerIds: string[]) {
-  if (customerIds.length === 0) return new Map();
-
-  const { data: appointments, error } = await supabase
-    .from('appointments')
-    .select('customer_id, appointment_time, status, price')
-    .eq('business_id', tenantId)
-    .in('customer_id', customerIds);
-
-  if (error) {
-    console.error('Error fetching appointment data:', error);
-    return new Map();
-  }
-
-  // Aggregate appointment data by customer
-  const customerAppointments = new Map<string, any>();
-
-  appointments?.forEach(apt => {
-    const existing = customerAppointments.get(apt.customer_id) || {
-      total: 0,
-      noShows: 0,
-      totalRevenue: 0,
-      firstVisit: null,
-      lastVisit: null
-    };
-
-    existing.total += 1;
-    if (apt.status === 'no_show') existing.noShows += 1;
-    if (apt.status === 'completed') existing.totalRevenue += apt.price || 0;
-
-    const aptDate = new Date(apt.appointment_time);
-    if (!existing.firstVisit || aptDate < existing.firstVisit) {
-      existing.firstVisit = aptDate;
-    }
-    if (!existing.lastVisit || aptDate > existing.lastVisit) {
-      existing.lastVisit = aptDate;
-    }
-
-    customerAppointments.set(apt.customer_id, existing);
-  });
-
-  return customerAppointments;
-}
-
-function calculateSegment(customer: any, appointments: any): CustomerSegment {
-  const daysSinceLastVisit = appointments.lastVisit
-    ? Math.floor((Date.now() - appointments.lastVisit.getTime()) / (1000 * 60 * 60 * 24))
-    : Infinity;
-
-  const daysSinceFirstVisit = appointments.firstVisit
-    ? Math.floor((Date.now() - appointments.firstVisit.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  // New customer: First visit within 90 days
-  if (daysSinceFirstVisit < 90) {
-    return 'new';
-  }
-
-  // Dormant: No visit in 60+ days
-  if (daysSinceLastVisit > 60) {
-    return 'dormant';
-  }
-
-  // VIP: High lifetime value and regular visits
-  if (appointments.totalRevenue > 2000 && appointments.total > 10) {
-    return 'vip';
-  }
-
-  // At risk: Declining frequency (simplified logic)
-  if (daysSinceLastVisit > 45 && appointments.total > 3) {
-    return 'at_risk';
-  }
-
-  return 'regular';
-}

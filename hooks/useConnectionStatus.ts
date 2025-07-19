@@ -40,9 +40,10 @@ export function useConnectionStatus(options?: UseConnectionStatusOptions) {
         message: undefined,
       }));
     } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'response' in error && 
-          (error as any).response?.status === 401) {
-        setConnectionStatus(prev => ({
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { status?: number } };
+        if (apiError.response?.status === 401) {
+          setConnectionStatus(prev => ({
           ...prev,
           status: 'connecting',
           isTokenRefreshing: true,
@@ -100,7 +101,7 @@ export function useConnectionStatus(options?: UseConnectionStatusOptions) {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
-  }, [checkConnection]);
+  }, [checkConnection, pollingInterval]);
   
   // Monitor token refresh completion
   useEffect(() => {

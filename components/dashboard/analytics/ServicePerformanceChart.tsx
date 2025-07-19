@@ -16,9 +16,10 @@ export function ServicePerformanceChart({
   height = 300,
   maxItems = 5 
 }: ServicePerformanceChartProps) {
-  // Get top services and truncate long names
+  // Get top services sorted by revenue and truncate long names
   const topServices = useMemo(() => {
     return data
+      .sort((a, b) => b.revenue - a.revenue) // Sort by revenue descending
       .slice(0, maxItems)
       .map(service => ({
         ...service,
@@ -52,7 +53,7 @@ export function ServicePerformanceChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} aria-label="Service performance bar chart">
       <BarChart 
         data={topServices}
         margin={{ top: 5, right: 5, left: 5, bottom: 5 }}

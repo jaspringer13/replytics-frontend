@@ -5,11 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Plus, Edit2, Trash2, Save, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+const TEMPLATE_CATEGORIES = ['greeting', 'appointment', 'reminder', 'follow-up', 'custom'] as const
+export type TemplateCategory = typeof TEMPLATE_CATEGORIES[number]
+
 export interface MessageTemplate {
   id: string
   name: string
   content: string
-  category: 'greeting' | 'appointment' | 'reminder' | 'follow-up' | 'custom'
+  category: TemplateCategory
   variables?: string[]
   isAIGenerated?: boolean
 }
@@ -39,11 +42,16 @@ export function MessageTemplates({
 }: MessageTemplatesProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState<Record<string, string>>({})
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [newTemplate, setNewTemplate] = useState({
+  const [newTemplate, setNewTemplate] = useState<{
+    name: string;
+    content: string;
+    category: TemplateCategory;
+  }>({
     name: '',
     content: '',
-    category: 'custom' as const
+    category: 'custom'
   })
 
   const filteredTemplates = templates.filter(
@@ -58,7 +66,7 @@ export function MessageTemplates({
     setIsCreating(false)
   }
 
-  const categories = ['all', 'greeting', 'appointment', 'reminder', 'follow-up', 'custom']
+  const categories = ['all', ...TEMPLATE_CATEGORIES] as const
 
   return (
     <div className="h-full flex flex-col">
@@ -123,7 +131,7 @@ export function MessageTemplates({
               <div className="flex items-center justify-between">
                 <select
                   value={newTemplate.category}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value as any })}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value as TemplateCategory })}
                   className="px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white text-sm"
                 >
                   <option value="greeting">Greeting</option>
@@ -170,16 +178,19 @@ export function MessageTemplates({
                 {isEditing ? (
                   <div className="space-y-2">
                     <textarea
-                      defaultValue={template.content}
+                      value={editingContent[template.id] ?? template.content}
+                      onChange={(e) => setEditingContent(prev => ({ ...prev, [template.id]: e.target.value }))}
                       className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white text-sm resize-none"
                       rows={3}
-                      id={`edit-${template.id}`}
                     />
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          const textarea = document.getElementById(`edit-${template.id}`) as HTMLTextAreaElement
-                          onUpdateTemplate?.(template.id, { content: textarea.value })
+                          onUpdateTemplate?.(template.id, { content: editingContent[template.id] ?? template.content })
+                          setEditingContent(prev => {
+                            const { [template.id]: _, ...rest } = prev
+                            return rest
+                          })
                           setEditingId(null)
                         }}
                         className="px-3 py-1 bg-brand-500 text-white rounded text-sm hover:bg-brand-600 transition-colors"
@@ -187,7 +198,13 @@ export function MessageTemplates({
                         Save
                       </button>
                       <button
-                        onClick={() => setEditingId(null)}
+                        onClick={() => {
+                          setEditingContent(prev => {
+                            const { [template.id]: _, ...rest } = prev
+                            return rest
+                          })
+                          setEditingId(null)
+                        }}
                         className="px-3 py-1 bg-gray-600 text-gray-300 rounded text-sm hover:bg-gray-500 transition-colors"
                       >
                         Cancel

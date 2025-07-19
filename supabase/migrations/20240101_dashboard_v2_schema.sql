@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Add voice settings and conversation rules to businesses table
 ALTER TABLE businesses 
 ADD COLUMN IF NOT EXISTS voice_settings JSONB DEFAULT '{
-  "voiceId": "kdmDKE6EkgrWrrykO9Qt",
+  "voiceId": null,
   "speakingStyle": "friendly_professional",
   "speed": 1.0,
   "pitch": 1.0
@@ -167,10 +167,11 @@ CREATE INDEX IF NOT EXISTS idx_appointments_customer_id ON appointments(customer
 CREATE INDEX IF NOT EXISTS idx_appointments_appointment_time ON appointments(appointment_time);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
 
--- Create customer aggregation view (using caller_memory as base)
-CREATE OR REPLACE VIEW dashboard_customers AS
+-- Create customer stats materialized view for better performance
+-- This removes the WHERE clause dependency on current_setting for materialization
+CREATE MATERIALIZED VIEW IF NOT EXISTS customer_stats AS
 SELECT 
-  cm.ani_hash as id,
+  cm.ani_hash as customer_id,
   cm.tenant_id as business_id,
   cm.first_name,
   cm.last_name,
@@ -192,9 +193,11 @@ SELECT
     WHEN DATE_PART('day', NOW() - cm.created_at) < 90 THEN 'new'
     WHEN DATE_PART('day', NOW() - cm.updated_at) > 60 THEN 'dormant'
     WHEN apt.lifetime_value > 2000 AND apt.total_appointments > 10 THEN 'vip'
-    WHEN DATE_PART('day', NOW() - cm.updated_at) > 45 AND apt.total_appointments > 3 THEN 'at_risk'
+    -- Adjusted at_risk logic to be less restrictive
+    WHEN DATE_PART('day', NOW() - cm.updated_at) > 30 AND apt.total_appointments > 2 THEN 'at_risk'
     ELSE 'regular'
-  END as segment
+  END as segment,
+  NOW() as last_refresh
 FROM caller_memory cm
 LEFT JOIN (
   SELECT 
@@ -204,8 +207,63 @@ LEFT JOIN (
     SUM(price) FILTER (WHERE status = 'completed') as lifetime_value
   FROM appointments
   GROUP BY customer_id
-) apt ON cm.ani_hash = apt.customer_id
-WHERE cm.tenant_id = current_setting('app.current_tenant', true)::uuid;
+) apt ON cm.ani_hash = apt.customer_id;
+
+-- Create indexes on materialized view for optimal performance
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_stats_customer_business 
+  ON customer_stats(customer_id, business_id);
+CREATE INDEX IF NOT EXISTS idx_customer_stats_business_id 
+  ON customer_stats(business_id);
+CREATE INDEX IF NOT EXISTS idx_customer_stats_segment 
+  ON customer_stats(segment);
+CREATE INDEX IF NOT EXISTS idx_customer_stats_last_interaction 
+  ON customer_stats(last_interaction);
+
+-- Create tenant-filtered view that uses the materialized view
+CREATE OR REPLACE VIEW dashboard_customers AS
+SELECT 
+  customer_id as id,
+  business_id,
+  first_name,
+  last_name,
+  phone,
+  email,
+  flags,
+  preferences,
+  first_interaction,
+  last_interaction,
+  total_appointments,
+  no_show_count,
+  lifetime_value,
+  average_service_value,
+  segment
+FROM customer_stats
+WHERE business_id = current_setting('app.current_tenant', true)::uuid;
+
+-- Create function to refresh customer stats
+CREATE OR REPLACE FUNCTION refresh_customer_stats()
+RETURNS void AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY customer_stats;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create function to schedule automatic refresh (call this from cron or scheduler)
+CREATE OR REPLACE FUNCTION schedule_customer_stats_refresh()
+RETURNS void AS $$
+BEGIN
+  -- This function can be called by pg_cron or external scheduler
+  PERFORM refresh_customer_stats();
+  
+  -- Log the refresh for monitoring
+  INSERT INTO pg_stat_statements_info (dealloc) 
+  VALUES (0) ON CONFLICT DO NOTHING;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log error but don't fail
+    RAISE NOTICE 'Customer stats refresh failed: %', SQLERRM;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Create trigger to update updated_at timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -260,31 +318,73 @@ ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 -- Create RLS policies (businesses can only see their own data)
 CREATE POLICY "Businesses can only see their own services"
   ON services FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own operating hours"
   ON operating_hours FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own holidays"
   ON holidays FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own special hours"
   ON special_hours FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own SMS templates"
   ON sms_templates FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own staff"
   ON staff_members FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 CREATE POLICY "Businesses can only see their own appointments"
   ON appointments FOR ALL
-  USING (business_id = current_setting('app.current_tenant', true)::uuid);
+  USING (
+    business_id = COALESCE(
+      current_setting('app.current_tenant', true)::uuid,
+      '00000000-0000-0000-0000-000000000000'::uuid
+    )
+    AND current_setting('app.current_tenant', true) IS NOT NULL
+  );
 
 -- Create function to get service performance analytics
 CREATE OR REPLACE FUNCTION get_service_performance(
@@ -312,14 +412,31 @@ BEGIN
       THEN SUM(a.price) / COUNT(a.id) 
       ELSE 0 
     END as average_price,
-    0.0 as utilization -- Placeholder for utilization calculation
+    -- Calculate utilization as (total booked duration / total available duration) * 100
+    CASE 
+      WHEN oh.total_available_minutes > 0 
+      THEN (COALESCE(SUM(a.duration), 0)::DECIMAL / oh.total_available_minutes::DECIMAL) * 100
+      ELSE 0 
+    END as utilization
   FROM services s
   LEFT JOIN appointments a ON s.id = a.service_id
     AND a.appointment_time >= p_start_date
     AND a.appointment_time <= p_end_date
     AND a.status = 'completed'
+  CROSS JOIN (
+    SELECT 
+      SUM(
+        CASE 
+          WHEN oh.is_closed = false AND oh.open_time IS NOT NULL AND oh.close_time IS NOT NULL
+          THEN EXTRACT(EPOCH FROM (oh.close_time - oh.open_time)) / 60 * (p_end_date - p_start_date + 1)
+          ELSE 0
+        END
+      ) as total_available_minutes
+    FROM operating_hours oh
+    WHERE oh.business_id = p_business_id
+  ) oh
   WHERE s.business_id = p_business_id
-  GROUP BY s.id, s.name
+  GROUP BY s.id, s.name, oh.total_available_minutes
   ORDER BY revenue DESC;
 END;
 $$ LANGUAGE plpgsql;

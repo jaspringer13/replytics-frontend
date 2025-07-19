@@ -2,6 +2,27 @@
  * Dashboard-specific data models and types
  */
 
+// Validation Types
+type ValidTimezone = 
+  | 'America/New_York'
+  | 'America/Chicago' 
+  | 'America/Denver'
+  | 'America/Los_Angeles'
+  | 'America/Phoenix'
+  | 'America/Anchorage'
+  | 'Pacific/Honolulu'
+  | 'UTC'
+  | 'Europe/London'
+  | 'Europe/Paris'
+  | 'Europe/Berlin'
+  | 'Asia/Tokyo'
+  | 'Asia/Shanghai'
+  | 'Australia/Sydney'
+  | string; // Fallback for flexibility
+
+type VoiceSpeed = number & { __brand: 'VoiceSpeed' }; // 0.5 to 2.0
+type VoicePitch = number & { __brand: 'VoicePitch' }; // 0.5 to 2.0
+
 // Business Configuration Types
 export interface BusinessProfile {
   id: string;
@@ -14,7 +35,7 @@ export interface BusinessProfile {
     state?: string;
     zip?: string;
   };
-  timezone: string;
+  timezone: ValidTimezone;
   website?: string;
   voiceSettings: VoiceSettings;
   conversationRules: ConversationRules;
@@ -26,8 +47,23 @@ export interface BusinessProfile {
 export interface VoiceSettings {
   voiceId: string;
   speakingStyle: 'friendly_professional' | 'casual' | 'formal' | 'enthusiastic';
-  speed: number; // 0.5 to 2.0
-  pitch: number; // 0.5 to 2.0
+  speed: VoiceSpeed;
+  pitch: VoicePitch;
+}
+
+// Helper functions for creating valid ranges
+export function createVoiceSpeed(value: number): VoiceSpeed {
+  if (value < 0.5 || value > 2.0) {
+    throw new Error('Voice speed must be between 0.5 and 2.0');
+  }
+  return value as VoiceSpeed;
+}
+
+export function createVoicePitch(value: number): VoicePitch {
+  if (value < 0.5 || value > 2.0) {
+    throw new Error('Voice pitch must be between 0.5 and 2.0');
+  }
+  return value as VoicePitch;
 }
 
 export interface ConversationRules {
@@ -83,10 +119,20 @@ export interface ServiceTemplate {
 }
 
 // Operating Hours Types
+export enum DayOfWeek {
+  SUNDAY = 0,
+  MONDAY = 1,
+  TUESDAY = 2,
+  WEDNESDAY = 3,
+  THURSDAY = 4,
+  FRIDAY = 5,
+  SATURDAY = 6
+}
+
 export interface OperatingHours {
   id: string;
   businessId: string;
-  dayOfWeek: number; // 0 = Sunday, 6 = Saturday
+  dayOfWeek: DayOfWeek;
   openTime: string; // "09:00"
   closeTime: string; // "17:00"
   isClosed: boolean;
@@ -100,10 +146,7 @@ export interface Holiday {
   date: string; // YYYY-MM-DD
   name: string;
   isClosed: boolean;
-  specialHours?: {
-    openTime: string;
-    closeTime: string;
-  };
+  specialHoursId?: string; // Reference to SpecialHours if not closed
   createdAt: Date;
   updatedAt: Date;
 }
@@ -138,7 +181,8 @@ export interface Customer {
   flags?: string[];
 }
 
-export type CustomerSegment = 'vip' | 'regular' | 'at_risk' | 'new' | 'dormant';
+export const CUSTOMER_SEGMENTS = ['vip', 'regular', 'at_risk', 'new', 'dormant'] as const;
+export type CustomerSegment = typeof CUSTOMER_SEGMENTS[number];
 
 // Customer segment data with count
 export interface CustomerSegmentData {
@@ -171,6 +215,19 @@ export interface DateRange {
   end: Date;
 }
 
+// Helper function to create valid date ranges
+export function createDateRange(start: Date, end: Date): DateRange {
+  if (start >= end) {
+    throw new Error('Start date must be before end date');
+  }
+  return { start, end };
+}
+
+// Type guard for validating date ranges
+export function isValidDateRange(dateRange: DateRange): boolean {
+  return dateRange.start < dateRange.end;
+}
+
 export interface TrendData {
   current: number;
   previous: number;
@@ -201,7 +258,7 @@ export type AnalyticsOverview = DashboardOverview;
 // Popular Times type
 export interface PopularTime {
   hour: number;
-  dayOfWeek: number;
+  dayOfWeek: DayOfWeek;
   bookingCount: number;
   label: string;
 }
@@ -258,7 +315,7 @@ export interface StaffMember {
 }
 
 export interface StaffAvailability {
-  dayOfWeek: number;
+  dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
   isAvailable: boolean;
@@ -289,12 +346,12 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
-export interface FilterOptions {
+export interface FilterOptions<T = any> {
   search?: string;
   dateRange?: DateRange;
   status?: string;
   segment?: CustomerSegment;
-  sortBy?: string;
+  sortBy?: keyof T;
   sortOrder?: 'asc' | 'desc';
   page?: number;
   pageSize?: number;

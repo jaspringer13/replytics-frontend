@@ -51,15 +51,35 @@ export function CustomerCard({ customer, onClick, delay = 0 }: CustomerCardProps
   const segmentStyle = getSegmentStyles()
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
   
-  // Format phone number
+  // Format phone number with international support
   const formatPhone = (phone: string) => {
     if (!phone) return 'No phone'
-    // Assume US phone number format
+    
     const cleaned = phone.replace(/\D/g, '')
-    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-    if (match) {
-      return `(${match[1]}) ${match[2]}-${match[3]}`
+    
+    // Handle international numbers (starting with country code)
+    if (cleaned.length > 10) {
+      // International format: +X XXX XXX XXXX
+      if (cleaned.length === 11 && cleaned.startsWith('1')) {
+        // US number with country code
+        const match = cleaned.match(/^1(\d{3})(\d{3})(\d{4})$/)
+        if (match) {
+          return `+1 (${match[1]}) ${match[2]}-${match[3]}`
+        }
+      }
+      // Other international numbers
+      return `+${cleaned.slice(0, -10)} ${cleaned.slice(-10)}`
     }
+    
+    // US domestic format
+    if (cleaned.length === 10) {
+      const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
+      if (match) {
+        return `(${match[1]}) ${match[2]}-${match[3]}`
+      }
+    }
+    
+    // Fallback: return as-is if format doesn't match
     return phone
   }
 
@@ -143,7 +163,7 @@ export function CustomerCard({ customer, onClick, delay = 0 }: CustomerCardProps
       {/* Footer */}
       <div className="flex items-center justify-between text-xs text-gray-500">
         <span>
-          Customer since {new Date(customer.firstInteraction).toLocaleDateString()}
+          Customer since {customer.firstInteraction ? new Date(customer.firstInteraction).toLocaleDateString() : 'Unknown'}
         </span>
         {lastVisitDays !== null && (
           <span className={cn(

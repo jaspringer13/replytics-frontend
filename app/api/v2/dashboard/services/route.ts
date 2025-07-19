@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
+// Fail fast on missing Supabase config
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
 // Initialize Supabase client with service role
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
 /**
@@ -154,6 +159,7 @@ export async function POST(request: NextRequest) {
 
     // Broadcast update for real-time sync
     const channel = supabase.channel(`services:${tenantId}`);
+    // Send broadcast without destructuring - channel.send doesn't return error property
     await channel.send({
       type: 'broadcast',
       event: 'service_created',
@@ -163,6 +169,9 @@ export async function POST(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
     });
+    
+    // Clean up the channel
+    await supabase.removeChannel(channel);
 
     // Transform response
     const service: Service = {

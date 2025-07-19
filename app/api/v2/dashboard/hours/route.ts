@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
 import { OperatingHours } from '@/app/models/dashboard';
 
 // Initialize Supabase client with service role
@@ -7,6 +9,18 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// Helper to validate tenant access
+async function validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('business_users')
+    .select('role')
+    .eq('business_id', tenantId)
+    .eq('user_id', userId)
+    .single();
+  
+  return !error && !!data;
+}
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -25,6 +39,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Validate user authentication and tenant access
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (!(await validateTenantAccess(tenantId, session.user.id))) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
     // Fetch operating hours from database
     const { data: hours, error } = await supabase
       .from('operating_hours')
@@ -40,13 +70,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // If no hours exist, create default hours (9 AM - 5 PM, closed Sunday)
+    // If no hours exist, return empty array with a flag
     if (!hours || hours.length === 0) {
-      const defaultHours = await createDefaultHours(tenantId);
       return NextResponse.json({
         success: true,
-        data: defaultHours,
-        isDefault: true
+        data: [],
+        hasHours: false,
+        message: 'No operating hours configured. Use PATCH to set hours.'
       });
     }
 
@@ -77,6 +107,69 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * POST /api/v2/dashboard/hours
+ * Create default business hours (9 AM - 5 PM, closed Sunday)
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const tenantId = request.headers.get('X-Tenant-ID');
+    
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'Tenant ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate user authentication and tenant access
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (!(await validateTenantAccess(tenantId, session.user.id))) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
+
+    // Check if hours already exist
+    const { data: existingHours } = await supabase
+      .from('operating_hours')
+      .select('id')
+      .eq('business_id', tenantId)
+      .limit(1);
+
+    if (existingHours && existingHours.length > 0) {
+      return NextResponse.json(
+        { error: 'Operating hours already exist. Use PATCH to update them.' },
+        { status: 409 }
+      );
+    }
+
+    // Create default hours
+    const defaultHours = await createDefaultHours(tenantId);
+    
+    return NextResponse.json({
+      success: true,
+      data: defaultHours,
+      message: 'Default operating hours created successfully'
+    });
+
+  } catch (error) {
+    console.error('Error in POST hours:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * PATCH /api/v2/dashboard/hours
  * Update business hours (bulk update)
  */
@@ -88,6 +181,22 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         { error: 'Tenant ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Validate user authentication and tenant access
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (!(await validateTenantAccess(tenantId, session.user.id))) {
+      return NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
       );
     }
 
@@ -126,59 +235,53 @@ export async function PATCH(request: NextRequest) {
           );
         }
 
-        // Validate close time is after open time
-        if (update.openTime >= update.closeTime) {
+        // Validate close time is after open time (handle overnight hours)
+        const [openHour, openMin] = update.openTime.split(':').map(Number);
+        const [closeHour, closeMin] = update.closeTime.split(':').map(Number);
+        const openMinutes = openHour * 60 + openMin;
+        const closeMinutes = closeHour * 60 + closeMin;
+
+        // If close time is before open time and not overnight hours scenario
+        if (openMinutes === closeMinutes) {
           return NextResponse.json(
-            { error: `Close time must be after open time for ${DAYS_OF_WEEK[update.dayOfWeek]}` },
+            { error: `Open and close time cannot be the same for ${DAYS_OF_WEEK[update.dayOfWeek]}` },
             { status: 400 }
           );
         }
       }
     }
 
-    // Update each day's hours
-    const updatePromises = updates.map(async (update) => {
-      // Check if hours exist for this day
-      const { data: existing } = await supabase
-        .from('operating_hours')
-        .select('id')
-        .eq('business_id', tenantId)
-        .eq('day_of_week', update.dayOfWeek!)
-        .single();
-
-      if (existing) {
-        // Update existing hours
-        return supabase
-          .from('operating_hours')
-          .update({
-            open_time: update.openTime,
-            close_time: update.closeTime,
-            is_closed: update.isClosed || false,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id);
-      } else {
-        // Insert new hours
-        return supabase
-          .from('operating_hours')
-          .insert({
-            business_id: tenantId,
-            day_of_week: update.dayOfWeek,
-            open_time: update.openTime,
-            close_time: update.closeTime,
-            is_closed: update.isClosed || false
-          });
-      }
+    // Use database transaction for atomic bulk updates
+    const { error: transactionError } = await supabase.rpc('upsert_operating_hours', {
+      p_business_id: tenantId,
+      p_hours_data: updates.map(update => ({
+        day_of_week: update.dayOfWeek,
+        open_time: update.openTime,
+        close_time: update.closeTime,
+        is_closed: update.isClosed || false
+      }))
     });
 
-    const results = await Promise.all(updatePromises);
-
-    // Check for errors
-    const errors = results.filter(r => r.error);
-    if (errors.length > 0) {
-      console.error('Errors updating hours:', errors);
+    if (transactionError) {
+      const errorDetails = updates.map(update => ({
+        dayOfWeek: update.dayOfWeek,
+        day: DAYS_OF_WEEK[update.dayOfWeek],
+        openTime: update.openTime,
+        closeTime: update.closeTime,
+        isClosed: update.isClosed
+      }));
+      
+      console.error('Error updating hours:', {
+        error: transactionError,
+        attempted_updates: errorDetails
+      });
+      
       return NextResponse.json(
-        { error: 'Failed to update some hours' },
+        { 
+          error: 'Failed to update operating hours',
+          details: transactionError.message,
+          attempted_updates: errorDetails
+        },
         { status: 500 }
       );
     }
@@ -194,6 +297,9 @@ export async function PATCH(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
     });
+
+    // Clean up the channel
+    await channel.unsubscribe();
 
     return NextResponse.json({
       success: true,

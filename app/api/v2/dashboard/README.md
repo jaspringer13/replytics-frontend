@@ -12,7 +12,7 @@ This implementation provides a comprehensive backend API for the Replytics dashb
 - Voice agent subscribes to Supabase channels for hot-reload configuration
 
 ### 2. **API Structure**
-```
+```text
 /api/v2/dashboard/
 ├── business/
 │   ├── profile/         # GET/PATCH business info
@@ -128,8 +128,11 @@ Key tables:
 ## Security
 
 - All endpoints require `X-Tenant-ID` header
+- Endpoints must validate that the authenticated user belongs to the specified tenant
 - Row Level Security (RLS) ensures data isolation
 - Service role key used for server-side operations
+
+**Important**: Using service role key bypasses RLS, so manual tenant ownership validation is required in each endpoint.
 
 ## Testing Voice Settings
 

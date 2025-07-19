@@ -85,7 +85,7 @@ async function getRecentMetrics() {
     const response = await fetch(`${METRICS_ENDPOINT}?limit=20`);
     const result = await response.json();
     
-    if (result.success && result.data.metrics.length > 0) {
+    if (result.success && result.data?.metrics?.length > 0) {
       console.log(`✅ Found ${result.data.metrics.length} recent metrics:`);
       
       const metricTypes = {};

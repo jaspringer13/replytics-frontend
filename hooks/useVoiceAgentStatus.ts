@@ -1,12 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useUserTenant } from '@/hooks/useUserTenant'
+import { useDashboardData } from '@/hooks/useDashboardData'
 
 // Initialize Supabase client
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
+
+interface StatusUpdatePayload {
+  isActive?: boolean
+  isListening?: boolean
+  lastActivity?: string
+  callsHandled?: number
+  averageCallDuration?: number
+}
+
+interface CallUpdatePayload {
+  callEnded?: boolean
+  phoneNumber?: string
+  duration?: number
+  status?: 'ringing' | 'connected' | 'ended'
+}
 
 interface UseVoiceAgentStatusReturn {
   isActive: boolean
@@ -23,6 +39,7 @@ interface UseVoiceAgentStatusReturn {
 
 export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
   const { tenantId } = useUserTenant()
+  const { businessProfile } = useDashboardData()
   const [status, setStatus] = useState<UseVoiceAgentStatusReturn>({
     isActive: false,
     isListening: false,
@@ -31,6 +48,61 @@ export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
     averageCallDuration: 0,
     currentCall: null
   })
+
+  const checkAgentStatus = useCallback(async () => {
+    try {
+      // In a real implementation, this would check the actual voice agent status
+      // For now, we'll simulate it based on business hours and settings
+      const now = new Date()
+      
+      // Convert to business timezone if available
+      const businessTime = businessProfile?.timezone 
+        ? new Date(now.toLocaleString("en-US", { timeZone: businessProfile.timezone }))
+        : now
+      
+      const hour = businessTime.getHours()
+      const isBusinessHours = hour >= 9 && hour < 17 // 9 AM to 5 PM
+      const isWeekday = businessTime.getDay() >= 1 && businessTime.getDay() <= 5
+
+      // Simulate agent being active during business hours on weekdays
+      const isActive = isBusinessHours && isWeekday
+      
+      setStatus(prev => ({
+        ...prev,
+        isActive,
+        isListening: isActive && !prev.currentCall,
+        lastActivity: isActive ? new Date() : prev.lastActivity,
+        // Mock data for demo - use business time-based seed for consistency
+        callsHandled: Math.floor((businessTime.getHours() * 2) + (businessTime.getMinutes() / 10)),
+        averageCallDuration: 120 + (businessTime.getHours() * 5)
+      }))
+    } catch (error) {
+      console.error('Failed to check voice agent status:', error)
+    }
+  }, [businessProfile?.timezone])
+
+  const updateStatus = useCallback((data: StatusUpdatePayload) => {
+    setStatus(prev => ({
+      ...prev,
+      isActive: data.isActive ?? prev.isActive,
+      isListening: data.isListening ?? prev.isListening,
+      lastActivity: data.lastActivity ? new Date(data.lastActivity) : prev.lastActivity,
+      callsHandled: data.callsHandled ?? prev.callsHandled,
+      averageCallDuration: data.averageCallDuration ?? prev.averageCallDuration
+    }))
+  }, [])
+
+  const updateCallStatus = useCallback((data: CallUpdatePayload) => {
+    setStatus(prev => ({
+      ...prev,
+      currentCall: data.callEnded ? null : {
+        phoneNumber: data.phoneNumber || '',
+        duration: data.duration || 0,
+        status: data.status || 'ringing'
+      },
+      isListening: !data.callEnded && prev.isActive
+    }))
+  }, [])
 
   useEffect(() => {
     if (!tenantId) return
@@ -58,56 +130,7 @@ export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
       supabase.removeChannel(channel)
       clearInterval(interval)
     }
-  }, [tenantId])
-
-  const checkAgentStatus = async () => {
-    try {
-      // In a real implementation, this would check the actual voice agent status
-      // For now, we'll simulate it based on business hours and settings
-      const now = new Date()
-      const hour = now.getHours()
-      const isBusinessHours = hour >= 9 && hour < 17 // 9 AM to 5 PM
-      const isWeekday = now.getDay() >= 1 && now.getDay() <= 5
-
-      // Simulate agent being active during business hours on weekdays
-      const isActive = isBusinessHours && isWeekday
-      
-      setStatus(prev => ({
-        ...prev,
-        isActive,
-        isListening: isActive && !prev.currentCall,
-        lastActivity: isActive ? new Date() : prev.lastActivity,
-        // Mock data for demo
-        callsHandled: Math.floor(Math.random() * 50),
-        averageCallDuration: Math.floor(Math.random() * 180) + 60
-      }))
-    } catch (error) {
-      console.error('Failed to check voice agent status:', error)
-    }
-  }
-
-  const updateStatus = (data: any) => {
-    setStatus(prev => ({
-      ...prev,
-      isActive: data.isActive ?? prev.isActive,
-      isListening: data.isListening ?? prev.isListening,
-      lastActivity: data.lastActivity ? new Date(data.lastActivity) : prev.lastActivity,
-      callsHandled: data.callsHandled ?? prev.callsHandled,
-      averageCallDuration: data.averageCallDuration ?? prev.averageCallDuration
-    }))
-  }
-
-  const updateCallStatus = (data: any) => {
-    setStatus(prev => ({
-      ...prev,
-      currentCall: data.callEnded ? null : {
-        phoneNumber: data.phoneNumber,
-        duration: data.duration,
-        status: data.status
-      },
-      isListening: !data.callEnded && prev.isActive
-    }))
-  }
+  }, [tenantId, checkAgentStatus, updateStatus, updateCallStatus])
 
   return status
 }

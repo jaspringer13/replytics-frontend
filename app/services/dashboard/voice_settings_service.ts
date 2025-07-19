@@ -6,11 +6,17 @@
 import { createClient } from '@supabase/supabase-js';
 import { VoiceSettings, ConversationRules } from '@/app/models/dashboard';
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Validate environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Required Supabase environment variables are not configured');
+}
+
+// Initialize Supabase client with service role key
+// WARNING: This bypasses Row Level Security (RLS) - ensure proper access control
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export class VoiceSettingsService {
   /**
@@ -124,6 +130,13 @@ export class VoiceSettingsService {
     }
   }
 
+  // Validation constants
+  private static readonly VOICE_SETTINGS_CONSTRAINTS = {
+    speed: { min: 0.5, max: 2.0 },
+    pitch: { min: 0.5, max: 2.0 },
+    validStyles: ['friendly_professional', 'casual', 'formal', 'enthusiastic'] as const
+  };
+
   /**
    * Validate voice settings
    */
@@ -132,19 +145,20 @@ export class VoiceSettingsService {
     error?: string;
   } {
     if (settings.speed !== undefined) {
-      if (settings.speed < 0.5 || settings.speed > 2.0) {
-        return { isValid: false, error: 'Speed must be between 0.5 and 2.0' };
+      const { min, max } = VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.speed;
+      if (settings.speed < min || settings.speed > max) {
+        return { isValid: false, error: `Speed must be between ${min} and ${max}` };
       }
     }
 
     if (settings.pitch !== undefined) {
-      if (settings.pitch < 0.5 || settings.pitch > 2.0) {
-        return { isValid: false, error: 'Pitch must be between 0.5 and 2.0' };
+      const { min, max } = VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.pitch;
+      if (settings.pitch < min || settings.pitch > max) {
+        return { isValid: false, error: `Pitch must be between ${min} and ${max}` };
       }
     }
 
-    const validStyles = ['friendly_professional', 'casual', 'formal', 'enthusiastic'];
-    if (settings.speakingStyle && !validStyles.includes(settings.speakingStyle)) {
+    if (settings.speakingStyle && !VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.validStyles.includes(settings.speakingStyle)) {
       return { isValid: false, error: 'Invalid speaking style' };
     }
 
@@ -176,6 +190,8 @@ export class VoiceSettingsService {
   ): Promise<void> {
     const channel = supabase.channel(`voice-settings:${businessId}`);
     
+    await channel.subscribe();
+    
     await channel.send({
       type: 'broadcast',
       event: 'voice_settings_updated',
@@ -186,9 +202,14 @@ export class VoiceSettingsService {
         requiresReload: true
       }
     });
+    
+    // Clean up the channel
+    await supabase.removeChannel(channel);
 
     // Also send to general business channel
     const businessChannel = supabase.channel(`business:${businessId}`);
+    await businessChannel.subscribe();
+    
     await businessChannel.send({
       type: 'broadcast',
       event: 'settings_updated',
@@ -199,6 +220,9 @@ export class VoiceSettingsService {
         timestamp: new Date().toISOString()
       }
     });
+    
+    // Clean up the business channel
+    await supabase.removeChannel(businessChannel);
   }
 
   /**
@@ -210,6 +234,8 @@ export class VoiceSettingsService {
   ): Promise<void> {
     const channel = supabase.channel(`conversation-rules:${businessId}`);
     
+    await channel.subscribe();
+    
     await channel.send({
       type: 'broadcast',
       event: 'conversation_rules_updated',
@@ -220,6 +246,9 @@ export class VoiceSettingsService {
         requiresReload: true
       }
     });
+    
+    // Clean up the channel
+    await supabase.removeChannel(channel);
   }
 
   /**

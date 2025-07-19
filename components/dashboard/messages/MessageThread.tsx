@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { SMS } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/useToast'
 
 interface MessageThreadProps {
   messages: SMS[]
@@ -18,7 +19,7 @@ interface MessageThreadProps {
 
 interface AIMessageMetadata {
   isAI: boolean
-  confidence?: number
+  confidence: number // Always required for AI messages
   suggestedResponse?: string
   overridden?: boolean
 }
@@ -39,6 +40,7 @@ export function MessageThread({
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
   const [editedMessage, setEditedMessage] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -54,6 +56,7 @@ export function MessageThread({
       setNewMessage('')
     } catch (error) {
       console.error('Failed to send message:', error)
+      toast.error('Message Failed', 'Unable to send message. Please try again.')
     } finally {
       setSending(false)
     }
@@ -68,6 +71,7 @@ export function MessageThread({
       setEditedMessage('')
     } catch (error) {
       console.error('Failed to override AI message:', error)
+      toast.error('Override Failed', 'Unable to override AI message. Please try again.')
     }
   }
 
@@ -79,14 +83,9 @@ export function MessageThread({
     })
   }
 
-  // Mock AI metadata for demo - in real app this would come from backend
   const enhancedMessages: ExtendedSMS[] = messages.map(msg => ({
     ...msg,
-    aiMetadata: msg.direction === 'outbound' && Math.random() > 0.5 ? {
-      isAI: true,
-      confidence: Math.random() * 40 + 60,
-      overridden: false
-    } : undefined
+    // AI metadata should come from the backend with the message
   }))
 
   return (
@@ -104,7 +103,7 @@ export function MessageThread({
                 key={message.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: Math.min(index * 0.05, 0.5) }}
                 className={cn(
                   "flex",
                   isOutbound ? "justify-end" : "justify-start"
@@ -248,7 +247,12 @@ export function MessageThread({
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
               className="w-full px-4 py-2 pr-10 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
               disabled={sending}
             />

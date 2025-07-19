@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react'
+import React, { createContext, useState, useContext, useEffect, useCallback, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { apiClient } from '@/lib/api-client'
@@ -86,7 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Token expiration monitoring and automatic refresh
   useEffect(() => {
-    if (!session || status !== 'authenticated') return
+    // Skip if loading
+    if (status === 'loading') return
 
     const checkTokenExpiration = async () => {
       const storedExpiresAt = localStorage.getItem('token_expires_at')
@@ -95,11 +96,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('Token expired, attempting to refresh session...')
         
         try {
-          // For OAuth sessions, attempt to refresh the session
-          const result = await update()
-          if (!result) {
-            console.log('Session refresh failed, logging out...')
-            await logout()
+          if (session) {
+            // For OAuth sessions, attempt to refresh the session
+            const result = await update()
+            if (!result) {
+              console.log('Session refresh failed, logging out...')
+              await logout()
+            }
+          } else {
+            // For credential-based auth, attempt to refresh token
+            const refreshed = await apiClient.refreshToken()
+            if (!refreshed) {
+              console.log('Token refresh failed, logging out...')
+              await logout()
+            }
           }
         } catch (error) {
           console.error('Failed to refresh session:', error)
@@ -108,14 +118,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Check immediately
-    checkTokenExpiration()
+    // Only run if we have either a session or stored auth token
+    const hasStoredToken = typeof window !== 'undefined' && localStorage.getItem('auth_token')
+    if (session || hasStoredToken) {
+      // Check immediately
+      checkTokenExpiration()
 
-    // Set up periodic checking (every 5 minutes)
-    const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000)
+      // Set up periodic checking (every 5 minutes)
+      const interval = setInterval(checkTokenExpiration, 5 * 60 * 1000)
 
-    return () => clearInterval(interval)
-  }, [session, status, update])
+      return () => clearInterval(interval)
+    }
+  }, [session, status, update, logout])
 
   // Convert NextAuth session to our User type
   const user: User | null = session?.user ? {
@@ -189,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Logout
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // Clear backend session if using email/password
       if (!session) {
@@ -217,7 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Logout error:', error)
     }
-  }
+  }, [session, router])
 
   // Update onboarding step
   const updateOnboardingStep = async (step: number) => {

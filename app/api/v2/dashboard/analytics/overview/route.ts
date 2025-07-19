@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution } from '@/app/models/dashboard';
 
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
 // Initialize Supabase client with service role
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,6 +37,21 @@ export async function GET(request: NextRequest) {
       start: new Date(startDate),
       end: new Date(endDate)
     };
+    
+    // Validate dates
+    if (isNaN(dateRange.start.getTime()) || isNaN(dateRange.end.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date format' },
+        { status: 400 }
+      );
+    }
+    
+    if (dateRange.start > dateRange.end) {
+      return NextResponse.json(
+        { error: 'Start date must be before end date' },
+        { status: 400 }
+      );
+    }
 
     // Calculate previous period for comparison
     const periodLength = dateRange.end.getTime() - dateRange.start.getTime();
@@ -40,16 +60,8 @@ export async function GET(request: NextRequest) {
       end: new Date(dateRange.start.getTime() - 1)
     };
 
-    // Fetch all necessary data in parallel
-    const [
-      currentMetrics,
-      previousMetrics,
-      servicePerformance,
-      customerSegments,
-      revenueTrend,
-      appointmentTrend,
-      newCustomerTrend
-    ] = await Promise.all([
+    // Fetch all necessary data in parallel with resilient error handling
+    const results = await Promise.allSettled([
       fetchMetrics(tenantId, dateRange),
       fetchMetrics(tenantId, previousDateRange),
       fetchServicePerformance(tenantId, dateRange),
@@ -58,6 +70,23 @@ export async function GET(request: NextRequest) {
       fetchAppointmentTrend(tenantId, dateRange),
       fetchNewCustomerTrend(tenantId, dateRange)
     ]);
+    
+    // Extract successful results with fallbacks
+    const currentMetrics = results[0].status === 'fulfilled' ? results[0].value : getDefaultMetrics();
+    const previousMetrics = results[1].status === 'fulfilled' ? results[1].value : getDefaultMetrics();
+    const servicePerformance = results[2].status === 'fulfilled' ? results[2].value : [];
+    const customerSegments = results[3].status === 'fulfilled' ? results[3].value : [];
+    const revenueTrend = results[4].status === 'fulfilled' ? results[4].value : [];
+    const appointmentTrend = results[5].status === 'fulfilled' ? results[5].value : [];
+    const newCustomerTrend = results[6].status === 'fulfilled' ? results[6].value : [];
+    
+    // Log any failures for monitoring
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const functionNames = ['currentMetrics', 'previousMetrics', 'servicePerformance', 'customerSegments', 'revenueTrend', 'appointmentTrend', 'newCustomerTrend'];
+        console.error(`Failed to fetch ${functionNames[index]}:`, result.reason);
+      }
+    });
 
     // Calculate percent changes
     const revenueChange = calculatePercentChange(previousMetrics.totalRevenue, currentMetrics.totalRevenue);
@@ -121,6 +150,17 @@ function getDefaultEndDate(): string {
 function calculatePercentChange(previous: number, current: number): number {
   if (previous === 0) return current > 0 ? 100 : 0;
   return Math.round(((current - previous) / previous) * 100);
+}
+
+function getDefaultMetrics() {
+  return {
+    totalRevenue: 0,
+    totalAppointments: 0,
+    totalCustomers: 0,
+    averageServiceValue: 0,
+    bookingRate: 0,
+    noShowRate: 0
+  };
 }
 
 async function fetchMetrics(tenantId: string, dateRange: DateRange) {
@@ -243,45 +283,122 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
 }
 
 async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribution> {
-  // For now, return mock data - this would be calculated based on customer behavior
-  // In production, this would analyze visit frequency, spending, and recency
-  return {
-    vip: 24,
-    regular: 156,
-    atRisk: 18,
-    new: 32,
-    dormant: 45
+  // Since caller_memory table may not exist, implement segmentation using appointments table
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select('customer_id, price, status, created_at, appointment_time')
+    .eq('business_id', tenantId);
+
+  if (error) {
+    console.error('Error fetching customer data for segmentation:', error);
+    return {
+      vip: 0,
+      regular: 0,
+      atRisk: 0,
+      new: 0,
+      dormant: 0
+    };
+  }
+
+  // Aggregate customer data
+  const customerData = new Map<string, {
+    totalAppointments: number;
+    lifetimeValue: number;
+    firstAppointment: Date;
+    lastAppointment: Date;
+  }>();
+
+  appointments?.forEach(apt => {
+    const customerId = apt.customer_id;
+    const existing = customerData.get(customerId) || {
+      totalAppointments: 0,
+      lifetimeValue: 0,
+      firstAppointment: new Date(apt.created_at),
+      lastAppointment: new Date(apt.appointment_time)
+    };
+
+    existing.totalAppointments++;
+    if (apt.status === 'completed' && apt.price) {
+      existing.lifetimeValue += apt.price;
+    }
+
+    const appointmentDate = new Date(apt.appointment_time);
+    if (appointmentDate < existing.firstAppointment) {
+      existing.firstAppointment = appointmentDate;
+    }
+    if (appointmentDate > existing.lastAppointment) {
+      existing.lastAppointment = appointmentDate;
+    }
+
+    customerData.set(customerId, existing);
+  });
+
+  // Segment customers based on business logic
+  const segmentCounts: SegmentDistribution = {
+    vip: 0,
+    regular: 0,
+    atRisk: 0,
+    new: 0,
+    dormant: 0
   };
+
+  const now = new Date();
+  customerData.forEach((data, customerId) => {
+    const daysSinceFirst = Math.floor((now.getTime() - data.firstAppointment.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceLast = Math.floor((now.getTime() - data.lastAppointment.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (daysSinceFirst < 90) {
+      segmentCounts.new++;
+    } else if (daysSinceLast > 60) {
+      segmentCounts.dormant++;
+    } else if (data.lifetimeValue > 2000 && data.totalAppointments > 10) {
+      segmentCounts.vip++;
+    } else if (daysSinceLast > 45 && data.totalAppointments > 3) {
+      segmentCounts.atRisk++;
+    } else {
+      segmentCounts.regular++;
+    }
+  });
+
+  return segmentCounts;
 }
 
 async function fetchRevenueTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
-  // Generate daily revenue data points
+  // Fetch all revenue data in one query
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select('price, appointment_time')
+    .eq('business_id', tenantId)
+    .gte('appointment_time', dateRange.start.toISOString())
+    .lte('appointment_time', dateRange.end.toISOString())
+    .eq('status', 'completed');
+
+  if (error) {
+    console.error('Error fetching revenue trend:', error);
+    return [];
+  }
+
+  // Aggregate by day
+  const revenueByDay = new Map<string, number>();
+  
+  appointments?.forEach(apt => {
+    const date = new Date(apt.appointment_time).toISOString().split('T')[0];
+    const currentRevenue = revenueByDay.get(date) || 0;
+    revenueByDay.set(date, currentRevenue + (apt.price || 0));
+  });
+
+  // Generate complete date range with zeros for missing days
   const days = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
   const dataPoints: { date: string; value: number }[] = [];
-
+  
   for (let i = 0; i < days; i++) {
     const date = new Date(dateRange.start);
     date.setDate(date.getDate() + i);
-    
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    const { data: dayRevenue } = await supabase
-      .from('appointments')
-      .select('price')
-      .eq('business_id', tenantId)
-      .gte('appointment_time', dayStart.toISOString())
-      .lte('appointment_time', dayEnd.toISOString())
-      .eq('status', 'completed');
-
-    const revenue = dayRevenue?.reduce((sum, apt) => sum + (apt.price || 0), 0) || 0;
+    const dateStr = date.toISOString().split('T')[0];
     
     dataPoints.push({
-      date: date.toISOString().split('T')[0],
-      value: revenue
+      date: dateStr,
+      value: revenueByDay.get(dateStr) || 0
     });
   }
 
@@ -289,29 +406,93 @@ async function fetchRevenueTrend(tenantId: string, dateRange: DateRange): Promis
 }
 
 async function fetchAppointmentTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
-  // For brevity, returning simplified data
-  // In production, this would fetch actual daily appointment counts
+  // Fetch all appointments in the date range
+  const { data: appointments, error } = await supabase
+    .from('appointments')
+    .select('appointment_time')
+    .eq('business_id', tenantId)
+    .gte('appointment_time', dateRange.start.toISOString())
+    .lte('appointment_time', dateRange.end.toISOString())
+    .neq('status', 'cancelled');
+
+  if (error) {
+    console.error('Error fetching appointment trend:', error);
+    return [];
+  }
+
+  // Aggregate appointments by day
+  const appointmentsByDay = new Map<string, number>();
+  
+  appointments?.forEach(apt => {
+    const date = new Date(apt.appointment_time).toISOString().split('T')[0];
+    const currentCount = appointmentsByDay.get(date) || 0;
+    appointmentsByDay.set(date, currentCount + 1);
+  });
+
+  // Generate complete date range with zeros for missing days
   const days = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
-  return Array.from({ length: days }, (_, i) => {
+  const dataPoints: { date: string; value: number }[] = [];
+  
+  for (let i = 0; i < days; i++) {
     const date = new Date(dateRange.start);
     date.setDate(date.getDate() + i);
-    return {
-      date: date.toISOString().split('T')[0],
-      value: Math.floor(Math.random() * 15) + 5 // Mock data
-    };
-  });
+    const dateStr = date.toISOString().split('T')[0];
+    
+    dataPoints.push({
+      date: dateStr,
+      value: appointmentsByDay.get(dateStr) || 0
+    });
+  }
+
+  return dataPoints;
 }
 
 async function fetchNewCustomerTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
-  // For brevity, returning simplified data
-  // In production, this would track first-time customers per day
+  // Find first appointment for each customer to identify new customers
+  const { data: customerFirstAppointments, error } = await supabase
+    .from('appointments')
+    .select('customer_id, appointment_time')
+    .eq('business_id', tenantId)
+    .order('appointment_time', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching customer first appointments:', error);
+    return [];
+  }
+
+  // Get first appointment date for each customer
+  const firstAppointmentMap = new Map<string, Date>();
+  customerFirstAppointments?.forEach(apt => {
+    if (!firstAppointmentMap.has(apt.customer_id)) {
+      firstAppointmentMap.set(apt.customer_id, new Date(apt.appointment_time));
+    }
+  });
+
+  // Count new customers by day within the date range
+  const newCustomersByDay = new Map<string, number>();
+  
+  firstAppointmentMap.forEach((firstDate, customerId) => {
+    if (firstDate >= dateRange.start && firstDate <= dateRange.end) {
+      const dateStr = firstDate.toISOString().split('T')[0];
+      const currentCount = newCustomersByDay.get(dateStr) || 0;
+      newCustomersByDay.set(dateStr, currentCount + 1);
+    }
+  });
+
+  // Generate complete date range with zeros for missing days
   const days = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
-  return Array.from({ length: days }, (_, i) => {
+  const dataPoints: { date: string; value: number }[] = [];
+  
+  for (let i = 0; i < days; i++) {
     const date = new Date(dateRange.start);
     date.setDate(date.getDate() + i);
-    return {
-      date: date.toISOString().split('T')[0],
-      value: Math.floor(Math.random() * 5) // Mock data
-    };
-  });
+    const dateStr = date.toISOString().split('T')[0];
+    
+    dataPoints.push({
+      date: dateStr,
+      value: newCustomersByDay.get(dateStr) || 0
+    });
+  }
+
+  return dataPoints;
 }

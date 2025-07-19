@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   MessageSquare, X, Send, Mic, MicOff, Sparkles, 
@@ -9,6 +9,32 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { useCustomers } from '@/hooks/useCustomers'
+import type { Customer } from '@/app/models/dashboard'
+import { apiClient } from '@/lib/api-client'
+
+// Speech Recognition type definitions
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: Event) => void;
+  onend: () => void;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
 
 interface Message {
   id: string
@@ -40,6 +66,8 @@ const suggestions = [
 export function AIChatWidget() {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const MAX_MESSAGES = 100; // Limit message history
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -48,6 +76,15 @@ export function AIChatWidget() {
       timestamp: new Date()
     }
   ])
+
+  // Add message with history limit
+  const addMessage = useCallback((message: Message) => {
+    setMessages(prev => {
+      const newMessages = [...prev, message];
+      // Keep only the last MAX_MESSAGES
+      return newMessages.slice(-MAX_MESSAGES);
+    });
+  }, []);
   const [input, setInput] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -77,7 +114,7 @@ export function AIChatWidget() {
       timestamp: new Date()
     }
 
-    setMessages(prev => [...prev, userMessage])
+    addMessage(userMessage)
     setInput('')
     setIsProcessing(true)
 
@@ -89,7 +126,7 @@ export function AIChatWidget() {
       timestamp: new Date(),
       isLoading: true
     }
-    setMessages(prev => [...prev, loadingMessage])
+    addMessage(loadingMessage)
 
     // Process the query
     try {
@@ -117,6 +154,9 @@ export function AIChatWidget() {
 
   // Process natural language query
   const processQuery = async (query: string): Promise<Message> => {
+    // TODO: Replace with actual AI/NLP service integration
+    // Current implementation uses keyword matching for demo purposes
+    
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000))
 
@@ -138,16 +178,63 @@ export function AIChatWidget() {
     }
     
     if (lowerQuery.includes('customer') && (lowerQuery.includes('top') || lowerQuery.includes('best'))) {
-      return {
-        id: Date.now().toString(),
-        content: "Your top customers by lifetime value are Sarah Johnson ($3,420), Mike Chen ($2,890), and Emma Davis ($2,450). They're all VIP customers with high retention.",
-        role: 'assistant',
-        timestamp: new Date(),
-        actions: [{
-          type: 'navigate',
-          label: 'View All Customers',
-          href: '/dashboard/customers?segment=vip'
-        }]
+      try {
+        const result = await apiClient.getCustomers({
+          sortBy: 'lifetimeValue',
+          sortOrder: 'desc',
+          pageSize: 3
+        });
+
+        if (result.customers && result.customers.length > 0) {
+          const topCustomers = result.customers.slice(0, 3);
+          const customerList = topCustomers.map(customer => {
+            const name = customer.firstName && customer.lastName 
+              ? `${customer.firstName} ${customer.lastName}`
+              : customer.firstName || customer.lastName || 'Unknown Customer';
+            return `${name} ($${customer.lifetimeValue.toLocaleString()})`;
+          }).join(', ');
+
+          const segmentInfo = topCustomers.every(c => c.segment === 'vip') 
+            ? "They're all VIP customers with high retention."
+            : "These are your most valuable customers.";
+
+          return {
+            id: Date.now().toString(),
+            content: `Your top customers by lifetime value are ${customerList}. ${segmentInfo}`,
+            role: 'assistant',
+            timestamp: new Date(),
+            actions: [{
+              type: 'navigate',
+              label: 'View All Customers',
+              href: '/dashboard/customers?segment=vip'
+            }]
+          };
+        } else {
+          return {
+            id: Date.now().toString(),
+            content: "I couldn't find your customer data at the moment. This might be because you're just getting started or there's a temporary issue accessing the data.",
+            role: 'assistant',
+            timestamp: new Date(),
+            actions: [{
+              type: 'navigate',
+              label: 'View Customers',
+              href: '/dashboard/customers'
+            }]
+          };
+        }
+      } catch (error) {
+        console.error('Failed to fetch top customers:', error);
+        return {
+          id: Date.now().toString(),
+          content: "I'm having trouble accessing your customer data right now. Please try again in a moment, or check your customers page directly.",
+          role: 'assistant',
+          timestamp: new Date(),
+          actions: [{
+            type: 'navigate',
+            label: 'View Customers',
+            href: '/dashboard/customers'
+          }]
+        };
       }
     }
     
@@ -204,12 +291,14 @@ export function AIChatWidget() {
 
   // Handle voice input
   const handleVoiceInput = () => {
-    if (!('webkitSpeechRecognition' in window)) {
-      alert('Voice input is not supported in your browser')
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognitionAPI) {
+      console.error('Voice input is not supported in your browser')
       return
     }
 
-    const recognition = new (window as any).webkitSpeechRecognition()
+    const recognition = new SpeechRecognitionAPI()
     recognition.lang = 'en-US'
     recognition.continuous = false
     recognition.interimResults = false
@@ -223,7 +312,7 @@ export function AIChatWidget() {
     setIsListening(true)
     recognition.start()
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript
       setInput(transcript)
       setIsListening(false)

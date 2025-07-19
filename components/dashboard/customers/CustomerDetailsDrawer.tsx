@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Phone, Mail, Calendar, DollarSign, Clock, MessageSquare, Star, Flag } from 'lucide-react'
 import { Customer } from '@/app/models/dashboard'
 import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils/currency'
 
 interface CustomerDetailsDrawerProps {
   customer: Customer | null
@@ -14,8 +15,45 @@ interface CustomerDetailsDrawerProps {
 
 export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDetailsDrawerProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'notes'>('info')
+  const [isLoading, setIsLoading] = useState(false)
 
   if (!customer) return null
+
+  // Handle send message action
+  const handleSendMessage = async () => {
+    if (!customer.phone) {
+      alert('No phone number available for this customer')
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      // TODO: Implement SMS sending logic
+      // For now, show a coming soon message
+      alert(`SMS messaging feature coming soon! Would send message to ${customer.phone}`)
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle book appointment action
+  const handleBookAppointment = async () => {
+    setIsLoading(true)
+    try {
+      // TODO: Implement appointment booking logic
+      // For now, show a coming soon message and close drawer
+      alert(`Appointment booking feature coming soon! Would create appointment for ${customer.firstName || 'customer'}`)
+      onClose()
+    } catch (error) {
+      console.error('Failed to book appointment:', error)
+      alert('Failed to book appointment. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
 
@@ -30,15 +68,6 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
     return phone
   }
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value)
-  }
 
   return (
     <AnimatePresence>
@@ -60,18 +89,22 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 h-full w-full max-w-md bg-gray-900 shadow-xl z-50 overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="drawer-title"
           >
             <div className="h-full flex flex-col">
               {/* Header */}
               <div className="bg-gray-800 p-6 border-b border-gray-700">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{fullName}</h2>
+                    <h2 id="drawer-title" className="text-2xl font-bold text-white">{fullName}</h2>
                     <p className="text-gray-400 mt-1">{formatPhone(customer.phone)}</p>
                   </div>
                   <button
                     onClick={onClose}
                     className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-700"
+                    aria-label="Close customer details"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -216,6 +249,11 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'history' && (
                   <div className="space-y-4">
+                    {/* TODO: Implement appointment history functionality
+                         - Fetch customer's appointment history from API
+                         - Display appointments with date, service, status
+                         - Add filtering/sorting options
+                         - Show appointment details and outcomes */}
                     <p className="text-gray-400 text-center py-8">
                       Appointment history will be displayed here
                     </p>
@@ -224,6 +262,12 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
                 {activeTab === 'notes' && (
                   <div className="space-y-4">
+                    {/* TODO: Implement customer notes and communication history
+                         - Create notes management interface (add/edit/delete)
+                         - Display SMS/call communication history
+                         - Add timestamps and user attribution for notes
+                         - Implement search/filter functionality
+                         - Add rich text editor for notes */}
                     <p className="text-gray-400 text-center py-8">
                       Customer notes and communication history will be displayed here
                     </p>
@@ -234,13 +278,30 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
               {/* Actions */}
               <div className="p-4 border-t border-gray-700 bg-gray-800">
                 <div className="grid grid-cols-2 gap-3">
-                  <button className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors flex items-center justify-center gap-2">
+                  <button 
+                    onClick={handleSendMessage}
+                    disabled={isLoading || !customer.phone}
+                    className={cn(
+                      "px-4 py-2 text-white rounded-lg transition-colors flex items-center justify-center gap-2",
+                      !customer.phone
+                        ? "bg-gray-600 text-gray-400 cursor-not-allowed"
+                        : "bg-gray-700 hover:bg-gray-600",
+                      isLoading && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
                     <MessageSquare className="w-4 h-4" />
-                    Send Message
+                    {isLoading ? 'Sending...' : 'Send Message'}
                   </button>
-                  <button className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2">
+                  <button 
+                    onClick={handleBookAppointment}
+                    disabled={isLoading}
+                    className={cn(
+                      "px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors flex items-center justify-center gap-2",
+                      isLoading && "opacity-50 cursor-not-allowed"
+                    )}
+                  >
                     <Calendar className="w-4 h-4" />
-                    Book Appointment
+                    {isLoading ? 'Booking...' : 'Book Appointment'}
                   </button>
                 </div>
               </div>

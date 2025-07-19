@@ -1,3 +1,5 @@
+import { DashboardOverview, Customer, Service, BusinessHours, BusinessProfile, VoiceSettings, ConversationRules } from '@/app/models/dashboard';
+
 interface AuthResponse {
   token: string;
   user: {
@@ -60,7 +62,7 @@ interface Booking {
 interface APIError {
   message: string;
   code?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 class APIClient {
@@ -204,8 +206,10 @@ class APIClient {
         const error = await response.json().catch(() => ({
           message: `HTTP error! status: ${response.status}`,
         }));
-        const apiError = new Error(error.message || `Request failed: ${response.statusText}`);
-        (apiError as any).response = { status: response.status, data: error };
+        const apiError = new Error(error.message || `Request failed: ${response.statusText}`) as Error & {
+          response: { status: number; data: unknown };
+        };
+        apiError.response = { status: response.status, data: error };
         throw apiError;
       }
 
@@ -278,11 +282,16 @@ class APIClient {
     token: string;
     tenant_id: string;
     is_new_user: boolean;
-    user: any;
+    user: {
+      id: string;
+      email: string;
+      name: string;
+      avatar?: string;
+    };
     expires_at?: string;
     expires_in?: number;
   }> {
-    const response = await this.request<any>('/api/dashboard/auth/google', {
+    const response = await this.request('/api/dashboard/auth/google', {
       method: 'POST',
       body: JSON.stringify(googleData),
     });
@@ -428,33 +437,33 @@ class APIClient {
   // V2 Dashboard API Methods
 
   // Business Configuration
-  async getBusinessProfile() {
+  async getBusinessProfile(): Promise<BusinessProfile> {
     return this.request('/api/v2/dashboard/business/profile');
   }
 
-  async updateBusinessProfile(updates: any) {
+  async updateBusinessProfile(updates: Partial<BusinessProfile>) {
     return this.request('/api/v2/dashboard/business/profile', {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
   }
 
-  async getVoiceSettings() {
+  async getVoiceSettings(): Promise<VoiceSettings> {
     return this.request('/api/v2/dashboard/business/voice-settings');
   }
 
-  async updateVoiceSettings(settings: any) {
+  async updateVoiceSettings(settings: Partial<VoiceSettings>) {
     return this.request('/api/v2/dashboard/business/voice-settings', {
       method: 'PATCH',
       body: JSON.stringify(settings),
     });
   }
 
-  async getConversationRules() {
+  async getConversationRules(): Promise<ConversationRules> {
     return this.request('/api/v2/dashboard/business/conversation-rules');
   }
 
-  async updateConversationRules(rules: any) {
+  async updateConversationRules(rules: Partial<ConversationRules>) {
     return this.request('/api/v2/dashboard/business/conversation-rules', {
       method: 'PATCH',
       body: JSON.stringify(rules),
@@ -462,20 +471,20 @@ class APIClient {
   }
 
   // Services Management
-  async getServices(includeInactive = false) {
+  async getServices(includeInactive = false): Promise<Service[]> {
     const params = new URLSearchParams();
     if (includeInactive) params.append('includeInactive', 'true');
     return this.request(`/api/v2/dashboard/services?${params.toString()}`);
   }
 
-  async createService(service: any) {
+  async createService(service: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) {
     return this.request('/api/v2/dashboard/services', {
       method: 'POST',
       body: JSON.stringify(service),
     });
   }
 
-  async updateService(id: string, updates: any) {
+  async updateService(id: string, updates: Partial<Service>) {
     return this.request(`/api/v2/dashboard/services/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
@@ -496,11 +505,11 @@ class APIClient {
   }
 
   // Operating Hours
-  async getBusinessHours() {
+  async getBusinessHours(): Promise<BusinessHours[]> {
     return this.request('/api/v2/dashboard/hours');
   }
 
-  async updateBusinessHours(hours: any[]) {
+  async updateBusinessHours(hours: BusinessHours[]) {
     return this.request('/api/v2/dashboard/hours', {
       method: 'PATCH',
       body: JSON.stringify(hours),
@@ -508,7 +517,7 @@ class APIClient {
   }
 
   // Analytics
-  async getAnalyticsOverview(startDate?: string, endDate?: string) {
+  async getAnalyticsOverview(startDate?: string, endDate?: string): Promise<DashboardOverview> {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
@@ -523,7 +532,7 @@ class APIClient {
     sortOrder?: 'asc' | 'desc';
     page?: number;
     pageSize?: number;
-  }) {
+  }): Promise<{ customers: Customer[]; total: number }> {
     const params = new URLSearchParams();
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
@@ -533,6 +542,14 @@ class APIClient {
       });
     }
     return this.request(`/api/v2/dashboard/customers?${params.toString()}`);
+  }
+
+  async getCustomerSegmentCounts(search?: string) {
+    const params = new URLSearchParams();
+    if (search) {
+      params.append('search', search);
+    }
+    return this.request(`/api/v2/dashboard/customers/segments/counts?${params.toString()}`);
   }
 }
 

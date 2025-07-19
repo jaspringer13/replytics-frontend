@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { ServiceUpdate } from '@/app/models/dashboard';
 
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  throw new Error('Missing required Supabase environment variables');
+}
+
 // Initialize Supabase client with service role
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +32,15 @@ export async function PATCH(
       );
     }
 
-    const updates: ServiceUpdate = await request.json();
+    let updates: ServiceUpdate;
+    try {
+      updates = await request.json();
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
 
     // Validate updates
     if (updates.duration !== undefined && (updates.duration < 15 || updates.duration > 480)) {
@@ -90,6 +103,8 @@ export async function PATCH(
 
     // Broadcast update for real-time sync
     const channel = supabase.channel(`services:${tenantId}`);
+    await channel.subscribe();
+    
     await channel.send({
       type: 'broadcast',
       event: 'service_updated',
@@ -100,6 +115,8 @@ export async function PATCH(
         timestamp: new Date().toISOString()
       }
     });
+    
+    await supabase.removeChannel(channel);
 
     return NextResponse.json({
       success: true,
@@ -184,6 +201,8 @@ export async function DELETE(
 
     // Broadcast update for real-time sync
     const channel = supabase.channel(`services:${tenantId}`);
+    await channel.subscribe();
+    
     await channel.send({
       type: 'broadcast',
       event: 'service_deleted',
@@ -193,6 +212,8 @@ export async function DELETE(
         timestamp: new Date().toISOString()
       }
     });
+    
+    await supabase.removeChannel(channel);
 
     return NextResponse.json({
       success: true,

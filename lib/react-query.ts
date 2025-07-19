@@ -1,9 +1,13 @@
 import { QueryClient, DefaultOptions } from '@tanstack/react-query';
 
+// Allow configuration via environment variables
+const STALE_TIME = parseInt(process.env.NEXT_PUBLIC_QUERY_STALE_TIME || '300000'); // 5 min default
+const GC_TIME = parseInt(process.env.NEXT_PUBLIC_QUERY_GC_TIME || '600000'); // 10 min default
+
 const defaultQueryOptions: DefaultOptions = {
   queries: {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    staleTime: STALE_TIME,
+    gcTime: GC_TIME,
     retry: (failureCount, error: any) => {
       // Don't retry on 4xx errors except 401 (which we'll handle with token refresh)
       if (error?.response?.status >= 400 && error?.response?.status < 500 && error?.response?.status !== 401) {

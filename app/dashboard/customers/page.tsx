@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { useCustomers } from '@/hooks/useCustomers'
+import { useCustomerSegmentCounts } from '@/hooks/useCustomerSegmentCounts'
 import { CustomerCard } from '@/components/dashboard/customers/CustomerCard'
 import { CustomerDetailsDrawer } from '@/components/dashboard/customers/CustomerDetailsDrawer'
 import { SegmentFilter } from '@/components/dashboard/customers/SegmentFilter'
@@ -10,12 +11,27 @@ import { Search, Filter, Download, UserPlus, RefreshCw } from 'lucide-react'
 import { Customer, CustomerSegment } from '@/app/models/dashboard'
 import { motion } from 'framer-motion'
 
+type SortOption = 'recent' | 'value' | 'visits' | 'name'
+
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedSegment, setSelectedSegment] = useState<CustomerSegment['segment'] | 'all'>('all')
-  const [sortBy, setSortBy] = useState<'recent' | 'value' | 'visits' | 'name'>('recent')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [selectedSegment, setSelectedSegment] = useState<CustomerSegment | 'all'>('all')
+  const [sortBy, setSortBy] = useState<SortOption>('recent')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+
+  // Debounced search handler
+  const debouncedSetSearch = useCallback(
+    useMemo(() => {
+      let timeoutId: NodeJS.Timeout
+      return (value: string) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => setDebouncedSearchQuery(value), 300)
+      }
+    }, []),
+    []
+  )
 
   // Fetch customers with filters
   const { 
@@ -27,37 +43,30 @@ export default function CustomersPage() {
     refetch, 
     loadMore 
   } = useCustomers({
-    search: searchQuery,
+    search: debouncedSearchQuery,
     segment: selectedSegment,
     sortBy
   })
 
-  // Calculate segment counts
-  const segmentCounts = useMemo(() => {
-    // In a real app, this would come from the API
-    // For now, we'll calculate from loaded customers
-    const counts = {
-      all: totalCount,
-      vip: 0,
-      regular: 0,
-      at_risk: 0,
-      new: 0,
-      dormant: 0
-    }
-
-    customers.forEach(customer => {
-      if (customer.segment && customer.segment in counts) {
-        counts[customer.segment as keyof typeof counts]++
-      }
-    })
-
-    return counts
-  }, [customers, totalCount])
+  // Fetch accurate segment counts from API
+  const { 
+    segmentCounts, 
+    loading: countsLoading,
+    error: countsError,
+    refetch: refetchCounts 
+  } = useCustomerSegmentCounts({
+    search: debouncedSearchQuery
+  })
 
   // Handle customer selection
   const handleCustomerClick = (customer: Customer) => {
     setSelectedCustomer(customer)
     setIsDrawerOpen(true)
+  }
+
+  // Handle refresh - refresh both customers and segment counts
+  const handleRefresh = async () => {
+    await Promise.all([refetch(), refetchCounts()])
   }
 
   return (
@@ -68,13 +77,13 @@ export default function CustomersPage() {
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Customers</h1>
             <p className="text-gray-400">
-              Manage and engage with your {totalCount} customers
+              Manage and engage with your {segmentCounts.all || totalCount} customers
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => refetch()}
+              onClick={handleRefresh}
               className="p-2 text-gray-400 hover:text-white transition-colors"
               title="Refresh"
             >
@@ -102,7 +111,10 @@ export default function CustomersPage() {
                   type="text"
                   placeholder="Search by name, phone, or email..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    debouncedSetSearch(e.target.value)
+                  }}
                   className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
@@ -111,7 +123,7 @@ export default function CustomersPage() {
             {/* Sort */}
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-brand-500 transition-colors"
             >
               <option value="recent">Most Recent</option>
@@ -124,7 +136,7 @@ export default function CustomersPage() {
           {/* Segment Filters */}
           <SegmentFilter
             selectedSegment={selectedSegment}
-            onSegmentChange={(segment) => setSelectedSegment(segment as any)}
+            onSegmentChange={(segment) => setSelectedSegment(segment as CustomerSegment | 'all')}
             segmentCounts={segmentCounts}
           />
         </div>
@@ -132,7 +144,7 @@ export default function CustomersPage() {
         {/* Results Summary */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-400">
-            Showing {customers.length} of {totalCount} customers
+            Showing {customers.length} of {segmentCounts.all || totalCount} customers
             {searchQuery && ` matching "${searchQuery}"`}
           </p>
         </div>

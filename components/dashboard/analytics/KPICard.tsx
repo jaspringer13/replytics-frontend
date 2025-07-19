@@ -37,6 +37,7 @@ export function KPICard({
 
   // Format change percentage
   const formatChange = (value: number) => {
+    if (!isFinite(value)) return 'N/A'
     const prefix = value > 0 ? '+' : ''
     return `${prefix}${value.toFixed(1)}%`
   }
@@ -71,10 +72,12 @@ export function KPICard({
         {change !== undefined && (
           <div className={cn("flex items-center gap-1 text-sm font-medium", getChangeColor())}>
             {change > 0 ? (
-              <TrendingUp className="w-4 h-4" />
+              <TrendingUp className="w-4 h-4" aria-label="Trending up" />
             ) : change < 0 ? (
-              <TrendingDown className="w-4 h-4" />
-            ) : null}
+              <TrendingDown className="w-4 h-4" aria-label="Trending down" />
+            ) : (
+              <span className="w-4 h-4 flex items-center justify-center text-xs" aria-label="No change">–</span>
+            )}
             <span>{formatChange(change)}</span>
           </div>
         )}

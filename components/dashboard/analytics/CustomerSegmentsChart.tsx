@@ -8,6 +8,7 @@ import { CustomerSegmentData } from '@/app/models/dashboard'
 interface CustomerSegmentsChartProps {
   data: CustomerSegmentData[]
   height?: number
+  minLabelPercentage?: number
 }
 
 // Define colors for each segment
@@ -19,7 +20,7 @@ const SEGMENT_COLORS = {
   dormant: chartTheme.colors.danger     // Red
 }
 
-export function CustomerSegmentsChart({ data, height = 300 }: CustomerSegmentsChartProps) {
+export function CustomerSegmentsChart({ data, height = 300, minLabelPercentage = 5 }: CustomerSegmentsChartProps) {
   // Calculate total and sort by count
   const enhancedData = useMemo(() => {
     const total = data.reduce((sum, segment) => sum + segment.count, 0)
@@ -34,7 +35,7 @@ export function CustomerSegmentsChart({ data, height = 300 }: CustomerSegmentsCh
 
   // Custom label
   const renderLabel = (entry: any) => {
-    if (entry.percentage < 5) return null // Don't show label for small segments
+    if (entry.percentage < minLabelPercentage) return null // Don't show label for small segments
     return `${entry.percentage.toFixed(0)}%`
   }
 
@@ -81,7 +82,7 @@ export function CustomerSegmentsChart({ data, height = 300 }: CustomerSegmentsCh
   }
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} aria-label="Customer segments pie chart">
       <PieChart>
         <Pie
           data={enhancedData}

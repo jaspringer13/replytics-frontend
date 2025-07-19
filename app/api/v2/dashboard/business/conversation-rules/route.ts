@@ -3,9 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 import { ConversationRules } from '@/app/models/dashboard';
 
 // Initialize Supabase client with service role
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Missing required environment variables');
+}
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  supabaseUrl,
+  supabaseServiceKey
 );
 
 /**
@@ -158,7 +165,7 @@ export async function PATCH(request: NextRequest) {
         requiresReload: true // Signal to voice agent to update behavior
       }
     });
-
+    
     // Also update via general business channel
     const businessChannel = supabase.channel(`business:${tenantId}`);
     await businessChannel.send({
@@ -171,6 +178,12 @@ export async function PATCH(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
     });
+    
+    // Clean up channels
+    await channel.unsubscribe();
+    await businessChannel.unsubscribe();
+    await supabase.removeChannel(channel);
+    await supabase.removeChannel(businessChannel);
 
     // Log important rule changes for audit
     if (updates.noShowBlockEnabled !== undefined || updates.allowCancellations !== undefined) {

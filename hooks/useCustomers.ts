@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiClient } from '@/lib/api-client'
 import { Customer, CustomerSegment } from '@/app/models/dashboard'
 import { useUserTenant } from '@/hooks/useUserTenant'
 
 interface UseCustomersOptions {
   search?: string
-  segment?: CustomerSegment['segment'] | 'all'
+  segment?: CustomerSegment | 'all'
   sortBy?: 'recent' | 'value' | 'visits' | 'name'
   limit?: number
   offset?: number
@@ -34,9 +34,16 @@ export function useCustomers({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [currentOffset, setCurrentOffset] = useState(offset)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const fetchCustomers = useCallback(async (append = false) => {
     if (!tenantId) return
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    abortControllerRef.current = new AbortController()
 
     try {
       if (!append) setLoading(true)
@@ -44,9 +51,9 @@ export function useCustomers({
       const result = await apiClient.getCustomers({
         search,
         segment: segment === 'all' ? undefined : segment,
-        sort_by: sortBy,
-        limit,
-        offset: append ? currentOffset : offset
+        sortBy: sortBy,
+        page: Math.floor((append ? currentOffset : offset) / limit) + 1,
+        pageSize: limit
       })
       
       if (append) {
@@ -58,6 +65,7 @@ export function useCustomers({
       setTotalCount(result.total)
       setError(null)
     } catch (err) {
+      if ((err as Error).name === 'AbortError') return
       console.error('Failed to fetch customers:', err)
       setError(err as Error)
     } finally {
@@ -69,7 +77,7 @@ export function useCustomers({
   useEffect(() => {
     setCurrentOffset(offset)
     fetchCustomers(false)
-  }, [search, segment, sortBy, offset])
+  }, [search, segment, sortBy, offset, fetchCustomers])
 
   // Refetch function
   const refetch = useCallback(async () => {
@@ -85,6 +93,15 @@ export function useCustomers({
   }, [currentOffset, limit, fetchCustomers])
 
   const hasMore = customers.length < totalCount
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
 
   return {
     customers,

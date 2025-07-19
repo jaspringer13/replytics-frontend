@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { ConversationList, Conversation } from '@/components/dashboard/messages/ConversationList'
 import { MessageThread } from '@/components/dashboard/messages/MessageThread'
@@ -11,7 +11,7 @@ import {
   Info, FileText, Sparkles, ToggleLeft, ToggleRight 
 } from 'lucide-react'
 import { useSMSConversations } from '@/hooks/useBackendData'
-import { SMS } from '@/lib/api-client'
+import { SMS, apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 
 // Mock templates - in real app these would come from API
@@ -39,6 +39,46 @@ const mockTemplates: MessageTemplate[] = [
   }
 ]
 
+// Helper hook to group messages by conversation - optimized with useMemo
+function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
+  return useMemo(() => {
+    const grouped: { [key: string]: SMS[] } = {}
+    
+    messages.forEach(message => {
+      if (!grouped[message.conversationId]) {
+        grouped[message.conversationId] = []
+      }
+      grouped[message.conversationId].push(message)
+    })
+
+    const convs: Conversation[] = Object.entries(grouped).map(([id, msgs]) => {
+      const sortedMessages = msgs.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      )
+      
+      const lastMessage = sortedMessages[0]
+      const unreadCount = msgs.filter(m => m.direction === 'inbound' && m.status === 'received').length
+      
+      return {
+        id,
+        phoneNumber: lastMessage.phoneNumber,
+        customerName: lastMessage.customerName,
+        lastMessage: lastMessage.message,
+        lastMessageTime: lastMessage.timestamp,
+        unreadCount,
+        // Backend integration needed: These should come from API response
+        isAIHandled: lastMessage.aiMetadata?.isAIHandled ?? false,
+        needsAttention: unreadCount > 2 || lastMessage.aiMetadata?.needsAttention ?? false,
+        lastAIResponse: lastMessage.aiMetadata?.lastAIResponse
+      }
+    })
+
+    return convs.sort((a, b) => 
+      new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+    )
+  }, [messages])
+}
+
 export default function MessagesPage() {
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,34 +96,77 @@ export default function MessagesPage() {
   // Group messages into conversations
   const conversations: Conversation[] = useGroupMessagesByConversation(messages)
   
-  // Filter conversations
-  const filteredConversations = conversations.filter(conv => 
-    conv.phoneNumber.includes(searchQuery) ||
-    conv.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+  // Memoized filtered conversations for better performance
+  const filteredConversations = useMemo(
+    () => conversations.filter(conv => 
+      conv.phoneNumber.includes(searchQuery) ||
+      conv.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+    [conversations, searchQuery]
+  )
+
+  // Memoized filtered messages for selected conversation
+  const filteredMessages = useMemo(
+    () => messages.filter(m => m.conversationId === selectedConversation),
+    [messages, selectedConversation]
   )
 
   // Handle sending message
   const handleSendMessage = async (message: string) => {
-    console.log('Sending message:', message)
-    // In real app, this would call the API
+    if (!selectedConversation) return
+    
+    try {
+      await apiClient.sendSMSMessage({
+        conversationId: selectedConversation,
+        message,
+        direction: 'outbound'
+      })
+      
+      // Refresh messages to show the new message
+      await refetch()
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      // TODO: Show error toast to user
+    }
   }
 
   // Handle AI override
   const handleOverrideAI = async (messageId: string, newMessage: string) => {
-    console.log('Overriding AI message:', messageId, newMessage)
-    // In real app, this would call the API
+    try {
+      await apiClient.overrideAIMessage(messageId, {
+        message: newMessage,
+        overrideReason: 'manual_override'
+      })
+      
+      // Refresh messages to show the updated message
+      await refetch()
+    } catch (error) {
+      console.error('Failed to override AI message:', error)
+      // TODO: Show error toast to user
+    }
   }
 
   // Handle template usage
   const handleUseTemplate = (template: MessageTemplate) => {
     let content = template.content
-    // Simple variable replacement - in real app this would be more sophisticated
-    if (template.variables) {
+    
+    if (template.variables && selectedConversation) {
+      const conversation = conversations.find(c => c.id === selectedConversation)
+      const variables: { [key: string]: string } = {
+        name: conversation?.customerName || 'Customer',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toLocaleDateString(),
+        phone: conversation?.phoneNumber || '',
+        // Add more variable mappings as needed
+      }
+      
       template.variables.forEach(variable => {
-        content = content.replace(`{${variable}}`, `[${variable}]`)
+        const value = variables[variable] || `[${variable}]`
+        content = content.replace(new RegExp(`\\{${variable}\\}`, 'g'), value)
       })
     }
+    
     setNewMessage(content)
     setShowTemplates(false)
   }
@@ -210,7 +293,7 @@ export default function MessagesPage() {
 
                     {/* Message Thread */}
                     <MessageThread
-                      messages={messages.filter(m => m.conversationId === selectedConversation)}
+                      messages={filteredMessages}
                       onSendMessage={handleSendMessage}
                       onOverrideAI={handleOverrideAI}
                       loading={loading}
@@ -263,53 +346,3 @@ export default function MessagesPage() {
   )
 }
 
-// Helper hook to group messages by conversation
-function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
-  const [conversations, setConversations] = useState<Conversation[]>([])
-
-  useEffect(() => {
-    const grouped: { [key: string]: SMS[] } = {}
-    
-    messages.forEach(message => {
-      if (!grouped[message.conversationId]) {
-        grouped[message.conversationId] = []
-      }
-      grouped[message.conversationId].push(message)
-    })
-
-    const convs: Conversation[] = Object.entries(grouped).map(([id, msgs]) => {
-      const sortedMessages = msgs.sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-      
-      const lastMessage = sortedMessages[0]
-      const unreadCount = msgs.filter(m => m.direction === 'inbound' && m.status === 'received').length
-      
-      // Mock AI data - in real app this would come from backend
-      const isAIHandled = Math.random() > 0.5
-      const needsAttention = unreadCount > 2 || Math.random() > 0.8
-      const lastAIResponse = isAIHandled && Math.random() > 0.5 ? {
-        timestamp: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-        confidence: Math.random() * 40 + 60
-      } : undefined
-
-      return {
-        id,
-        phoneNumber: lastMessage.phoneNumber,
-        customerName: lastMessage.customerName,
-        lastMessage: lastMessage.message,
-        lastMessageTime: lastMessage.timestamp,
-        unreadCount,
-        isAIHandled,
-        needsAttention,
-        lastAIResponse
-      }
-    })
-
-    setConversations(convs.sort((a, b) => 
-      new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-    ))
-  }, [messages])
-
-  return conversations
-}

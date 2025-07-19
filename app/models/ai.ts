@@ -3,29 +3,29 @@
  */
 
 // AI Query Types
-export interface AIQuery {
+export interface AIQuery<TPageData = Record<string, unknown>> {
   id: string;
   query: string;
-  context: AIContext;
+  context: AIContext<TPageData>;
   timestamp: Date;
   userId: string;
   businessId: string;
 }
 
-export interface AIContext {
+export interface AIContext<TPageData = Record<string, unknown>> {
   currentPage: string;
-  pageData?: Record<string, any>;
+  pageData?: TPageData;
   userRole: string;
   recentActions: UserAction[];
-  activeFilters?: Record<string, any>;
+  activeFilters?: Record<string, string | number | boolean>;
   visibleData?: VisibleDataContext;
 }
 
-export interface UserAction {
+export interface UserAction<TData = unknown> {
   type: string;
   target: string;
   timestamp: Date;
-  data?: any;
+  data?: TData;
 }
 
 export interface VisibleDataContext {
@@ -36,11 +36,11 @@ export interface VisibleDataContext {
 }
 
 // AI Response Types
-export interface AIResponse {
+export interface AIResponse<T = unknown> {
   id: string;
   queryId: string;
   response: string;
-  data?: any;
+  data?: T;
   visualizations?: AIVisualization[];
   suggestedActions?: AIAction[];
   confidence: number;
@@ -48,10 +48,10 @@ export interface AIResponse {
   timestamp: Date;
 }
 
-export interface AIVisualization {
+export interface AIVisualization<T = unknown> {
   type: 'chart' | 'table' | 'metric' | 'list';
   config: VisualizationConfig;
-  data: any;
+  data: T;
   title?: string;
   description?: string;
 }
@@ -68,13 +68,13 @@ export interface VisualizationConfig {
 }
 
 // AI Action Types
-export interface AIAction {
+export interface AIAction<TParameters = Record<string, unknown>> {
   id: string;
   type: ActionType;
   label: string;
   description?: string;
   confidence: number;
-  parameters: Record<string, any>;
+  parameters: TParameters;
   requiresConfirmation: boolean;
   estimatedImpact?: ActionImpact;
 }
@@ -96,10 +96,10 @@ export interface ActionImpact {
 }
 
 // Action Execution Types
-export interface ActionRequest {
+export interface ActionRequest<TParameters = Record<string, unknown>> {
   actionId: string;
   confirmed: boolean;
-  parameters: Record<string, any>;
+  parameters: TParameters;
   userId: string;
   businessId: string;
 }
@@ -117,23 +117,23 @@ export interface ActionResult {
   rollbackId?: string;
 }
 
-export interface ActionDetail {
+export interface ActionDetail<T = unknown> {
   entityId: string;
   entityType: string;
   status: 'success' | 'failed';
   message?: string;
-  previousState?: any;
-  newState?: any;
+  previousState?: T;
+  newState?: T;
 }
 
 // Pattern Recognition Types
-export interface Pattern {
+export interface Pattern<TMetadata = Record<string, unknown>> {
   id: string;
   type: PatternType;
   confidence: number;
   timeframe: { start: Date; end: Date };
   description: string;
-  dataPoints: DataPoint[];
+  dataPoints: DataPoint<TMetadata>[];
   impact: PatternImpact;
   recommendations: Recommendation[];
 }
@@ -145,11 +145,11 @@ export type PatternType =
   | 'seasonal_trend'
   | 'anomaly';
 
-export interface DataPoint {
+export interface DataPoint<TMetadata = Record<string, unknown>> {
   timestamp: Date;
   value: number;
   label?: string;
-  metadata?: Record<string, any>;
+  metadata?: TMetadata;
 }
 
 export interface PatternImpact {
@@ -171,21 +171,21 @@ export interface Recommendation {
 }
 
 // Real-time Update Types
-export interface RealtimeUpdate {
+export interface RealtimeUpdate<T = unknown> {
   type: 'data_change' | 'pattern_detected' | 'action_completed' | 'alert';
-  payload: any;
+  payload: T;
   timestamp: Date;
   source: string;
   businessId: string;
 }
 
-export interface AINotification {
+export interface AINotification<T = unknown> {
   id: string;
   type: 'insight' | 'alert' | 'recommendation' | 'update';
   title: string;
   message: string;
   priority: 'low' | 'medium' | 'high';
-  data?: any;
+  data?: T;
   actions?: AIAction[];
   expiresAt?: Date;
   dismissible: boolean;
@@ -202,12 +202,12 @@ export interface AIConversation {
   updatedAt: Date;
 }
 
-export interface AIMessage {
+export interface AIMessage<T = unknown> {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  data?: any;
+  data?: T;
   actions?: AIAction[];
   visualizations?: AIVisualization[];
 }

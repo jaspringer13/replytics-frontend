@@ -32,12 +32,17 @@ function parseFile(filePath: string): ts.SourceFile | null {
   const content = readFile(filePath);
   if (!content) return null;
   
-  return ts.createSourceFile(
-    filePath,
-    content,
-    ts.ScriptTarget.Latest,
-    true
-  );
+  try {
+    return ts.createSourceFile(
+      filePath,
+      content,
+      ts.ScriptTarget.Latest,
+      true
+    );
+  } catch (error) {
+    console.warn(`Failed to parse TypeScript file: ${filePath}`, error instanceof Error ? error.message : 'Unknown error');
+    return null;
+  }
 }
 
 function hasExport(sourceFile: ts.SourceFile, exportName: string): boolean {
@@ -125,8 +130,14 @@ function hasNumericLiteral(sourceFile: ts.SourceFile, value: number): boolean {
   let found = false;
   
   function visit(node: ts.Node) {
-    if (ts.isNumericLiteral(node) && parseInt(node.text) === value) {
-      found = true;
+    if (ts.isNumericLiteral(node)) {
+      // Handle both integer and float literals
+      const nodeValue = node.text.includes('.') 
+        ? parseFloat(node.text) 
+        : parseInt(node.text, 10);
+      if (nodeValue === value) {
+        found = true;
+      }
     }
     ts.forEachChild(node, visit);
   }

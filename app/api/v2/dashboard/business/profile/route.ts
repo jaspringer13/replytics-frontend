@@ -141,6 +141,11 @@ export async function PATCH(request: NextRequest) {
 
     // Broadcast update via real-time channel for voice agent
     const channel = supabase.channel(`business:${tenantId}`);
+    
+    // Subscribe to the channel first
+    await channel.subscribe();
+    
+    // Send broadcast without destructuring - channel.send doesn't return error property
     await channel.send({
       type: 'broadcast',
       event: 'profile_updated',
@@ -150,6 +155,9 @@ export async function PATCH(request: NextRequest) {
         timestamp: new Date().toISOString()
       }
     });
+
+    // Clean up the channel
+    await supabase.removeChannel(channel);
 
     return NextResponse.json({
       success: true,

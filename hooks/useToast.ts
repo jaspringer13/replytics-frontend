@@ -10,8 +10,12 @@ export interface Toast {
   duration?: number;
 }
 
+interface ToastWithTimeout extends Toast {
+  timeoutId?: NodeJS.Timeout;
+}
+
 interface ToastStore {
-  toasts: Toast[];
+  toasts: ToastWithTimeout[];
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
   clearToasts: () => void;
@@ -19,7 +23,7 @@ interface ToastStore {
 
 let counter = 0;
 
-const useToastStore = create<ToastStore>((set) => ({
+const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
   addToast: (toast) => {
     const id = `${Date.now()}-${++counter}`;
@@ -32,14 +36,26 @@ const useToastStore = create<ToastStore>((set) => ({
     // Auto remove after duration (default 5 seconds)
     const duration = toast.duration || 5000;
     if (duration > 0) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         set((state) => ({
           toasts: state.toasts.filter((t) => t.id !== id),
         }));
       }, duration);
+      
+      // Store timeout ID for cleanup
+      set((state) => ({
+        toasts: state.toasts.map(t => 
+          t.id === id ? { ...t, timeoutId } : t
+        )
+      }));
     }
   },
   removeToast: (id) => {
+    // Clear timeout if toast is manually removed
+    const toast = get().toasts.find(t => t.id === id);
+    if (toast?.timeoutId) {
+      clearTimeout(toast.timeoutId);
+    }
     set((state) => ({
       toasts: state.toasts.filter((toast) => toast.id !== id),
     }));
@@ -89,6 +105,10 @@ export function useApiErrorToast() {
       toast.error('Access Denied', "You don't have access to this resource");
     } else if (status === 404) {
       toast.warning('Not Found', 'The requested resource was not found');
+    } else if (status === 429) {
+      toast.warning('Rate Limited', 'Too many requests. Please try again later');
+    } else if (status >= 400 && status < 500) {
+      toast.warning('Client Error', message || 'Please check your request and try again');
     } else if (status >= 500) {
       toast.error('Server Error', 'Something went wrong. Please try again');
     } else if (!navigator.onLine) {
