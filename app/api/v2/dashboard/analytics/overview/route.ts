@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution } from '@/app/models/dashboard';
 
-// Validate required environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * GET /api/v2/dashboard/analytics/overview
@@ -165,7 +155,7 @@ function getDefaultMetrics() {
 
 async function fetchMetrics(tenantId: string, dateRange: DateRange) {
   // Fetch appointments and calculate revenue
-  const { data: appointments, error: appointmentError } = await supabase
+  const { data: appointments, error: appointmentError } = await getSupabaseServer()
     .from('appointments')
     .select('id, service_id, price, status')
     .eq('business_id', tenantId)
@@ -185,7 +175,7 @@ async function fetchMetrics(tenantId: string, dateRange: DateRange) {
   const noShowAppointments = appointments?.filter(apt => apt.status === 'no_show').length || 0;
 
   // Fetch unique customers
-  const { data: customers, error: customerError } = await supabase
+  const { data: customers, error: customerError } = await getSupabaseServer()
     .from('appointments')
     .select('customer_id')
     .eq('business_id', tenantId)
@@ -227,7 +217,7 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
   };
 
   // Fetch service data with appointments
-  const { data: serviceData, error } = await supabase
+  const { data: serviceData, error } = await getSupabaseServer()
     .from('appointments')
     .select(`
       service_id,
@@ -284,7 +274,7 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
 
 async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribution> {
   // Since caller_memory table may not exist, implement segmentation using appointments table
-  const { data: appointments, error } = await supabase
+  const { data: appointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('customer_id, price, status, created_at, appointment_time')
     .eq('business_id', tenantId);
@@ -365,7 +355,7 @@ async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribut
 
 async function fetchRevenueTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
   // Fetch all revenue data in one query
-  const { data: appointments, error } = await supabase
+  const { data: appointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('price, appointment_time')
     .eq('business_id', tenantId)
@@ -407,7 +397,7 @@ async function fetchRevenueTrend(tenantId: string, dateRange: DateRange): Promis
 
 async function fetchAppointmentTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
   // Fetch all appointments in the date range
-  const { data: appointments, error } = await supabase
+  const { data: appointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('appointment_time')
     .eq('business_id', tenantId)
@@ -449,7 +439,7 @@ async function fetchAppointmentTrend(tenantId: string, dateRange: DateRange): Pr
 
 async function fetchNewCustomerTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
   // Find first appointment for each customer to identify new customers
-  const { data: customerFirstAppointments, error } = await supabase
+  const { data: customerFirstAppointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('customer_id, appointment_time')
     .eq('business_id', tenantId)

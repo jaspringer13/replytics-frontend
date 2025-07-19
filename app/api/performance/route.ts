@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     const name = searchParams.get('name');
 
     // Build query
-    let query = supabase
+    let query = getSupabaseClient()
       .from('performance_metrics')
       .select('id, name, value, rating, metadata, created_at')
       .order('created_at', { ascending: false })
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination info
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await getSupabaseClient()
       .from('performance_metrics')
       .select('*', { count: 'exact', head: true });
 
@@ -162,13 +162,13 @@ async function cleanupOldMetrics() {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     
     // First, try to delete old metrics
-    await supabase
+    await getSupabaseClient()
       .from('performance_metrics')
       .delete()
       .lt('created_at', thirtyDaysAgo);
       
     // Then, if we still have too many, keep only the most recent MAX_METRICS
-    const { data: recentMetrics } = await supabase
+    const { data: recentMetrics } = await getSupabaseClient()
       .from('performance_metrics')
       .select('id')
       .order('created_at', { ascending: false })
@@ -176,7 +176,7 @@ async function cleanupOldMetrics() {
       
     if (recentMetrics && recentMetrics.length === MAX_METRICS) {
       const keepIds = recentMetrics.map(m => m.id);
-      await supabase
+      await getSupabaseClient()
         .from('performance_metrics')
         .delete()
         .not('id', 'in', `(${keepIds.join(',')})`);

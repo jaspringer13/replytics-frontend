@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { OperatingHours } from '@/app/models/dashboard';
 
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Helper to validate tenant access
 async function validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseServer()
     .from('business_users')
     .select('role')
     .eq('business_id', tenantId)
@@ -56,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch operating hours from database
-    const { data: hours, error } = await supabase
+    const { data: hours, error } = await getSupabaseServer()
       .from('operating_hours')
       .select('*')
       .eq('business_id', tenantId)
@@ -138,7 +133,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if hours already exist
-    const { data: existingHours } = await supabase
+    const { data: existingHours } = await getSupabaseServer()
       .from('operating_hours')
       .select('id')
       .eq('business_id', tenantId)
@@ -252,7 +247,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Use database transaction for atomic bulk updates
-    const { error: transactionError } = await supabase.rpc('upsert_operating_hours', {
+    const { error: transactionError } = await getSupabaseServer().rpc('upsert_operating_hours', {
       p_business_id: tenantId,
       p_hours_data: updates.map(update => ({
         day_of_week: update.dayOfWeek,
@@ -287,7 +282,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`hours:${tenantId}`);
+    const channel = getSupabaseServer().channel(`hours:${tenantId}`);
     await channel.send({
       type: 'broadcast',
       event: 'hours_updated',
@@ -329,7 +324,7 @@ async function createDefaultHours(businessId: string): Promise<OperatingHours[]>
     { day_of_week: 6, open_time: '10:00', close_time: '16:00', is_closed: false }, // Saturday
   ];
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseServer()
     .from('operating_hours')
     .insert(
       defaultHours.map(h => ({

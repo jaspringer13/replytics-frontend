@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 interface ReorderRequest {
   serviceIds: string[];
@@ -36,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify all services belong to the business
-    const { data: existingServices, error: fetchError } = await supabase
+    const { data: existingServices, error: fetchError } = await getSupabaseServer()
       .from('services')
       .select('id')
       .eq('business_id', tenantId)
@@ -62,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Use database transaction for atomic service reordering
-    const { data, error: reorderError } = await supabase.rpc('reorder_services', {
+    const { data, error: reorderError } = await getSupabaseServer().rpc('reorder_services', {
       p_business_id: tenantId,
       p_service_ids: serviceIds
     });
@@ -76,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = getSupabaseServer().channel(`services:${tenantId}`);
     await channel.send({
       type: 'broadcast',
       event: 'services_reordered',
@@ -89,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // Clean up the channel
     await channel.unsubscribe();
-    supabase.removeChannel(channel);
+    getSupabaseServer().removeChannel(channel);
 
     return NextResponse.json({
       success: true,

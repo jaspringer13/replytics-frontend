@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
-// Fail fast on missing Supabase config
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 /**
  * GET /api/v2/dashboard/services
@@ -33,7 +23,7 @@ export async function GET(request: NextRequest) {
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
     // Build query
-    let query = supabase
+    let query = getSupabaseServer()
       .from('services')
       .select('*')
       .eq('business_id', tenantId)
@@ -125,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get current max display order
-    const { data: existingServices } = await supabase
+    const { data: existingServices } = await getSupabaseServer()
       .from('services')
       .select('display_order')
       .eq('business_id', tenantId)
@@ -135,7 +125,7 @@ export async function POST(request: NextRequest) {
     const maxOrder = existingServices?.[0]?.display_order || 0;
 
     // Create service
-    const { data: newService, error } = await supabase
+    const { data: newService, error } = await getSupabaseServer()
       .from('services')
       .insert({
         business_id: tenantId,
@@ -158,7 +148,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = getSupabaseServer().channel(`services:${tenantId}`);
     // Send broadcast without destructuring - channel.send doesn't return error property
     await channel.send({
       type: 'broadcast',
@@ -171,7 +161,7 @@ export async function POST(request: NextRequest) {
     });
     
     // Clean up the channel
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
 
     // Transform response
     const service: Service = {

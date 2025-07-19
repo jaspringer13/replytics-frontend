@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseClient } from '@/lib/supabase-client'
 import { useUserTenant } from '@/hooks/useUserTenant'
 import { useDashboardData } from '@/hooks/useDashboardData'
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface StatusUpdatePayload {
   isActive?: boolean
@@ -111,7 +105,7 @@ export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
     checkAgentStatus()
 
     // Subscribe to real-time updates
-    const channel = supabase
+    const channel = getSupabaseClient()
       .channel(`voice-agent:${tenantId}`)
       .on('broadcast', { event: 'status_update' }, (payload) => {
         console.log('Voice agent status update:', payload)
@@ -127,7 +121,7 @@ export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
     const interval = setInterval(checkAgentStatus, 30000)
 
     return () => {
-      supabase.removeChannel(channel)
+      getSupabaseClient().removeChannel(channel)
       clearInterval(interval)
     }
   }, [tenantId, checkAgentStatus, updateStatus, updateCallStatus])

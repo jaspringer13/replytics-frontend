@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { ServiceUpdate } from '@/app/models/dashboard';
 
-// Validate required environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * PATCH /api/v2/dashboard/services/[id]
@@ -58,7 +48,7 @@ export async function PATCH(
     }
 
     // Verify service belongs to business
-    const { data: existingService, error: fetchError } = await supabase
+    const { data: existingService, error: fetchError } = await getSupabaseServer()
       .from('services')
       .select('*')
       .eq('id', serviceId)
@@ -86,7 +76,7 @@ export async function PATCH(
     if (updates.displayOrder !== undefined) updateData.display_order = updates.displayOrder;
 
     // Update service
-    const { data: updatedService, error: updateError } = await supabase
+    const { data: updatedService, error: updateError } = await getSupabaseServer()
       .from('services')
       .update(updateData)
       .eq('id', serviceId)
@@ -102,7 +92,7 @@ export async function PATCH(
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = getSupabaseServer().channel(`services:${tenantId}`);
     await channel.subscribe();
     
     await channel.send({
@@ -116,7 +106,7 @@ export async function PATCH(
       }
     });
     
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
 
     return NextResponse.json({
       success: true,
@@ -153,7 +143,7 @@ export async function DELETE(
     }
 
     // Verify service belongs to business
-    const { data: existingService, error: fetchError } = await supabase
+    const { data: existingService, error: fetchError } = await getSupabaseServer()
       .from('services')
       .select('*')
       .eq('id', serviceId)
@@ -168,7 +158,7 @@ export async function DELETE(
     }
 
     // Check if service has future appointments
-    const { data: appointments, error: appointmentError } = await supabase
+    const { data: appointments, error: appointmentError } = await getSupabaseServer()
       .from('appointments')
       .select('id')
       .eq('service_id', serviceId)
@@ -183,7 +173,7 @@ export async function DELETE(
     }
 
     // Soft delete by setting active = false
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabaseServer()
       .from('services')
       .update({
         active: false,
@@ -200,7 +190,7 @@ export async function DELETE(
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = getSupabaseServer().channel(`services:${tenantId}`);
     await channel.subscribe();
     
     await channel.send({
@@ -213,7 +203,7 @@ export async function DELETE(
       }
     });
     
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
 
     return NextResponse.json({
       success: true,

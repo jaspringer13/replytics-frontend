@@ -3,7 +3,8 @@
  * Manages subscriptions for voice settings, services, and other real-time data
  */
 
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/lib/supabase-client';
 
 // Conditional logging for production environment
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -13,20 +14,6 @@ const log = (...args: any[]) => {
     console.log(...args);
   }
 };
-
-// Validate required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing required Supabase environment variables');
-}
-
-// Initialize Supabase client for real-time
-const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
 
 export interface RealtimeSubscription {
   unsubscribe: () => void;
@@ -68,7 +55,7 @@ export function subscribeToVoiceSettings(
   businessId: string,
   onUpdate: (update: VoiceSettingsUpdate) => void
 ): RealtimeSubscription {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel(`voice-settings:${businessId}`)
     .on(
       'broadcast',
@@ -84,7 +71,7 @@ export function subscribeToVoiceSettings(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }
@@ -96,7 +83,7 @@ export function subscribeToConversationRules(
   businessId: string,
   onUpdate: (update: ConversationRulesUpdate) => void
 ): RealtimeSubscription {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel(`conversation-rules:${businessId}`)
     .on(
       'broadcast',
@@ -110,7 +97,7 @@ export function subscribeToConversationRules(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }
@@ -122,7 +109,7 @@ export function subscribeToServices(
   businessId: string,
   onUpdate: (update: ServiceUpdate) => void
 ): RealtimeSubscription {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel(`services:${businessId}`)
     .on(
       'broadcast',
@@ -140,7 +127,7 @@ export function subscribeToServices(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }
@@ -152,7 +139,7 @@ export function subscribeToBusinessUpdates(
   businessId: string,
   onUpdate: (update: BusinessUpdate) => void
 ): RealtimeSubscription {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel(`business:${businessId}`)
     .on(
       'broadcast',
@@ -166,7 +153,7 @@ export function subscribeToBusinessUpdates(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }
@@ -189,7 +176,7 @@ export function subscribeToOperatingHours(
   businessId: string,
   onUpdate: (update: OperatingHoursUpdate) => void
 ): RealtimeSubscription {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel(`hours:${businessId}`)
     .on(
       'broadcast',
@@ -203,7 +190,7 @@ export function subscribeToOperatingHours(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }
@@ -224,7 +211,7 @@ export function subscribeToTableChanges<T = unknown>(
   filter?: { column: string; value: string | number | boolean },
   onChange?: (payload: TableChangePayload<T>) => void
 ): RealtimeSubscription {
-  let channel = supabase.channel(`db-${table}`);
+  let channel = getSupabaseClient().channel(`db-${table}`);
   
   const subscription = channel.on(
     'postgres_changes',
@@ -254,7 +241,7 @@ export function subscribeToTableChanges<T = unknown>(
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     }
   };
 }

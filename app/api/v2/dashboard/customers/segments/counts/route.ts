@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { CustomerSegment } from '@/app/models/dashboard';
-
-// Validate required environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Required Supabase environment variables are not set');
-}
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 interface SegmentCounts {
   all: number;
@@ -42,7 +31,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
 
     // Base query for all customers
-    let query = supabase
+    let query = getSupabaseServer()
       .from('customer_segments')
       .select('segment', { count: 'exact' })
       .eq('tenant_id', tenantId);
@@ -79,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch counts for each segment in parallel
     const segmentPromises = segments.map(async (segment) => {
-      let segmentQuery = supabase
+      let segmentQuery = getSupabaseServer()
         .from('customer_segments')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)

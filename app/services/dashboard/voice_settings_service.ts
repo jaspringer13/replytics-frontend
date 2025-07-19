@@ -3,25 +3,13 @@
  * Handles business logic for voice agent configuration
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { 
   VoiceSettings, 
   ConversationRules, 
   createVoiceSpeed, 
   createVoicePitch 
 } from '@/app/models/dashboard';
-
-// Validate environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Required Supabase environment variables are not configured');
-}
-
-// Initialize Supabase client with service role key
-// WARNING: This bypasses Row Level Security (RLS) - ensure proper access control
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 export class VoiceSettingsService {
   /**
@@ -40,7 +28,7 @@ export class VoiceSettingsService {
       }
 
       // Update in database
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabaseServer()
         .from('businesses')
         .update({
           voice_settings: settings,
@@ -84,7 +72,7 @@ export class VoiceSettingsService {
       }
 
       // Update in database
-      const { error: updateError } = await supabase
+      const { error: updateError } = await getSupabaseServer()
         .from('businesses')
         .update({
           conversation_rules: rules,
@@ -115,7 +103,7 @@ export class VoiceSettingsService {
     conversationRules: ConversationRules;
   } | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await getSupabaseServer()
         .from('businesses')
         .select('voice_settings, conversation_rules')
         .eq('id', businessId)
@@ -193,7 +181,7 @@ export class VoiceSettingsService {
     businessId: string,
     settings: Partial<VoiceSettings>
   ): Promise<void> {
-    const channel = supabase.channel(`voice-settings:${businessId}`);
+    const channel = getSupabaseServer().channel(`voice-settings:${businessId}`);
     
     await channel.subscribe();
     
@@ -209,10 +197,10 @@ export class VoiceSettingsService {
     });
     
     // Clean up the channel
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
 
     // Also send to general business channel
-    const businessChannel = supabase.channel(`business:${businessId}`);
+    const businessChannel = getSupabaseServer().channel(`business:${businessId}`);
     await businessChannel.subscribe();
     
     await businessChannel.send({
@@ -227,7 +215,7 @@ export class VoiceSettingsService {
     });
     
     // Clean up the business channel
-    await supabase.removeChannel(businessChannel);
+    await getSupabaseServer().removeChannel(businessChannel);
   }
 
   /**
@@ -237,7 +225,7 @@ export class VoiceSettingsService {
     businessId: string,
     rules: Partial<ConversationRules>
   ): Promise<void> {
-    const channel = supabase.channel(`conversation-rules:${businessId}`);
+    const channel = getSupabaseServer().channel(`conversation-rules:${businessId}`);
     
     await channel.subscribe();
     
@@ -253,7 +241,7 @@ export class VoiceSettingsService {
     });
     
     // Clean up the channel
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
   }
 
   /**

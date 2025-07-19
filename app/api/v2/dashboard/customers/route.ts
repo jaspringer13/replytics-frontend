@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { Customer, CustomerSegment, PaginatedResponse, FilterOptions } from '@/app/models/dashboard';
 
-// Validate required environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Required Supabase environment variables are not set');
-}
-
-// Initialize Supabase client with service role
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 
 /**
  * GET /api/v2/dashboard/customers
@@ -44,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (filters.pageSize! < 1 || filters.pageSize! > 100) filters.pageSize = 20;
 
     // Use materialized view for efficient segment filtering
-    let query = supabase
+    let query = getSupabaseServer()
       .from('customer_segments')
       .select('*', { count: 'exact' })
       .eq('tenant_id', tenantId);

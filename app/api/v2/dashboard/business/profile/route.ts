@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { BusinessProfile } from '@/app/models/dashboard';
 
-// Initialize Supabase client with service role for server-side operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * GET /api/v2/dashboard/business/profile
@@ -25,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch business profile from database
-    const { data: business, error } = await supabase
+    const { data: business, error } = await getSupabaseServer()
       .from('businesses')
       .select('*')
       .eq('id', tenantId)
@@ -124,7 +119,7 @@ export async function PATCH(request: NextRequest) {
     updateData.updated_at = new Date().toISOString();
 
     // Update business profile
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseServer()
       .from('businesses')
       .update(updateData)
       .eq('id', tenantId)
@@ -140,7 +135,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Broadcast update via real-time channel for voice agent
-    const channel = supabase.channel(`business:${tenantId}`);
+    const channel = getSupabaseServer().channel(`business:${tenantId}`);
     
     // Subscribe to the channel first
     await channel.subscribe();
@@ -157,7 +152,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Clean up the channel
-    await supabase.removeChannel(channel);
+    await getSupabaseServer().removeChannel(channel);
 
     return NextResponse.json({
       success: true,

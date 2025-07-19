@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseServer } from '@/lib/supabase-server';
 import { ConversationRules } from '@/app/models/dashboard';
 
-// Initialize Supabase client with service role
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing required environment variables');
-}
-
-const supabase = createClient(
-  supabaseUrl,
-  supabaseServiceKey
-);
 
 /**
  * GET /api/v2/dashboard/business/conversation-rules
@@ -31,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch conversation rules from database
-    const { data: business, error } = await supabase
+    const { data: business, error } = await getSupabaseServer()
       .from('businesses')
       .select('conversation_rules')
       .eq('id', tenantId)
@@ -107,7 +95,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Get current rules to merge with updates
-    const { data: business, error: fetchError } = await supabase
+    const { data: business, error: fetchError } = await getSupabaseServer()
       .from('businesses')
       .select('conversation_rules')
       .eq('id', tenantId)
@@ -135,7 +123,7 @@ export async function PATCH(request: NextRequest) {
     };
 
     // Update in database
-    const { error: updateError } = await supabase
+    const { error: updateError } = await getSupabaseServer()
       .from('businesses')
       .update({
         conversation_rules: newRules,
@@ -152,7 +140,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Broadcast real-time update for voice agent
-    const channel = supabase.channel(`conversation-rules:${tenantId}`);
+    const channel = getSupabaseServer().channel(`conversation-rules:${tenantId}`);
     
     // Send immediate notification
     await channel.send({
@@ -167,7 +155,7 @@ export async function PATCH(request: NextRequest) {
     });
     
     // Also update via general business channel
-    const businessChannel = supabase.channel(`business:${tenantId}`);
+    const businessChannel = getSupabaseServer().channel(`business:${tenantId}`);
     await businessChannel.send({
       type: 'broadcast',
       event: 'settings_updated',
@@ -182,8 +170,8 @@ export async function PATCH(request: NextRequest) {
     // Clean up channels
     await channel.unsubscribe();
     await businessChannel.unsubscribe();
-    await supabase.removeChannel(channel);
-    await supabase.removeChannel(businessChannel);
+    await getSupabaseServer().removeChannel(channel);
+    await getSupabaseServer().removeChannel(businessChannel);
 
     // Log important rule changes for audit
     if (updates.noShowBlockEnabled !== undefined || updates.allowCancellations !== undefined) {
