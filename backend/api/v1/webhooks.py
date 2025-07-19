@@ -147,7 +147,7 @@ async def process_business_event(event: WebhookEvent) -> Dict[str, Any]:
         if event_type == 'business.updated':
             # Handle business profile updates
             changes = data.get('changes', [])
-            updated_data = data.get('updated_data', {})
+            updated_data = data.get('updated_data', {})  # TODO: Use in sync_business_profile_to_dashboard
             
             logger.info(f"Business {business_id} updated fields: {changes}")
             
@@ -163,7 +163,7 @@ async def process_business_event(event: WebhookEvent) -> Dict[str, Any]:
             
         elif event_type == 'business.created':
             # Handle new business creation
-            business_data = data.get('business_data', {})
+            business_data = data.get('business_data', {})  # TODO: Use in create_business_profile_in_dashboard
             
             logger.info(f"New business created: {business_id}")
             
@@ -206,7 +206,8 @@ async def process_service_event(event: WebhookEvent) -> Dict[str, Any]:
     
     try:
         if event_type == 'service.created':
-            service_data = data.get('service_data', {})
+            # TODO: Will be used when create_service_in_dashboard is implemented
+            service_data = data.get('service_data', {})  # TODO: Use in create_service_in_dashboard
             
             logger.info(f"New service created: {service_id} for business {business_id}")
             
@@ -221,7 +222,7 @@ async def process_service_event(event: WebhookEvent) -> Dict[str, Any]:
             
         elif event_type == 'service.updated':
             changes = data.get('changes', [])
-            updated_data = data.get('updated_data', {})
+            updated_data = data.get('updated_data', {})  # TODO: Use in update_service_in_dashboard
             
             logger.info(f"Service {service_id} updated for business {business_id}")
             
@@ -279,7 +280,7 @@ async def process_call_event(event: WebhookEvent) -> Dict[str, Any]:
     try:
         if event_type == 'call.completed':
             call_data = data.get('call_data', {})
-            duration = call_data.get('duration')
+            duration = call_data.get('duration')  # TODO: Use for analytics
             outcome = call_data.get('outcome')  # e.g., 'booking', 'inquiry', 'transfer'
             
             logger.info(f"Call {call_id} completed for business {business_id} with outcome: {outcome}")
@@ -354,7 +355,8 @@ async def process_booking_event(event: WebhookEvent) -> Dict[str, Any]:
         if event_type == 'booking.created':
             booking_data = data.get('booking_data', {})
             service_id = booking_data.get('service_id')
-            customer_info = booking_data.get('customer_info', {})
+            # TODO: Will be used when create_booking_in_dashboard is implemented
+            customer_info = booking_data.get('customer_info', {})  # TODO: Use in create_booking_in_dashboard
             
             logger.info(f"New booking {booking_id} created for business {business_id}, service {service_id}")
             
@@ -370,7 +372,7 @@ async def process_booking_event(event: WebhookEvent) -> Dict[str, Any]:
             
         elif event_type == 'booking.updated':
             changes = data.get('changes', [])
-            updated_data = data.get('updated_data', {})
+            updated_data = data.get('updated_data', {})  # TODO: Use in update_booking_in_dashboard
             
             logger.info(f"Booking {booking_id} updated for business {business_id}")
             
@@ -697,15 +699,15 @@ async def handle_stripe_webhook(
             raise HTTPException(
                 status_code=400,
                 detail="Invalid webhook signature or payload"
-            )
+            ) from e
         
         event_type = event['type']
         event_data = event['data']['object']
         
         logger.info(f"Received Stripe webhook: {event_type} (ID: {event['id']})")
         
-        # Initialize Supabase service for database updates
-        supabase = SupabaseService()
+        # TODO: Initialize Supabase service when implementing database updates
+        # supabase = SupabaseService()
         
         # Process different event types
         if event_type == 'invoice.payment_succeeded':

@@ -30,7 +30,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
   const loadHours = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getBusinessHours();
+      const data = await apiClient.getBusinessHours(businessId);
       setHours(data.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
     } catch (error) {
       console.error('Failed to load business hours:', error);

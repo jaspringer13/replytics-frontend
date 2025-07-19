@@ -13,7 +13,7 @@ import { PopularTimesChart } from '@/components/dashboard/analytics/PopularTimes
 import { AIInsights } from '@/components/dashboard/analytics/AIInsights'
 import { 
   DollarSign, Users, Calendar, Star, 
-  RefreshCw, Calendar as CalendarIcon 
+  RefreshCw 
 } from 'lucide-react'
 
 export default function AnalyticsPage() {
@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
             </button>
             
             <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
-              <CalendarIcon className="w-4 h-4 text-gray-400" />
+              <Calendar className="w-4 h-4 text-gray-400" />
               <input
                 type="date"
                 value={dateRange.start}

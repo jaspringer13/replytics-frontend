@@ -12,6 +12,13 @@ from services.stripe_service import stripe_service
 
 router = APIRouter()
 
+# Plan limits configuration
+PLAN_LIMITS = {
+    "starter": {"minutes": 1000, "calls": 500, "sms": 1000, "recordings": 100},
+    "professional": {"minutes": 5000, "calls": 2500, "sms": 5000, "recordings": 500},
+    "enterprise": {"minutes": -1, "calls": -1, "sms": -1, "recordings": -1}  # -1 means unlimited
+}
+
 
 @router.get("/")
 async def get_billing_info(
@@ -31,12 +38,7 @@ async def get_billing_info(
                 "sms": 0,
                 "recordings": 0
             },
-            "limits": {
-                "minutes": 1000,
-                "calls": 500,
-                "sms": 1000,
-                "recordings": 100
-            },
+            "limits": PLAN_LIMITS["starter"],
             "billingPeriod": {
                 "start": datetime.now().replace(day=1).isoformat(),
                 "end": (datetime.now().replace(day=1) + timedelta(days=32)).replace(day=1).isoformat()
@@ -73,11 +75,6 @@ async def get_billing_info(
     
     # Get plan limits from profile
     plan = profile.get('plan', 'starter')
-    limits = {
-        "starter": {"minutes": 1000, "calls": 500, "sms": 1000, "recordings": 100},
-        "professional": {"minutes": 5000, "calls": 2500, "sms": 5000, "recordings": 500},
-        "enterprise": {"minutes": -1, "calls": -1, "sms": -1, "recordings": -1}  # -1 means unlimited
-    }
     
     return {
         "usage": {
@@ -86,7 +83,7 @@ async def get_billing_info(
             "sms": total_sms,
             "recordings": total_recordings
         },
-        "limits": limits.get(plan, limits["starter"]),
+        "limits": PLAN_LIMITS.get(plan, PLAN_LIMITS["starter"]),
         "billingPeriod": {
             "start": billing_start.isoformat(),
             "end": billing_end.isoformat()

@@ -202,7 +202,7 @@ async function cleanupOldMetrics() {
       await getSupabaseClient()
         .from('performance_metrics')
         .delete()
-        .not('id', 'in', `(${keepIds.join(',')})`);
+        .not('id', 'in', keepIds);
     }
   } catch (error) {
     console.error('[METRICS CLEANUP ERROR]', error);

@@ -47,6 +47,13 @@ interface SMS {
   timestamp: string;
   conversationId: string;
   status: 'sent' | 'delivered' | 'failed' | 'received';
+  readAt?: string; // ISO timestamp when message was read
+  aiMetadata?: {
+    isAIGenerated: boolean;
+    confidence?: number;
+    responseTime?: number;
+    modelUsed?: string;
+  };
 }
 
 interface Booking {

@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
+// Helper to validate tenant access
+async function validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
+  const { data, error } = await getSupabaseServer()
+    .from('business_users')
+    .select('role')
+    .eq('business_id', tenantId)
+    .eq('user_id', userId)
+    .single();
+  
+  return !error && !!data;
+}
 
 interface ReorderRequest {
   serviceIds: string[];
@@ -14,13 +28,20 @@ interface ReorderRequest {
  */
 export async function POST(request: NextRequest) {
   try {
+    // 1. Authenticate user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Check user's access to this tenant
     const tenantId = request.headers.get('X-Tenant-ID');
-    
     if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
+    }
+    const hasAccess = await validateTenantAccess(tenantId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { serviceIds }: ReorderRequest = await request.json();
@@ -85,7 +106,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Clean up the channel
-    await channel.unsubscribe();
     getSupabaseServer().removeChannel(channel);
 
     return NextResponse.json({

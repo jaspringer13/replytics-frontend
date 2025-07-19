@@ -24,7 +24,8 @@ STRIPE_ENTERPRISE_PRICE_ID=price_your_enterprise_plan_price_id
 
 ### 2. STRIPE_WEBHOOK_SECRET
 - Go to **Developers** → **Webhooks** 
-- Click your webhook endpoint or create one with URL: `https://replytics-dashboard-api.onrender.com/api/v1/webhooks/stripe`
+- Click your webhook endpoint or create one with URL: `https://YOUR_DOMAIN/api/v1/webhooks/stripe`
+- Replace `YOUR_DOMAIN` with your actual backend domain (e.g., `replytics-dashboard-api.onrender.com`)
 - Select events: `invoice.payment_succeeded`, `invoice.payment_failed`, `customer.subscription.*`, `checkout.session.completed`
 - Copy the **Signing secret** (starts with `whsec_`)
 
@@ -36,7 +37,7 @@ STRIPE_ENTERPRISE_PRICE_ID=price_your_enterprise_plan_price_id
 
 ## Production Deployment
 
-### For Production (Render.com):
+### For Production (Render.com)
 1. Update your environment variables in Render.com dashboard
 2. Change `sk_test_` to `sk_live_` for production
 3. Update webhook URL to your production domain

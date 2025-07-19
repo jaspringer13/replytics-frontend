@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
 // Validate required environment variables
@@ -9,19 +11,38 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
+// Helper to validate tenant access
+async function validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
+  const { data, error } = await getSupabaseServer()
+    .from('business_users')
+    .select('role')
+    .eq('business_id', tenantId)
+    .eq('user_id', userId)
+    .single();
+  
+  return !error && !!data;
+}
 /**
  * GET /api/v2/dashboard/services
  * List all services for the business
  */
 export async function GET(request: NextRequest) {
   try {
+    // 1. Authenticate user session
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Check user's access to this tenant
     const tenantId = request.headers.get('X-Tenant-ID');
-    
     if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Tenant ID is required' }, { status: 400 });
+    }
+    const hasAccess = await validateTenantAccess(tenantId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Validate tenantId format (UUID)

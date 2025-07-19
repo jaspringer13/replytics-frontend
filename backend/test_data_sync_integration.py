@@ -8,20 +8,16 @@ including connectivity tests, mock data synchronization, and error handling.
 import asyncio
 import logging
 import os
-import sys
 from typing import Dict
 
-# Add the backend directory to path for imports
-sys.path.append('.')
-
-from services.data_sync import (
+from backend.services.data_sync import (
     BusinessSyncConfig, 
     SyncDirection,
     get_data_sync_service
 )
-from services.voice_bot_client import get_voice_bot_client
-from services.supabase_service import SupabaseService
-from config.settings import get_settings
+from backend.services.voice_bot_client import get_voice_bot_client
+from backend.services.supabase_service import SupabaseService
+from backend.config.settings import get_settings
 
 # Configure logging for testing
 logging.basicConfig(
@@ -81,15 +77,20 @@ class DataSyncTester:
         try:
             # Test Voice Bot client initialization
             voice_bot_client = await get_voice_bot_client()
+            assert voice_bot_client is not None, "Voice Bot client should not be None"
             logger.info("✅ Voice Bot client initialized successfully")
             
             # Test Supabase service initialization
             supabase_service = SupabaseService()
             await supabase_service.initialize()
+            assert supabase_service is not None, "Supabase service should not be None"
+            assert hasattr(supabase_service, 'client'), "Supabase service should have client attribute"
             logger.info("✅ Supabase service initialized successfully")
             
             # Test DataSyncService initialization
             data_sync_service = await get_data_sync_service()
+            assert data_sync_service is not None, "Data Sync service should not be None"
+            assert hasattr(data_sync_service, 'health_check'), "Data Sync service should have health_check method"
             logger.info("✅ Data Sync service initialized successfully")
             
             return True
@@ -111,8 +112,8 @@ class DataSyncTester:
                 return True
             else:
                 logger.warning(f"⚠️  Health check returned: {health_result}")
-                # For testing purposes, we'll consider partial health as success
-                return True
+                # Only consider 'healthy' or 'degraded' as passing
+                return health_result['status'] in ['healthy', 'degraded']
                 
         except Exception as e:
             logger.error(f"❌ Health check test failed: {e}")

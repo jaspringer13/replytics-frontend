@@ -301,7 +301,7 @@ async def update_business_profile(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update business profile") from e from e
+        raise handle_voice_bot_error(e, "update business profile") from e
 
 
 # =============================================================================
@@ -338,7 +338,7 @@ async def get_services(
         return services
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch services") from e from e
+        raise handle_voice_bot_error(e, "fetch services") from e
 
 
 @router.post("/services")
@@ -367,7 +367,7 @@ async def create_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "create service") from e from e
+        raise handle_voice_bot_error(e, "create service") from e
 
 
 @router.patch("/services/{service_id}")
@@ -402,7 +402,7 @@ async def update_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"update service {service_id}") from e from e
+        raise handle_voice_bot_error(e, f"update service {service_id}") from e
 
 
 @router.delete("/services/{service_id}")
@@ -428,7 +428,7 @@ async def delete_service(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"delete service {service_id}") from e from e
+        raise handle_voice_bot_error(e, f"delete service {service_id}") from e
 
 
 @router.post("/services/reorder")
@@ -454,7 +454,7 @@ async def reorder_services(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "reorder services") from e from e
+        raise handle_voice_bot_error(e, "reorder services") from e
 
 
 @router.post("/services/apply-template")
@@ -480,7 +480,7 @@ async def apply_service_template(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"apply service template '{template_data.template_name}'") from e from e
+        raise handle_voice_bot_error(e, f"apply service template '{template_data.template_name}'") from e
 
 
 # =============================================================================
@@ -515,7 +515,7 @@ async def get_business_hours(
         return hours
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch business hours") from e from e
+        raise handle_voice_bot_error(e, "fetch business hours") from e
 
 
 @router.put("/hours")
@@ -548,7 +548,7 @@ async def update_business_hours(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update business hours") from e from e
+        raise handle_voice_bot_error(e, "update business hours") from e
 
 
 @router.post("/holidays")
@@ -573,7 +573,7 @@ async def add_holiday(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"add holiday {holiday.date}") from e from e
+        raise handle_voice_bot_error(e, f"add holiday {holiday.date}") from e
 
 
 @router.delete("/holidays/{holiday_date}")
@@ -599,7 +599,7 @@ async def remove_holiday(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, f"remove holiday {holiday_date}") from e from e
+        raise handle_voice_bot_error(e, f"remove holiday {holiday_date}") from e
 
 
 # =============================================================================
@@ -652,7 +652,7 @@ async def get_analytics(
         return analytics
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch analytics") from e from e
+        raise handle_voice_bot_error(e, "fetch analytics") from e
 
 
 # =============================================================================
@@ -680,7 +680,7 @@ async def get_prompts(
         return prompts
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch prompts") from e from e
+        raise handle_voice_bot_error(e, "fetch prompts") from e
 
 
 @router.patch("/prompts")
@@ -711,7 +711,7 @@ async def update_prompts(
         return result
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "update prompts") from e from e
+        raise handle_voice_bot_error(e, "update prompts") from e
 
 
 @router.get("/staff")
@@ -735,7 +735,7 @@ async def get_staff(
         return staff
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch staff") from e from e
+        raise handle_voice_bot_error(e, "fetch staff") from e
 
 
 @router.get("/integrations")
@@ -759,7 +759,7 @@ async def get_integrations(
         return integrations
         
     except Exception as e:
-        raise handle_voice_bot_error(e, "fetch integrations") from e from e
+        raise handle_voice_bot_error(e, "fetch integrations") from e
 
 
 # =============================================================================

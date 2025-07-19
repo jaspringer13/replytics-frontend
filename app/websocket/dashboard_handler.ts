@@ -31,9 +31,9 @@ export interface ServiceUpdate<T = unknown> {
   timestamp: string;
 }
 
-export interface ConversationRulesUpdate {
+export interface ConversationRulesUpdate<T = unknown> {
   businessId: string;
-  rules: unknown;
+  rules: T;
   timestamp: string;
 }
 

@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     JWT_EXPIRATION_HOURS: int = 24
     
     # CORS
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "https://replytics-frontend.vercel.app"
-    ]
+    ALLOWED_ORIGINS: List[str] = Field(
+        default=["http://localhost:3000"],
+        description="List of allowed CORS origins"
+    )
     
     # Database
     SUPABASE_URL: str = Field(..., description="Supabase project URL")

@@ -275,8 +275,22 @@ export class VoiceSettingsService {
    * Get default voice settings
    */
   private getDefaultVoiceSettings(): VoiceSettings {
+    const envVoiceId = process.env.DEFAULT_VOICE_ID;
+    const fallbackVoiceId = 'kdmDKE6EkgrWrrykO9Qt';
+    
+    // Validate environment variable and log appropriately
+    if (!envVoiceId) {
+      console.warn('DEFAULT_VOICE_ID environment variable not set, using fallback voice ID:', fallbackVoiceId);
+    } else if (envVoiceId.trim() === '') {
+      console.warn('DEFAULT_VOICE_ID environment variable is empty, using fallback voice ID:', fallbackVoiceId);
+    } else {
+      console.log('Using configured DEFAULT_VOICE_ID:', envVoiceId);
+    }
+    
+    const defaultVoiceId = envVoiceId && envVoiceId.trim() !== '' ? envVoiceId : fallbackVoiceId;
+    
     return {
-      voiceId: process.env.DEFAULT_VOICE_ID || 'kdmDKE6EkgrWrrykO9Qt',
+      voiceId: defaultVoiceId,
       speakingStyle: 'friendly_professional',
       speed: createVoiceSpeed(1.0),
       pitch: createVoicePitch(1.0)

@@ -35,12 +35,11 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
       )
       
       const lastMessage = sortedMessages[0]
-      // TODO: Update SMS interface to include readAt field for proper read tracking
-      // Currently counts all received inbound messages as unread - will be updated when readAt field is added
+      // Count unread messages using readAt field
       const unreadCount = msgs.filter(m => 
         m.direction === 'inbound' && 
-        m.status === 'received'
-        // && !m.readAt  // Will be added when SMS interface includes readAt field
+        m.status === 'received' &&
+        !m.readAt  // Message is unread if readAt is not set
       ).length
       
       return {
@@ -50,10 +49,10 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
         lastMessage: lastMessage.message,
         lastMessageTime: lastMessage.timestamp,
         unreadCount,
-        // Backend integration needed: These should come from API response
-        isAIHandled: false, // TODO: Add aiMetadata to SMS type
+        // Use AI metadata from messages to determine AI handling
+        isAIHandled: sortedMessages.some(m => m.aiMetadata?.isAIGenerated),
         needsAttention: (unreadCount > 2),
-        lastAIResponse: undefined // TODO: Add AI response tracking
+        lastAIResponse: sortedMessages.find(m => m.aiMetadata?.isAIGenerated)?.message
       }
     })
 
@@ -202,38 +201,79 @@ export default function MessagesPage() {
     setShowTemplates(false)
   }
 
-  // Handle template management
+  // Template management state for optimistic updates
+  const [localTemplates, setLocalTemplates] = useState<MessageTemplate[]>([])
+  
+  // Handle template management with optimistic updates
   const handleSaveTemplate = async (template: Omit<MessageTemplate, 'id'>) => {
+    const tempId = `temp-${Date.now()}`
+    const newTemplate: MessageTemplate = {
+      ...template,
+      id: tempId,
+    }
+    
+    // Optimistic update
+    setLocalTemplates(prev => [...prev, newTemplate])
+    toast.success('Template saved successfully')
+    
     try {
-      // TODO: Implement API call once endpoint is available
-      // await apiClient.createTemplate(template)
-      toast.success('Template saved successfully')
-      console.log('Save template:', template)
+      // When API is available, replace with actual call:
+      // const savedTemplate = await apiClient.createTemplate(template)
+      // setLocalTemplates(prev => prev.map(t => t.id === tempId ? savedTemplate : t))
+      
+      // For now, simulate API call and update with real ID
+      await new Promise(resolve => setTimeout(resolve, 500))
+      const realId = `template-${Date.now()}`
+      setLocalTemplates(prev => prev.map(t => 
+        t.id === tempId ? { ...t, id: realId } : t
+      ))
     } catch (error) {
+      // Revert optimistic update on error
+      setLocalTemplates(prev => prev.filter(t => t.id !== tempId))
       console.error('Failed to save template:', error)
       toast.error('Failed to save template')
     }
   }
 
   const handleUpdateTemplate = async (id: string, updates: Partial<MessageTemplate>) => {
+    // Optimistic update
+    const previousTemplates = localTemplates
+    setLocalTemplates(prev => prev.map(t => 
+      t.id === id ? { ...t, ...updates } : t
+    ))
+    toast.success('Template updated successfully')
+    
     try {
-      // TODO: Implement API call once endpoint is available
+      // When API is available:
       // await apiClient.updateTemplate(id, updates)
-      toast.success('Template updated successfully')
-      console.log('Update template:', id, updates)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500))
     } catch (error) {
+      // Revert optimistic update on error
+      setLocalTemplates(previousTemplates)
       console.error('Failed to update template:', error)
       toast.error('Failed to update template')
     }
   }
 
   const handleDeleteTemplate = async (id: string) => {
+    // Optimistic update
+    const templateToDelete = localTemplates.find(t => t.id === id)
+    setLocalTemplates(prev => prev.filter(t => t.id !== id))
+    toast.success('Template deleted successfully')
+    
     try {
-      // TODO: Implement API call once endpoint is available
+      // When API is available:
       // await apiClient.deleteTemplate(id)
-      toast.success('Template deleted successfully')
-      console.log('Delete template:', id)
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500))
     } catch (error) {
+      // Revert optimistic update on error
+      if (templateToDelete) {
+        setLocalTemplates(prev => [...prev, templateToDelete])
+      }
       console.error('Failed to delete template:', error)
       toast.error('Failed to delete template')
     }

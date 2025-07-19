@@ -14,7 +14,7 @@ import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
 
 interface SMSConfigurationTabProps {
-  businessId: string;
+  businessId?: string; // Currently unused - API uses auth context
 }
 
 interface SMSSettings {
@@ -42,7 +42,7 @@ export function SMSConfigurationTab({ businessId }: SMSConfigurationTabProps) {
 
   useEffect(() => {
     loadSMSData();
-  }, [businessId]);
+  }, []);
 
   const loadSMSData = async () => {
     try {

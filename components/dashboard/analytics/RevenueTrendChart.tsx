@@ -32,7 +32,7 @@ export function RevenueTrendChart({ data, height = 300 }: RevenueTrendChartProps
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: {
     active?: boolean;
-    payload?: Array<{ value: number }>;
+    payload?: Array<{ value: number; name?: string; color?: string }>;
     label?: string;
   }) => {
     if (active && payload && payload.length) {

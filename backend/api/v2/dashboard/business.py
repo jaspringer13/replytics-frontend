@@ -4,7 +4,7 @@ Business profile and settings endpoints
 
 from typing import Optional
 from fastapi import APIRouter, Request, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService
@@ -35,14 +35,14 @@ class BusinessProfileUpdate(BaseModel):
 
 class VoiceSettingsUpdate(BaseModel):
     voiceId: Optional[str] = None
-    voiceSpeed: Optional[float] = None
-    voicePitch: Optional[float] = None
+    voiceSpeed: Optional[float] = Field(None, ge=0.5, le=2.0)
+    voicePitch: Optional[float] = Field(None, ge=0.5, le=2.0)
     greetingMessage: Optional[str] = None
     voiceGender: Optional[str] = None
     language: Optional[str] = None
-    transferNumber: Optional[str] = None
+    transferNumber: Optional[str] = Field(None, pattern=r'^\+?[\d\s\-\(\)]+$')
     enableTransfer: Optional[bool] = None
-    maxCallDuration: Optional[int] = None
+    maxCallDuration: Optional[int] = Field(None, ge=60, le=3600)  # 1 min to 1 hour
     recordCalls: Optional[bool] = None
     transcribeCalls: Optional[bool] = None
 

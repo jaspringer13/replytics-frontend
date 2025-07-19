@@ -1,5 +1,23 @@
 # Replytics Website File Structure
 
+**Last Updated:** 2025-01-19 at 16:15 UTC
+
+## Maintenance & Automation
+
+This file tree documentation requires regular updates as the project evolves. To maintain accuracy:
+
+### Automation Options
+1. **Pre-commit Hook**: Automatically reminds developers to update FILETREE.md when new files are added
+2. **GitHub Action**: Detects file structure changes and creates PR reminders for documentation updates  
+3. **Auto-generation Script**: Generates the basic file structure, allowing developers to add status annotations
+
+### Update Process
+- Update this file when adding/removing major components
+- Use the status indicators: ✅ IMPLEMENTED, 🚧 PLACEHOLDER, ❌ NOT IMPLEMENTED
+- Keep the timestamp current when making changes
+
+---
+
 ```text
 replytics-frontend/
 ├── app/                          # Next.js 14 App Router

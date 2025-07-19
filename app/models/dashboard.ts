@@ -3,22 +3,31 @@
  */
 
 // Validation Types
-type ValidTimezone = 
-  | 'America/New_York'
-  | 'America/Chicago' 
-  | 'America/Denver'
-  | 'America/Los_Angeles'
-  | 'America/Phoenix'
-  | 'America/Anchorage'
-  | 'Pacific/Honolulu'
-  | 'UTC'
-  | 'Europe/London'
-  | 'Europe/Paris'
-  | 'Europe/Berlin'
-  | 'Asia/Tokyo'
-  | 'Asia/Shanghai'
-  | 'Australia/Sydney'
-  | string; // Fallback for flexibility
+const VALID_TIMEZONES = [
+  'America/New_York',
+  'America/Chicago', 
+  'America/Denver',
+  'America/Los_Angeles',
+  'America/Phoenix',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'UTC',
+  'Europe/London',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Asia/Tokyo',
+  'Asia/Shanghai',
+  'Australia/Sydney'
+] as const;
+
+type ValidTimezone = typeof VALID_TIMEZONES[number];
+
+export function createValidTimezone(value: string): ValidTimezone {
+  if (!VALID_TIMEZONES.includes(value as ValidTimezone)) {
+    throw new Error(`Invalid timezone: ${value}. Must be one of: ${VALID_TIMEZONES.join(', ')}`);
+  }
+  return value as ValidTimezone;
+}
 
 type VoiceSpeed = number & { __brand: 'VoiceSpeed' }; // 0.5 to 2.0
 type VoicePitch = number & { __brand: 'VoicePitch' }; // 0.5 to 2.0

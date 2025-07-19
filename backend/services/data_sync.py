@@ -632,19 +632,11 @@ class DataSyncService:
     ) -> None:
         """Upsert business hours data to Dashboard database."""
         try:
-            # Delete existing hours for this business first
-            await asyncio.to_thread(
-                lambda: self.supabase_service.client.table('operating_hours')
-                .delete()
-                .eq('business_id', business_id)
-                .execute()
-            )
-            
-            # Insert new hours
-            if hours_data:
+            # Upsert each day's hours individually to avoid atomicity issues
+            for hour_data in hours_data:
                 await asyncio.to_thread(
-                    lambda: self.supabase_service.client.table('operating_hours')
-                    .insert(hours_data)
+                    lambda h=hour_data: self.supabase_service.client.table('operating_hours')
+                    .upsert(h, on_conflict='business_id,day_of_week')
                     .execute()
                 )
             

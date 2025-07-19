@@ -2,7 +2,7 @@
 Authentication endpoints
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -43,7 +43,7 @@ class AuthResponse(BaseModel):
 def create_access_token(data: dict) -> tuple[str, str, int]:
     """Create JWT access token"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(hours=settings.JWT_EXPIRATION_HOURS)
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.JWT_EXPIRATION_HOURS)
     to_encode.update({"exp": expire})
     
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
@@ -78,7 +78,9 @@ async def verify_google_token(id_token: str) -> dict:
         token_data = response.json()
         
         # Verify the token is for our application (if client_id is configured)
-        # Note: In production, you should verify the 'aud' field matches your client_id
+        if hasattr(settings, 'GOOGLE_CLIENT_ID') and settings.GOOGLE_CLIENT_ID:
+            if token_data.get("aud") != settings.GOOGLE_CLIENT_ID:
+                raise HTTPException(status_code=401, detail="Token not issued for this application")
         
         # Extract user information
         return {
@@ -88,10 +90,10 @@ async def verify_google_token(id_token: str) -> dict:
             "image": token_data.get("picture")
         }
         
-    except httpx.RequestError:
-        raise HTTPException(status_code=500, detail="Failed to verify Google token")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=500, detail="Failed to verify Google token") from e
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid Google token") from e
 
 
 async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -154,7 +156,6 @@ async def google_login(request: Request, google_data: GoogleLoginRequest):
     # Use verified data instead of user-provided data
     email = verified_user_info["email"]
     name = verified_user_info["name"]
-    google_id = verified_user_info["google_id"]
     
     # Check if user exists
     user = await supabase.get_user_by_email(email)

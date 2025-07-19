@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate-filetree": "node scripts/generate-filetree.js",
+    "setup-hooks": "pre-commit install"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.1.2",

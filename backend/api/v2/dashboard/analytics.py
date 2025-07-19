@@ -77,10 +77,10 @@ async def get_analytics_overview(
     stats = await supabase.get_analytics_overview(profile["id"], startDate, endDate)
     
     # Get actual chart data
-    call_volume_data = await get_call_volume_data(supabase, profile["id"], startDate, endDate)
-    call_outcomes_data = await get_call_outcomes_data(supabase, profile["id"], startDate, endDate)
-    peak_hours_data = await get_peak_hours_data(supabase, profile["id"], startDate, endDate)
-    top_services_data = await get_top_services_data(supabase, profile["id"], startDate, endDate)
+    call_volume_data = get_call_volume_data(supabase, profile["id"], startDate, endDate)
+    call_outcomes_data = get_call_outcomes_data(supabase, profile["id"], startDate, endDate)
+    peak_hours_data = get_peak_hours_data(supabase, profile["id"], startDate, endDate)
+    top_services_data = get_top_services_data(supabase, profile["id"], startDate, endDate)
     
     charts = {
         "callVolume": call_volume_data,
@@ -95,7 +95,7 @@ async def get_analytics_overview(
     }
 
 
-async def get_call_volume_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
+def get_call_volume_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
     """Get daily call volume data for the date range"""
     try:
         # Parse dates to work with them
@@ -103,7 +103,7 @@ async def get_call_volume_data(supabase: SupabaseService, business_id: str, star
         end = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
         
         # Fetch calls data from the database
-        result = await supabase.client.table('calls').select('created_at, status').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
+        result = supabase.client.table('calls').select('created_at, status').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
         
         if not result.data:
             return []
@@ -133,11 +133,11 @@ async def get_call_volume_data(supabase: SupabaseService, business_id: str, star
         return []
 
 
-async def get_call_outcomes_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> dict:
+def get_call_outcomes_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> dict:
     """Get call outcomes distribution"""
     try:
         # Fetch calls with status information
-        result = await supabase.client.table('calls').select('status, outcome').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
+        result = supabase.client.table('calls').select('status, outcome').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
         
         outcomes = {"answered": 0, "missed": 0, "voicemail": 0}
         
@@ -163,11 +163,11 @@ async def get_call_outcomes_data(supabase: SupabaseService, business_id: str, st
         return {"answered": 0, "missed": 0, "voicemail": 0}
 
 
-async def get_peak_hours_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
+def get_peak_hours_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
     """Get peak hours data showing call distribution by hour of day"""
     try:
         # Fetch calls data
-        result = await supabase.client.table('calls').select('created_at').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
+        result = supabase.client.table('calls').select('created_at').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).execute()
         
         if not result.data:
             return []
@@ -194,17 +194,17 @@ async def get_peak_hours_data(supabase: SupabaseService, business_id: str, start
         return []
 
 
-async def get_top_services_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
+def get_top_services_data(supabase: SupabaseService, business_id: str, start_date: str, end_date: str) -> list:
     """Get top services by booking count"""
     try:
         # First get services for this business
-        services_result = await supabase.client.table('services').select('id, name').eq('business_id', business_id).eq('is_active', True).execute()
+        services_result = supabase.client.table('services').select('id, name').eq('business_id', business_id).eq('is_active', True).execute()
         
         if not services_result.data:
             return []
         
         # Get appointments/bookings for these services
-        appointments_result = await supabase.client.table('appointments').select('service_id').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).neq('status', 'cancelled').execute()
+        appointments_result = supabase.client.table('appointments').select('service_id').eq('business_id', business_id).gte('created_at', start_date).lte('created_at', end_date).neq('status', 'cancelled').execute()
         
         if not appointments_result.data:
             return []

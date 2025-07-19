@@ -7,9 +7,18 @@ import { useAuth } from '@/contexts/AuthContext'
 
 function SettingsContent() {
   const { user } = useAuth()
-  const businessId = user?.tenantId || 'default'
 
-  return <Settings businessId={businessId} />
+  if (!user?.tenantId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center text-red-600">
+          Error: Business ID not found. Please contact support.
+        </div>
+      </div>
+    )
+  }
+
+  return <Settings businessId={user.tenantId} />
 }
 
 export default function SettingsPage() {

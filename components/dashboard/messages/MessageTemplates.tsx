@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FileText, Plus, Edit2, Trash2, Save, X, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { validateTemplate } from '@/constants/messageTemplates'
+import { useToast } from '@/hooks/useToast'
 
 const TEMPLATE_CATEGORIES = ['greeting', 'appointment', 'reminder', 'follow-up', 'custom'] as const
 export type TemplateCategory = typeof TEMPLATE_CATEGORIES[number]
@@ -34,6 +35,37 @@ const categoryColors = {
   custom: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
 }
 
+interface ValidationError {
+  field: string;
+  message: string;
+}
+
+const validateNewTemplate = (template: { name: string; content: string }, existingTemplates: MessageTemplate[]): ValidationError[] => {
+  const errors: ValidationError[] = [];
+  
+  if (!template.name.trim()) {
+    errors.push({ field: 'name', message: 'Template name is required' });
+  }
+  
+  if (!template.content.trim()) {
+    errors.push({ field: 'content', message: 'Template content is required' });
+  }
+  
+  if (existingTemplates.some(t => t.name.toLowerCase() === template.name.toLowerCase())) {
+    errors.push({ field: 'name', message: 'A template with this name already exists' });
+  }
+  
+  if (template.name.length > 50) {
+    errors.push({ field: 'name', message: 'Template name must be under 50 characters' });
+  }
+  
+  if (template.content.length > 500) {
+    errors.push({ field: 'content', message: 'Template content must be under 500 characters' });
+  }
+  
+  return errors;
+};
+
 export function MessageTemplates({
   templates,
   onUseTemplate,
@@ -41,6 +73,7 @@ export function MessageTemplates({
   onUpdateTemplate,
   onDeleteTemplate
 }: MessageTemplatesProps) {
+  const { toast } = useToast()
   const [isCreating, setIsCreating] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingContent, setEditingContent] = useState<Record<string, string>>({})
@@ -65,17 +98,10 @@ export function MessageTemplates({
   }
 
   const handleSave = () => {
-    if (!newTemplate.name || !newTemplate.content) return
+    const validationErrors = validateNewTemplate(newTemplate, templates);
     
-    // Check for duplicate names
-    if (templates.some(t => t.name.toLowerCase() === newTemplate.name.toLowerCase())) {
-      alert('A template with this name already exists. Please choose a different name.');
-      return;
-    }
-    
-    // Validate lengths
-    if (newTemplate.name.length > 50 || newTemplate.content.length > 500) {
-      alert('Template name must be under 50 characters and content under 500 characters.');
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors[0].message);
       return;
     }
     
@@ -89,7 +115,7 @@ export function MessageTemplates({
     
     // Validate template consistency
     if (!validateTemplate(templateWithVariables)) {
-      alert('Template variables are inconsistent. Please check your placeholders.');
+      toast.error('Template variables are inconsistent. Please check your placeholders.');
       return;
     }
     
@@ -169,7 +195,12 @@ export function MessageTemplates({
               <div className="flex items-center justify-between">
                 <select
                   value={newTemplate.category}
-                  onChange={(e) => setNewTemplate({ ...newTemplate, category: e.target.value as TemplateCategory })}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    const value = e.target.value;
+                    if (TEMPLATE_CATEGORIES.includes(value as TemplateCategory)) {
+                      setNewTemplate({ ...newTemplate, category: value as TemplateCategory });
+                    }
+                  }}
                   className="px-3 py-1 bg-gray-800 border border-gray-600 rounded text-white text-sm"
                 >
                   <option value="greeting">Greeting</option>

@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Building, Mic, Clock, Users, Link2, MessageSquare, Briefcase } from 'lucide-react';
 import { BusinessProfileTab } from './BusinessProfileTab';
 import { ServicesManagementTab } from './ServicesManagementTab';
-import { OperatingHoursTab } from './OperatingHoursTab';
+import { HoursEditor } from './HoursEditor';
 import { VoiceConversationTab } from './VoiceConversationTab';
 import { SMSConfigurationTab } from './SMSConfigurationTab';
 import { IntegrationsTab } from './IntegrationsTab';
@@ -28,6 +28,7 @@ export function Settings({ businessId }: SettingsProps) {
     if (businessId) {
       realtimeConfigManager.initialize(businessId).catch((err) => {
         console.error('Failed to initialize real-time config:', err);
+        setError('Failed to initialize real-time updates. Some features may not work properly.');
       });
 
       return () => {
@@ -114,7 +115,7 @@ export function Settings({ businessId }: SettingsProps) {
         </TabsList>
 
         <TabsContent value="business-profile">
-          <BusinessProfileTab businessId={businessId} />
+          <BusinessProfileTab />
         </TabsContent>
 
         <TabsContent value="services">
@@ -122,11 +123,11 @@ export function Settings({ businessId }: SettingsProps) {
         </TabsContent>
 
         <TabsContent value="hours">
-          <OperatingHoursTab businessId={businessId} />
+          <HoursEditor businessId={businessId} />
         </TabsContent>
 
         <TabsContent value="voice-conversation">
-          <VoiceConversationTab businessId={businessId} />
+          <VoiceConversationTab />
         </TabsContent>
 
         <TabsContent value="sms">

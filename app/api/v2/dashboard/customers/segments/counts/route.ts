@@ -64,10 +64,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get segment-specific counts using database aggregation
+    // Get all matching records and aggregate client-side
     const { data: segmentData, error: segmentError } = await baseQuery
-      .select('segment, count(*)', { count: 'exact' })
-      .group('segment');
+      .select('segment');
 
     if (segmentError) {
       console.error('Error fetching segment data:', segmentError);
@@ -87,12 +86,11 @@ export async function GET(request: NextRequest) {
       dormant: 0
     };
 
-    // Populate counts from aggregated data
+    // Aggregate counts client-side
     segmentData?.forEach((item: any) => {
       const segment = item.segment as CustomerSegment;
-      const count = item.count || 0;
-      if (segment in segmentCounts) {
-        segmentCounts[segment] = count;
+      if (segment in segmentCounts && segment !== 'all') {
+        segmentCounts[segment]++;
       }
     });
 

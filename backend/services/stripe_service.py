@@ -28,6 +28,11 @@ class StripeService:
             logger.warning("STRIPE_SECRET_KEY not configured")
             return
         
+        # Validate price IDs when Stripe is configured
+        missing_prices = [plan for plan, price_id in self.price_ids.items() if not price_id]
+        if missing_prices:
+            logger.warning(f"Missing Stripe price IDs for plans: {missing_prices}")
+        
         stripe.api_key = self.api_key
         
     def is_configured(self) -> bool:
@@ -72,10 +77,10 @@ class StripeService:
             
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error fetching invoices: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to fetch invoices: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to fetch invoices: {str(e)}") from e
         except Exception as e:
             logger.error(f"Unexpected error fetching invoices: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error") from e
     
     async def get_customer_by_email(self, email: str) -> Optional[str]:
         """Get Stripe customer ID by email"""
@@ -109,7 +114,7 @@ class StripeService:
             
         except stripe.error.StripeError as e:
             logger.error(f"Error creating customer: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to create customer: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to create customer: {str(e)}") from e
     
     async def get_or_create_customer(self, email: str, name: str = None, business_id: str = None) -> str:
         """Get existing customer or create new one"""
@@ -160,7 +165,7 @@ class StripeService:
             
         except stripe.error.StripeError as e:
             logger.error(f"Error creating checkout session: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to create checkout session: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to create checkout session: {str(e)}") from e
     
     async def get_customer_subscription(self, customer_id: str) -> Optional[Dict[str, Any]]:
         """Get active subscription for a customer"""
@@ -207,7 +212,7 @@ class StripeService:
             
         except stripe.error.StripeError as e:
             logger.error(f"Error canceling subscription: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to cancel subscription: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Failed to cancel subscription: {str(e)}") from e
     
     def verify_webhook_signature(self, payload: bytes, signature: str) -> Dict[str, Any]:
         """Verify Stripe webhook signature and parse event"""
@@ -220,12 +225,12 @@ class StripeService:
             )
             return event
             
-        except ValueError:
+        except ValueError as e:
             logger.error("Invalid webhook payload")
-            raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.error.SignatureVerificationError:
+            raise HTTPException(status_code=400, detail="Invalid payload") from e
+        except stripe.error.SignatureVerificationError as e:
             logger.error("Invalid webhook signature")
-            raise HTTPException(status_code=400, detail="Invalid signature")
+            raise HTTPException(status_code=400, detail="Invalid signature") from e
 
 
 # Global instance

@@ -217,8 +217,6 @@ export async function PATCH(request: NextRequest) {
     });
     
     // Clean up channels
-    await channel.unsubscribe();
-    await businessChannel.unsubscribe();
     await getSupabaseServer().removeChannel(channel);
     await getSupabaseServer().removeChannel(businessChannel);
 

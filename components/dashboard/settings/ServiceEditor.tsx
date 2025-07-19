@@ -32,6 +32,7 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
     description: '',
     active: true
   });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; serviceId: string | null }>({ isOpen: false, serviceId: null });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -133,7 +134,12 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
   };
 
   const handleDeleteService = async (serviceId: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return;
+    setDeleteConfirmation({ isOpen: true, serviceId });
+  };
+
+  const confirmDelete = async () => {
+    const { serviceId } = deleteConfirmation;
+    if (!serviceId) return;
 
     try {
       await apiClient.deleteService(serviceId);
@@ -142,6 +148,8 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
     } catch (error) {
       console.error('Failed to delete service:', error);
       toast.error('Failed to delete service');
+    } finally {
+      setDeleteConfirmation({ isOpen: false, serviceId: null });
     }
   };
 
@@ -331,6 +339,26 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
               className="bg-brand-500 hover:bg-brand-600"
             >
               {editingService ? 'Update' : 'Create'} Service
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, serviceId: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Service</DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-600 mb-4">
+            Are you sure you want to delete this service? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmation({ isOpen: false, serviceId: null })}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

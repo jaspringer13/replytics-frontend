@@ -3,7 +3,15 @@
 import { useEffect } from 'react';
 import { getPerformanceTracker } from '@/lib/performance/metrics';
 
-export function PerformanceProvider({ children }: { children: React.ReactNode }) {
+interface PerformanceProviderProps {
+  children: React.ReactNode;
+  metricsTimeout?: number;
+}
+
+export function PerformanceProvider({ 
+  children, 
+  metricsTimeout = parseInt(process.env.NEXT_PUBLIC_PERFORMANCE_METRICS_TIMEOUT || '5000')
+}: PerformanceProviderProps) {
   useEffect(() => {
     // Initialize performance tracking on mount
     const tracker = getPerformanceTracker();
@@ -20,7 +28,7 @@ export function PerformanceProvider({ children }: { children: React.ReactNode })
           
           // You can send to analytics here
           // tracker.sendToAnalytics('/api/analytics/performance');
-        }, 5000); // TODO: Make this timeout configurable
+        }, metricsTimeout);
       };
       
       window.addEventListener('load', handleLoad);

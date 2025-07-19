@@ -48,7 +48,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Content-Length': audioBuffer.byteLength.toString(),
-        'Content-Disposition': `attachment; filename="audio-${audioId}.mp3"`,
+        'Content-Disposition': `inline; filename="audio-${audioId}.mp3"`,
         'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
       },
     });

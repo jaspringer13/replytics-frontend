@@ -19,6 +19,8 @@ export default function PerformanceSmokeTest() {
     // Initialize performance tracker and listen for updates
     const tracker = getPerformanceTracker();
     
+    // Note: The performance tracker doesn't provide a cleanup method for callbacks
+    // This is acceptable for this smoke test page as it's typically short-lived
     tracker.onMetricsUpdate((performanceMetrics) => {
       const newMetrics: MetricDisplay[] = [];
       
@@ -37,9 +39,15 @@ export default function PerformanceSmokeTest() {
     });
 
     // Force layout shift after 2 seconds
-    setTimeout(() => {
+    const layoutShiftTimeout = setTimeout(() => {
       setForceLayoutShift(true);
     }, 2000);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      clearTimeout(layoutShiftTimeout);
+      // Note: Performance tracker callback cleanup would go here if available
+    };
   }, []);
 
   const getMetricRating = (name: string, value: number): string => {

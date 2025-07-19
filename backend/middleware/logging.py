@@ -19,19 +19,32 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         # Log request
         logger.info(f"Request: {request.method} {request.url.path}")
         
-        # Process request
-        response = await call_next(request)
-        
-        # Calculate duration
-        duration = time.time() - start_time
-        
-        # Log response
-        logger.info(
-            f"Response: {request.method} {request.url.path} "
-            f"- Status: {response.status_code} - Duration: {duration:.3f}s"
-        )
-        
-        # Add timing header
-        response.headers["X-Process-Time"] = str(duration)
-        
-        return response
+        # Process request with error handling
+        try:
+            response = await call_next(request)
+            
+            # Calculate duration
+            duration = time.time() - start_time
+            
+            # Log response
+            logger.info(
+                f"Response: {request.method} {request.url.path} "
+                f"- Status: {response.status_code} - Duration: {duration:.3f}s"
+            )
+            
+            # Add timing header
+            response.headers["X-Process-Time"] = str(duration)
+            
+            return response
+        except Exception as e:
+            # Calculate duration even for failed requests
+            duration = time.time() - start_time
+            
+            # Log error with timing
+            logger.error(
+                f"Error: {request.method} {request.url.path} "
+                f"- Duration: {duration:.3f}s - Error: {str(e)}"
+            )
+            
+            # Re-raise the exception to maintain normal error flow
+            raise

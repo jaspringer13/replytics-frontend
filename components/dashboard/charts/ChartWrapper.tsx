@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode } from 'react'
+import { ReactNode, memo } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
@@ -14,7 +14,7 @@ interface ChartWrapperProps {
   subtitle?: string
 }
 
-const AnimatedContainer = ({ children, className }: { children: ReactNode; className: string }) => (
+const AnimatedContainer = memo(({ children, className }: { children: ReactNode; className: string }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -22,7 +22,9 @@ const AnimatedContainer = ({ children, className }: { children: ReactNode; class
   >
     {children}
   </motion.div>
-)
+))
+
+AnimatedContainer.displayName = 'AnimatedContainer'
 
 export function ChartWrapper({
   title,

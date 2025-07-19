@@ -8,7 +8,7 @@ import { fromError } from '@/lib/errors/factory';
 
 declare global {
   interface Window {
-    gtag?: (command: string, eventName: string, parameters: any) => void;
+    gtag?: (command: 'event' | 'config' | 'set', eventName: string, parameters: Record<string, unknown>) => void;
   }
 }
 
