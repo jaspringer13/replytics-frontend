@@ -58,7 +58,12 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
       )
       
       const lastMessage = sortedMessages[0]
-      const unreadCount = msgs.filter(m => m.direction === 'inbound' && m.status === 'received').length
+      // TODO: Update SMS interface to include readAt field for proper read tracking
+      const unreadCount = msgs.filter(m => 
+        m.direction === 'inbound' && 
+        m.status === 'received'
+        // && !m.readAt  // Will be added when SMS interface includes readAt field
+      ).length
       
       return {
         id,

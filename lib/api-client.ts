@@ -79,8 +79,10 @@ class APIClient {
     if (!this.baseURL) {
       console.warn('Backend API URL not configured. Please set NEXT_PUBLIC_BACKEND_API_URL in .env.local');
     }
-    
-    if (typeof window !== 'undefined') {
+  }
+
+  private initializeFromStorage() {
+    if (typeof window !== 'undefined' && !this.token) {
       this.token = localStorage.getItem('auth_token');
       this.tenantId = localStorage.getItem('tenant_id');
       const expiresAt = localStorage.getItem('token_expires_at');
@@ -134,6 +136,8 @@ class APIClient {
     options: RequestInit = {},
     retryCount = 0
   ): Promise<T> {
+    // Initialize from storage on first request
+    this.initializeFromStorage();
     // Check if token is about to expire and proactively refresh
     if (this.token && this.isTokenExpiringSoon() && endpoint !== '/api/dashboard/auth/refresh') {
       console.log('Token expiring soon, proactively refreshing...');
@@ -415,6 +419,7 @@ class APIClient {
   }
 
   isAuthenticated(): boolean {
+    this.initializeFromStorage();
     return !!this.token;
   }
 
@@ -424,6 +429,7 @@ class APIClient {
     isExpiringSoon: boolean;
     minutesUntilExpiry: number | null;
   } {
+    this.initializeFromStorage();
     if (!this.tokenExpiresAt) {
       return {
         expiresAt: null,
@@ -661,6 +667,7 @@ class APIClient {
 
   // Create WebSocket connection for real-time updates
   createWebSocketConnection(businessId: string) {
+    this.initializeFromStorage();
     const token = this.token;
     if (!token) {
       throw new Error('No auth token available for WebSocket connection');

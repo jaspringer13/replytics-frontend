@@ -30,7 +30,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
   const loadHours = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getBusinessHours();
+      const data = await apiClient.getBusinessHours(businessId);
       setHours(data.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
     } catch (error) {
       console.error('Failed to load business hours:', error);
@@ -136,6 +136,11 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
                       type="time"
                       value={day.openTime}
                       onChange={(e) => updateDay(day.dayOfWeek, { openTime: e.target.value })}
+                      onBlur={(e) => {
+                        if (day.closeTime && e.target.value >= day.closeTime) {
+                          toast.error('Opening time must be before closing time');
+                        }
+                      }}
                       className="px-3 py-1 bg-gray-700/50 border border-gray-600 rounded text-white text-sm"
                     />
                     <span className="text-gray-400">to</span>
@@ -143,6 +148,11 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
                       type="time"
                       value={day.closeTime}
                       onChange={(e) => updateDay(day.dayOfWeek, { closeTime: e.target.value })}
+                      onBlur={(e) => {
+                        if (day.openTime && day.openTime >= e.target.value) {
+                          toast.error('Closing time must be after opening time');
+                        }
+                      }}
                       className="px-3 py-1 bg-gray-700/50 border border-gray-600 rounded text-white text-sm"
                     />
                   </div>

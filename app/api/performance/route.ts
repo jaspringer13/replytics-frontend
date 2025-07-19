@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Validate required environment variables
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('Required environment variables are not set: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
-}
+// Initialize Supabase client lazily to avoid build-time errors
+let supabase: ReturnType<typeof createClient> | null = null;
 
-// Initialize Supabase client with service role for server-side operations
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseClient() {
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      throw new Error('Required environment variables are not set: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+    }
+    
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
 
 const MAX_METRICS = parseInt(process.env.MAX_PERFORMANCE_METRICS || '1000');
 
@@ -43,7 +49,7 @@ export async function POST(request: NextRequest) {
     };
     
     // Store metric in Supabase
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseClient()
       .from('performance_metrics')
       .insert([metricData])
       .select('id, created_at')
