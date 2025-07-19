@@ -106,8 +106,44 @@ export default function SignInPage() {
               </p>
             </div>
 
+            {/* Debug Test Button */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('TEST BUTTON CLICKED!')
+                console.log('Current email:', email)
+                console.log('Current password:', password)
+                alert('Test button works! Check console for form values.')
+              }}
+              className="w-full mb-4 py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              🔧 Debug: Test JavaScript (Click Me)
+            </button>
+
+            {/* Manual Submit Test Button */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('Manual submit attempt!')
+                const form = document.getElementById('signin-form') as HTMLFormElement
+                if (form) {
+                  console.log('Form found, submitting manually...')
+                  form.requestSubmit()
+                } else {
+                  console.log('Form not found!')
+                }
+              }}
+              className="w-full mb-4 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              🚀 Debug: Manual Form Submit
+            </button>
+
             {/* Sign In Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-6"
+              id="signin-form"
+            >
               {/* Email Field */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
@@ -117,7 +153,10 @@ export default function SignInPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Email input changed:', e.target.value)
+                    setEmail(e.target.value)
+                  }}
                   placeholder="you@example.com"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
@@ -133,7 +172,10 @@ export default function SignInPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    console.log('Password input changed:', e.target.value.length, 'characters')
+                    setPassword(e.target.value)
+                  }}
                   placeholder="Enter your password"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
