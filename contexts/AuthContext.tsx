@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Token expiration monitoring and automatic refresh
   useEffect(() => {
-    if (!session || status === 'loading') return
+    if (!session || status !== 'authenticated') return
 
     const checkTokenExpiration = async () => {
       const storedExpiresAt = localStorage.getItem('token_expires_at')
@@ -134,7 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.token && response.user) {
         // Calculate token expiration (24 hours from now if not provided)
-        const expiresAt = response.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        const expiresAt = response.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         
         // Store user data and token
         localStorage.setItem('user', JSON.stringify(response.user))

@@ -3,10 +3,10 @@
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { chartTheme } from '@/lib/chart-config'
-import { CustomerSegment } from '@/app/models/dashboard'
+import { CustomerSegmentData } from '@/app/models/dashboard'
 
 interface CustomerSegmentsChartProps {
-  data: CustomerSegment[]
+  data: CustomerSegmentData[]
   height?: number
 }
 

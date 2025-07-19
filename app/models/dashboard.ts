@@ -140,6 +140,12 @@ export interface Customer {
 
 export type CustomerSegment = 'vip' | 'regular' | 'at_risk' | 'new' | 'dormant';
 
+// Customer segment data with count
+export interface CustomerSegmentData {
+  segment: CustomerSegment;
+  count: number;
+}
+
 // Analytics Types
 export interface DashboardOverview {
   dateRange: DateRange;
@@ -187,6 +193,17 @@ export interface SegmentDistribution {
   atRisk: number;
   new: number;
   dormant: number;
+}
+
+// Analytics Overview alias for compatibility
+export type AnalyticsOverview = DashboardOverview;
+
+// Popular Times type
+export interface PopularTime {
+  hour: number;
+  dayOfWeek: number;
+  bookingCount: number;
+  label: string;
 }
 
 // SMS Template Types

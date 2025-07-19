@@ -171,6 +171,21 @@ async function fetchMetrics(tenantId: string, dateRange: DateRange) {
 }
 
 async function fetchServicePerformance(tenantId: string, dateRange: DateRange): Promise<ServicePerformance[]> {
+  // Define the expected type for the query result
+  type AppointmentWithService = {
+    service_id: string;
+    price: number;
+    services: {
+      id: string;
+      name: string;
+      duration: number;
+    } | {
+      id: string;
+      name: string;
+      duration: number;
+    }[];
+  };
+
   // Fetch service data with appointments
   const { data: serviceData, error } = await supabase
     .from('appointments')
@@ -186,7 +201,7 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
     .eq('business_id', tenantId)
     .gte('appointment_time', dateRange.start.toISOString())
     .lte('appointment_time', dateRange.end.toISOString())
-    .eq('status', 'completed');
+    .eq('status', 'completed') as { data: AppointmentWithService[] | null; error: any };
 
   if (error) {
     console.error('Error fetching service performance:', error);
@@ -196,11 +211,13 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
   // Aggregate by service
   const serviceMap = new Map<string, ServicePerformance>();
   
-  serviceData?.forEach(apt => {
+  serviceData?.forEach((apt: AppointmentWithService) => {
     const serviceId = apt.service_id;
+    // Handle services as array (Supabase join returns array even with !inner)
+    const serviceName = Array.isArray(apt.services) ? apt.services[0]?.name : apt.services?.name;
     const existing = serviceMap.get(serviceId) || {
       serviceId,
-      serviceName: apt.services.name,
+      serviceName: serviceName || 'Unknown Service',
       revenue: 0,
       appointmentCount: 0,
       averagePrice: 0,

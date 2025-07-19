@@ -152,7 +152,7 @@ export async function PATCH(request: NextRequest) {
       .eq('id', tenantId);
 
     if (updateError) {
-      console.error('Error updating voice settings:', error);
+      console.error('Error updating voice settings:', updateError);
       return NextResponse.json(
         { error: 'Failed to update voice settings' },
         { status: 500 }
