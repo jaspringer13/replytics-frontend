@@ -585,6 +585,90 @@ class APIClient {
       body: JSON.stringify(data),
     });
   }
+
+  // Industry Templates
+  async getIndustryTemplates() {
+    return this.request('/api/v2/dashboard/services/templates');
+  }
+
+  async applyIndustryTemplate(templateId: string) {
+    return this.request(`/api/v2/dashboard/services/templates/${templateId}/apply`, {
+      method: 'POST',
+    });
+  }
+
+  // Holidays
+  async getHolidays() {
+    return this.request('/api/v2/dashboard/holidays');
+  }
+
+  async addHoliday(holiday: {
+    date: string;
+    name: string;
+    isClosed: boolean;
+    specialHours?: { openTime: string; closeTime: string };
+  }) {
+    return this.request('/api/v2/dashboard/holidays', {
+      method: 'POST',
+      body: JSON.stringify(holiday),
+    });
+  }
+
+  async removeHoliday(holidayId: string) {
+    return this.request(`/api/v2/dashboard/holidays/${holidayId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // SMS Settings and Templates
+  async getSMSSettings() {
+    return this.request('/api/v2/dashboard/sms/settings');
+  }
+
+  async updateSMSSettings(settings: any) {
+    return this.request('/api/v2/dashboard/sms/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async getSMSTemplates() {
+    return this.request('/api/v2/dashboard/sms/templates');
+  }
+
+  async updateSMSTemplate(templateId: string, template: {
+    template: string;
+    variables?: string[];
+  }) {
+    return this.request(`/api/v2/dashboard/sms/templates/${templateId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(template),
+    });
+  }
+
+  // System Configuration
+  async getSystemConfig() {
+    return this.request('/api/v2/dashboard/config/system');
+  }
+
+  // Configuration Management
+  async cloneConfiguration(targetBusinessId: string) {
+    return this.request('/api/v2/dashboard/config/clone', {
+      method: 'POST',
+      body: JSON.stringify({ targetBusinessId }),
+    });
+  }
+
+  // Create WebSocket connection for real-time updates
+  createWebSocketConnection(businessId: string) {
+    const token = this.token;
+    if (!token) {
+      throw new Error('No auth token available for WebSocket connection');
+    }
+
+    const baseURL = this.baseURL.replace(/^http/, 'ws');
+    return new WebSocket(`${baseURL}/api/v2/config/businesses/${businessId}/ws?token=${token}`);
+  }
 }
 
 export const apiClient = new APIClient();
