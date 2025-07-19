@@ -5,6 +5,7 @@ import { Calendar, MessageSquare, Mic, Brain, LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 
 export interface QuickAction {
+  id: string
   label: string
   icon: LucideIcon
   href: string
@@ -22,24 +23,28 @@ interface QuickActionsProps {
 
 const defaultActions: QuickAction[] = [
   { 
+    id: 'schedule',
     label: "Today's Schedule", 
     icon: Calendar, 
     href: '/dashboard/calendar', 
     color: 'bg-blue-500'
   },
   { 
+    id: 'messages',
     label: 'Unread Messages', 
     icon: MessageSquare, 
     href: '/dashboard/messages', 
     color: 'bg-purple-500'
   },
   { 
+    id: 'voice',
     label: 'Voice Settings', 
     icon: Mic, 
     href: '/dashboard/settings?tab=voice', 
     color: 'bg-green-500' 
   },
   { 
+    id: 'analytics',
     label: 'View Analytics', 
     icon: Brain, 
     href: '/dashboard/analytics', 
@@ -50,9 +55,9 @@ const defaultActions: QuickAction[] = [
 export function QuickActions({ dashboardStats, loading }: QuickActionsProps) {
   const actions = defaultActions.map(action => ({
     ...action,
-    count: action.label === "Today's Schedule" 
+    count: action.id === 'schedule' 
       ? dashboardStats?.bookingsToday 
-      : action.label === 'Unread Messages' 
+      : action.id === 'messages' 
       ? dashboardStats?.smsToday 
       : undefined
   }))
@@ -79,7 +84,7 @@ export function QuickActions({ dashboardStats, loading }: QuickActionsProps) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {actions.map((action, index) => (
           <motion.div
-            key={action.label}
+            key={action.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 + index * 0.1 }}

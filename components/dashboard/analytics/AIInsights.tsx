@@ -42,7 +42,10 @@ export function AIInsights({ analytics }: AIInsightsProps) {
     }
     
     // Customer retention insights
-    const retentionRate = analytics.metrics.totalCustomers > 0 ? 75 : 0; // Mock retention rate
+    // Calculate actual retention rate based on active customer segments (VIP + Regular)
+    const totalCustomers = Object.values(analytics.customerSegments).reduce((sum, count) => sum + count, 0)
+    const retentionRate = totalCustomers > 0 ? 
+      ((analytics.customerSegments.vip + analytics.customerSegments.regular) / totalCustomers) * 100 : 0
     if (retentionRate < 60) {
       insights.push({
         icon: <Users className="h-6 w-6" />,
@@ -67,7 +70,7 @@ export function AIInsights({ analytics }: AIInsightsProps) {
     }
     
     // Service performance insights
-    const topService = analytics.topServices[0]
+    const topService = analytics.topServices?.[0]
     if (topService) {
       insights.push({
         icon: <DollarSign className="h-6 w-6" />,
@@ -79,7 +82,6 @@ export function AIInsights({ analytics }: AIInsightsProps) {
     }
     
     // At-risk customers
-    const totalCustomers = Object.values(analytics.customerSegments).reduce((sum, count) => sum + count, 0)
     const atRiskPercentage = totalCustomers > 0 ? (analytics.customerSegments.atRisk / totalCustomers) * 100 : 0
     if (atRiskPercentage > 20) {
       insights.push({

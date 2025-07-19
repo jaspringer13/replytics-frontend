@@ -14,6 +14,13 @@ interface SegmentCounts {
   dormant: number;
 }
 
+function buildSearchFilter(query: any, search: string) {
+  const raw = search.toLowerCase();
+  const escaped = raw.replace(/[%_,]/g, '\\$&');
+  const searchTerm = `%${escaped}%`;
+  return query.or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},ani_hash.ilike.${searchTerm}`);
+}
+
 /**
  * GET /api/v2/dashboard/customers/segments/counts
  * Get customer segment counts with optional search filter

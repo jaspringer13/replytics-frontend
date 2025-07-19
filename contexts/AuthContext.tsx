@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         console.log('AuthContext: Navigating to dashboard...')
         
-        // Navigate immediately
+        // Navigate with client-side routing
         router.push('/dashboard')
         
         return true
