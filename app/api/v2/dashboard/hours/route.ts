@@ -5,6 +5,9 @@ import { authOptions } from "@/lib/auth-config";
 import { OperatingHours } from '@/app/models/dashboard';
 
 
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 // Helper to validate tenant access
 async function validateTenantAccess(tenantId: string, userId: string): Promise<boolean> {
   const { data, error } = await getSupabaseServer()

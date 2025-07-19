@@ -3,6 +3,9 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { ConversationRules } from '@/app/models/dashboard';
 
 
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/v2/dashboard/business/conversation-rules
  * Get conversation rules for the voice agent

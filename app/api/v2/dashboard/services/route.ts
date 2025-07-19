@@ -3,6 +3,9 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
 
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 /**
  * GET /api/v2/dashboard/services
  * List all services for the business

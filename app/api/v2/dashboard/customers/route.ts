@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { Customer, CustomerSegment, PaginatedResponse, FilterOptions } from '@/app/models/dashboard';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/v2/dashboard/customers

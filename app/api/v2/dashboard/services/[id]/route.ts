@@ -3,6 +3,9 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { ServiceUpdate } from '@/app/models/dashboard';
 
 
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/v2/dashboard/services/[id]
  * Update a specific service

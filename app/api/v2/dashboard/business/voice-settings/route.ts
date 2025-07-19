@@ -3,6 +3,9 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { VoiceSettings } from '@/app/models/dashboard';
 
 
+
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
 // Available voice IDs from ElevenLabs or similar service
 const AVAILABLE_VOICES = {
   'kdmDKE6EkgrWrrykO9Qt': 'Professional Female',
