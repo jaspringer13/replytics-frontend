@@ -50,9 +50,22 @@ export function useCustomerSegmentCounts({
     try {
       setLoading(true)
       
-      const result = await apiClient.getCustomerSegmentCounts(search || undefined) as { data: SegmentCounts }
+      const result = await apiClient.getCustomerSegmentCounts(search || undefined)
       
-      setSegmentCounts(result.data)
+      // Validate response structure
+      if (!result?.data || typeof result.data !== 'object') {
+        throw new Error('Invalid response format from segment counts API')
+      }
+      
+      // Validate that all required segment count properties exist
+      const requiredProps = ['all', 'vip', 'regular', 'at_risk', 'new', 'dormant']
+      for (const prop of requiredProps) {
+        if (typeof result.data[prop] !== 'number') {
+          throw new Error(`Invalid segment count data: missing or invalid ${prop}`)
+        }
+      }
+      
+      setSegmentCounts(result.data as SegmentCounts)
       setError(null)
     } catch (err) {
       if ((err as Error).name === 'AbortError') return

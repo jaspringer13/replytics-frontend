@@ -117,8 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     }
     
-    setIsLoading(false)
-  }, [session, status])
+    // Only set loading false if we're not using email/password auth
+    if (!localUser && !localStorage.getItem('auth_token')) {
+      setIsLoading(false)
+    }
+  }, [session, status, localUser])
 
   // Token expiration monitoring and automatic refresh
   useEffect(() => {
@@ -201,14 +204,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Update local user state
         setLocalUser(response.user)
         
+        // CRITICAL: Set loading to false after successful login
+        setIsLoading(false)
+        
         // Set cookies for middleware
         document.cookie = `auth_token=${response.token}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `user=${JSON.stringify(response.user)}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `token_expires_at=${expiresAt}; path=/; max-age=86400; SameSite=Lax`
         
+        console.log('AuthContext: Auth state before navigation:', {
+          user: response.user,
+          isLoading: false,
+          hasToken: !!response.token
+        })
         console.log('AuthContext: Navigating to dashboard...')
-        // Use router.push for client-side navigation
+        
+        // Navigate immediately
         router.push('/dashboard')
+        
         return true
       }
       
@@ -294,10 +307,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0
 
+  // Debug logging
+  useEffect(() => {
+    console.log('AuthContext state:', {
+      user: !!user,
+      localUser: !!localUser,
+      isLoading,
+      isAuthenticated,
+      hasToken: !!token,
+      storedToken: !!storedToken,
+      nextAuthStatus: status
+    })
+  }, [user, localUser, isLoading, isAuthenticated, token, storedToken, status])
+
   return (
     <AuthContext.Provider value={{ 
       user, 
-      isLoading: isLoading || status === 'loading', 
+      isLoading: isLoading, // Don't include NextAuth status for email/password login
       login, 
       signInWithGoogle,
       logout, 

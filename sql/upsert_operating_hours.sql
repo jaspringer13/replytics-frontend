@@ -28,7 +28,11 @@ BEGIN
     )
     VALUES (
       p_business_id,
-      (hour_record->>'day_of_week')::INTEGER,
+      CASE 
+        WHEN (hour_record->>'day_of_week')::INTEGER BETWEEN 0 AND 6 
+        THEN (hour_record->>'day_of_week')::INTEGER
+        ELSE RAISE EXCEPTION 'Invalid day_of_week: must be between 0-6, got %', hour_record->>'day_of_week'
+      END,
       hour_record->>'open_time',
       hour_record->>'close_time',
       COALESCE((hour_record->>'is_closed')::BOOLEAN, false),

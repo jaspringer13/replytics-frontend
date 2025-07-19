@@ -2,13 +2,9 @@
 
 import { motion } from 'framer-motion'
 import { Brain } from 'lucide-react'
+import { ServicePerformance } from '@/app/models/dashboard'
 
-export interface ServicePerformanceData {
-  serviceName: string
-  appointmentCount: number
-  revenue: number
-  averagePrice: number
-}
+export type ServicePerformanceData = Pick<ServicePerformance, 'serviceName' | 'appointmentCount' | 'revenue' | 'averagePrice'>
 
 interface ServicePerformanceProps {
   topServices?: ServicePerformanceData[]
