@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply sorting
-    const sortColumn = getSortColumn(filters.sortBy!);
+    const sortColumn = getSortColumn(filters.sortBy as string);
     query = query.order(sortColumn, { ascending: filters.sortOrder === 'asc' });
 
     // Apply pagination

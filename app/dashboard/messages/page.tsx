@@ -67,9 +67,9 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
         lastMessageTime: lastMessage.timestamp,
         unreadCount,
         // Backend integration needed: These should come from API response
-        isAIHandled: lastMessage.aiMetadata?.isAIHandled ?? false,
-        needsAttention: unreadCount > 2 || lastMessage.aiMetadata?.needsAttention ?? false,
-        lastAIResponse: lastMessage.aiMetadata?.lastAIResponse
+        isAIHandled: false, // TODO: Add aiMetadata to SMS type
+        needsAttention: (unreadCount > 2),
+        lastAIResponse: undefined // TODO: Add AI response tracking
       }
     })
 

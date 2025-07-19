@@ -107,9 +107,9 @@ export function useApiErrorToast() {
       toast.warning('Not Found', 'The requested resource was not found');
     } else if (status === 429) {
       toast.warning('Rate Limited', 'Too many requests. Please try again later');
-    } else if (status >= 400 && status < 500) {
+    } else if (status && status >= 400 && status < 500) {
       toast.warning('Client Error', message || 'Please check your request and try again');
-    } else if (status >= 500) {
+    } else if (status && status >= 500) {
       toast.error('Server Error', 'Something went wrong. Please try again');
     } else if (!navigator.onLine) {
       toast.error('Connection Lost', 'Please check your internet connection');

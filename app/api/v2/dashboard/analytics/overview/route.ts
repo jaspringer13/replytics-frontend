@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const currentMetrics = results[0].status === 'fulfilled' ? results[0].value : getDefaultMetrics();
     const previousMetrics = results[1].status === 'fulfilled' ? results[1].value : getDefaultMetrics();
     const servicePerformance = results[2].status === 'fulfilled' ? results[2].value : [];
-    const customerSegments = results[3].status === 'fulfilled' ? results[3].value : [];
+    const customerSegments = results[3].status === 'fulfilled' ? results[3].value : { vip: 0, regular: 0, atRisk: 0, new: 0, dormant: 0 };
     const revenueTrend = results[4].status === 'fulfilled' ? results[4].value : [];
     const appointmentTrend = results[5].status === 'fulfilled' ? results[5].value : [];
     const newCustomerTrend = results[6].status === 'fulfilled' ? results[6].value : [];

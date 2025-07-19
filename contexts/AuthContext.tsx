@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return () => clearInterval(interval)
     }
-  }, [session, status, update, logout])
+  }, [session, status, update])
 
   // Convert NextAuth session to our User type
   const user: User | null = session?.user ? {

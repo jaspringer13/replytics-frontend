@@ -26,8 +26,16 @@ const INSIGHT_THRESHOLDS = {
 
 export function DashboardOverview() {
   const { data: dashboardStats, isLoading: statsLoading } = useStats()
-  const { data: businessProfile, isLoading: profileLoading } = useDashboardData()
-  const { data: analytics, isLoading: analyticsLoading } = useAnalytics()
+  const { businessProfile, loading: profileLoading } = useDashboardData()
+  
+  // Get date range for analytics (last 30 days)
+  const endDate = new Date().toISOString().split('T')[0]
+  const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  
+  const { analytics, loading: analyticsLoading } = useAnalytics({
+    startDate,
+    endDate
+  })
   const { isActive: voiceAgentActive } = useVoiceAgentStatus()
   const [aiActivities, setAiActivities] = useState<AIActivity[]>([])
   const [activitiesLoading, setActivitiesLoading] = useState(true)
@@ -229,9 +237,9 @@ export function DashboardOverview() {
             <span className="text-xs text-gray-400">Today</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-1">
-            ${loading ? '...' : (dashboardStats?.revenueToday?.toLocaleString() || '0')}
+            ${(statsLoading || analyticsLoading) ? '...' : (analytics?.metrics?.totalRevenue?.toLocaleString() || '0')}
           </h3>
-          <p className="text-sm text-gray-400">Revenue Today</p>
+          <p className="text-sm text-gray-400">Revenue</p>
         </motion.div>
 
         <motion.div
@@ -247,7 +255,7 @@ export function DashboardOverview() {
             <span className="text-xs text-gray-400">Today</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-1">
-            {loading ? '...' : (dashboardStats?.bookingsToday || 0)}
+            {statsLoading ? '...' : (dashboardStats?.bookingsToday || 0)}
           </h3>
           <p className="text-sm text-gray-400">Bookings Today</p>
         </motion.div>
@@ -265,7 +273,7 @@ export function DashboardOverview() {
             <span className="text-xs text-gray-400">AI Handled</span>
           </div>
           <h3 className="text-2xl font-bold text-white mb-1">
-            {loading ? '...' : (dashboardStats?.callsToday || 0)}
+            {statsLoading ? '...' : (dashboardStats?.callsToday || 0)}
           </h3>
           <p className="text-sm text-gray-400">Calls Today</p>
         </motion.div>

@@ -237,7 +237,15 @@ export function subscribeToTableChanges<T = unknown>(
     (payload) => {
       log(`Table ${table} change:`, payload);
       if (onChange) {
-        onChange(payload);
+        // Transform Supabase payload to match TableChangePayload interface
+        const transformedPayload: TableChangePayload<T> = {
+          type: payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE',
+          table: payload.table,
+          schema: payload.schema,
+          old: payload.old as T | null,
+          new: payload.new as T | null
+        };
+        onChange(transformedPayload);
       }
     }
   );

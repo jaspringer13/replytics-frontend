@@ -4,7 +4,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { VoiceSettings, ConversationRules } from '@/app/models/dashboard';
+import { 
+  VoiceSettings, 
+  ConversationRules, 
+  createVoiceSpeed, 
+  createVoicePitch 
+} from '@/app/models/dashboard';
 
 // Validate environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -258,8 +263,8 @@ export class VoiceSettingsService {
     return {
       voiceId: 'kdmDKE6EkgrWrrykO9Qt',
       speakingStyle: 'friendly_professional',
-      speed: 1.0,
-      pitch: 1.0
+      speed: createVoiceSpeed(1.0),
+      pitch: createVoicePitch(1.0)
     };
   }
 

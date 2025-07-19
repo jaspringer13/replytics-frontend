@@ -265,7 +265,7 @@ export async function PATCH(request: NextRequest) {
     if (transactionError) {
       const errorDetails = updates.map(update => ({
         dayOfWeek: update.dayOfWeek,
-        day: DAYS_OF_WEEK[update.dayOfWeek],
+        day: update.dayOfWeek !== undefined ? DAYS_OF_WEEK[update.dayOfWeek] : 'Unknown',
         openTime: update.openTime,
         closeTime: update.closeTime,
         isClosed: update.isClosed

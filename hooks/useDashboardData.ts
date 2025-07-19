@@ -26,45 +26,32 @@ export function useDashboardData(): UseDashboardDataReturn {
   // Fetch initial data
   const fetchData = useCallback(async () => {
     if (!tenantId) return
-
-    const abortController = new AbortController()
     
     try {
       setLoading(true)
       
       // Fetch all data in parallel
       const [profile, voice, rules] = await Promise.all([
-        apiClient.getBusinessProfile({ signal: abortController.signal }),
-        apiClient.getVoiceSettings({ signal: abortController.signal }),
-        apiClient.getConversationRules({ signal: abortController.signal })
+        apiClient.getBusinessProfile(),
+        apiClient.getVoiceSettings(),
+        apiClient.getConversationRules()
       ])
-      
-      // Check if the request was aborted
-      if (abortController.signal.aborted) return
       
       setBusinessProfile(profile)
       setVoiceSettings(voice)
       setConversationRules(rules)
       setError(null)
     } catch (err) {
-      // Ignore abort errors
-      if ((err as Error).name === 'AbortError') return
-      
       console.error('Failed to fetch dashboard data:', err)
       setError(err as Error)
     } finally {
-      if (!abortController.signal.aborted) {
-        setLoading(false)
-      }
+      setLoading(false)
     }
-    
-    return () => abortController.abort()
   }, [tenantId])
 
   // Initial fetch
   useEffect(() => {
-    const cleanup = fetchData()
-    return () => cleanup?.()
+    fetchData()
   }, [fetchData])
 
   // Set up real-time subscriptions
@@ -74,18 +61,18 @@ export function useDashboardData(): UseDashboardDataReturn {
     const realtimeManager = getRealtimeManager(tenantId)
     
     realtimeManager.startAll({
-      onVoiceSettingsUpdate: (update) => {
+      onVoiceSettingsUpdate: (update: any) => {
         console.log('Voice settings updated:', update)
-        setVoiceSettings(update.settings)
+        setVoiceSettings(update.settings as VoiceSettings)
       },
-      onConversationRulesUpdate: (update) => {
+      onConversationRulesUpdate: (update: any) => {
         console.log('Conversation rules updated:', update)
-        setConversationRules(update.rules)
+        setConversationRules(update.rules as ConversationRules)
       },
-      onBusinessUpdate: (update) => {
+      onBusinessUpdate: (update: any) => {
         if (update.type === 'profile_updated') {
           console.log('Business profile updated:', update)
-          setBusinessProfile(update.data)
+          setBusinessProfile(update.data as BusinessProfile)
         }
       }
     })

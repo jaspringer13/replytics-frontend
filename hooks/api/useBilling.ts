@@ -56,7 +56,7 @@ export function useBilling() {
       // Use UTC dates to avoid timezone issues in billing period calculations
       const endDateUTC = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
       const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-      const daysRemaining = Math.max(0, Math.ceil((endDateUTC - todayUTC) / (1000 * 60 * 60 * 24)));
+      const daysRemaining = Math.max(0, Math.ceil((endDateUTC.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)));
       
       return {
         ...billing,

@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { 
   TrendingUp, DollarSign, Users, Bot,
-  ArrowRight, AlertCircle, CheckCircle, Info, Lightbulb
+  ArrowRight, AlertCircle, CheckCircle, Info, Lightbulb, Brain
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'

@@ -301,8 +301,16 @@ export function fromAxiosError(axiosError: unknown, context?: ErrorContext): App
     const message = extractErrorMessage(data) || axiosError.message || `HTTP ${status} error`;
     const endpoint = config?.url;
 
+    // Convert headers to Record<string, string>
+    const headers: Record<string, string> = {};
+    if (response.headers) {
+      Object.entries(response.headers).forEach(([key, value]) => {
+        headers[key] = Array.isArray(value) ? value.join(', ') : String(value);
+      });
+    }
+    
     // Use shared status mapping function
-    return mapStatusToError(status, message, data, endpoint, context, axiosError as Error, { headers: response.headers, config });
+    return mapStatusToError(status, message, data, endpoint, context, axiosError as Error, { headers, config });
   }
 
 

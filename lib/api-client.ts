@@ -1,4 +1,4 @@
-import { DashboardOverview, Customer, Service, BusinessHours, BusinessProfile, VoiceSettings, ConversationRules } from '@/app/models/dashboard';
+import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules } from '@/app/models/dashboard';
 
 interface AuthResponse {
   token: string;
@@ -216,7 +216,7 @@ class APIClient {
       return await response.json();
     } catch (error) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new Error('Request timeout');
       }
       console.error(`API request failed: ${endpoint}`, error);
@@ -291,7 +291,19 @@ class APIClient {
     expires_at?: string;
     expires_in?: number;
   }> {
-    const response = await this.request('/api/dashboard/auth/google', {
+    const response = await this.request<{
+      token: string;
+      tenant_id: string;
+      is_new_user: boolean;
+      user: {
+        id: string;
+        email: string;
+        name: string;
+        avatar?: string;
+      };
+      expires_at?: string;
+      expires_in?: number;
+    }>('/api/dashboard/auth/google', {
       method: 'POST',
       body: JSON.stringify(googleData),
     });
@@ -452,7 +464,7 @@ class APIClient {
     return this.request('/api/v2/dashboard/business/voice-settings');
   }
 
-  async updateVoiceSettings(settings: Partial<VoiceSettings>) {
+  async updateVoiceSettings(settings: Partial<VoiceSettings>): Promise<VoiceSettings> {
     return this.request('/api/v2/dashboard/business/voice-settings', {
       method: 'PATCH',
       body: JSON.stringify(settings),
@@ -463,7 +475,7 @@ class APIClient {
     return this.request('/api/v2/dashboard/business/conversation-rules');
   }
 
-  async updateConversationRules(rules: Partial<ConversationRules>) {
+  async updateConversationRules(rules: Partial<ConversationRules>): Promise<ConversationRules> {
     return this.request('/api/v2/dashboard/business/conversation-rules', {
       method: 'PATCH',
       body: JSON.stringify(rules),
@@ -505,11 +517,11 @@ class APIClient {
   }
 
   // Operating Hours
-  async getBusinessHours(): Promise<BusinessHours[]> {
+  async getBusinessHours(): Promise<OperatingHours[]> {
     return this.request('/api/v2/dashboard/hours');
   }
 
-  async updateBusinessHours(hours: BusinessHours[]) {
+  async updateBusinessHours(hours: OperatingHours[]) {
     return this.request('/api/v2/dashboard/hours', {
       method: 'PATCH',
       body: JSON.stringify(hours),
@@ -550,6 +562,28 @@ class APIClient {
       params.append('search', search);
     }
     return this.request(`/api/v2/dashboard/customers/segments/counts?${params.toString()}`);
+  }
+
+  // SMS Management
+  async sendSMSMessage(data: {
+    conversationId: string;
+    message: string;
+    direction: 'outbound' | 'inbound';
+  }): Promise<SMS> {
+    return this.request('/api/v2/dashboard/sms/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async overrideAIMessage(messageId: string, data: {
+    message: string;
+    overrideReason: string;
+  }): Promise<SMS> {
+    return this.request(`/api/v2/dashboard/sms/${messageId}/override`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 }
 

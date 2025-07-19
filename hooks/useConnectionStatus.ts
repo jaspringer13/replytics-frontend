@@ -44,11 +44,12 @@ export function useConnectionStatus(options?: UseConnectionStatusOptions) {
         const apiError = error as { response?: { status?: number } };
         if (apiError.response?.status === 401) {
           setConnectionStatus(prev => ({
-          ...prev,
-          status: 'connecting',
-          isTokenRefreshing: true,
-          message: 'Refreshing authentication...',
-        }));
+            ...prev,
+            status: 'connecting',
+            isTokenRefreshing: true,
+            message: 'Refreshing authentication...',
+          }));
+        }
       } else if (error instanceof Error && 
                 (error.message.includes('fetch') || 
                  error.message.includes('network') || 
