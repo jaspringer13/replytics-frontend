@@ -34,8 +34,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const { data: session, status, update } = useSession()
-  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Initialize state from localStorage
+  const [localUser, setLocalUser] = useState<User | null>(() => {
+    if (typeof window !== 'undefined') {
+      const storedUserStr = localStorage.getItem('user')
+      if (storedUserStr) {
+        try {
+          return JSON.parse(storedUserStr)
+        } catch (err) {
+          console.error('Failed to parse stored user:', err)
+        }
+      }
+    }
+    return null
+  })
+  
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have a stored user/token, we're not loading
+    if (typeof window !== 'undefined') {
+      const hasStoredAuth = !!localStorage.getItem('auth_token')
+      return !hasStoredAuth
+    }
+    return true
+  })
   
   // Token expiration utility function
   const isTokenExpired = (expiresAt: string | null): boolean => {
@@ -47,6 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tokenExpiresAt = typeof window !== 'undefined' 
     ? localStorage.getItem('token_expires_at') 
     : null
+
+  // Initialize API client from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('auth_token')
+      const expiresAt = localStorage.getItem('token_expires_at')
+      
+      if (storedToken) {
+        apiClient.setToken(storedToken, expiresAt || undefined)
+        console.log('AuthContext: Restored auth token from localStorage')
+      }
+    }
+  }, [])
 
   // Sync NextAuth session with localStorage and API client
   useEffect(() => {
@@ -131,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status, update])
 
-  // Convert NextAuth session to our User type
+  // Convert NextAuth session to our User type, or use local user
   const user: User | null = session?.user ? {
     id: session.user.id,
     email: session.user.email || '',
@@ -139,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     tenantId: session.user.tenantId,
     authToken: session.user.authToken,
     onboardingStep: session.user.onboardingStep
-  } : null
+  } : localUser
 
   // Traditional email/password login (for testing)
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -162,14 +198,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Set API client token with expiration
         apiClient.setToken(response.token, expiresAt)
         
+        // Update local user state
+        setLocalUser(response.user)
+        
         // Set cookies for middleware
         document.cookie = `auth_token=${response.token}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `user=${JSON.stringify(response.user)}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `token_expires_at=${expiresAt}; path=/; max-age=86400; SameSite=Lax`
         
         console.log('AuthContext: Navigating to dashboard...')
-        // Use window.location for guaranteed navigation
-        window.location.href = '/dashboard'
+        // Use router.push for client-side navigation
+        router.push('/dashboard')
         return true
       }
       
@@ -246,8 +285,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const isAuthenticated = !!user || (status === 'authenticated')
-  const token = session?.user?.authToken || (typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null)
+  // Check localStorage for auth state
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
+  
+  const isAuthenticated = !!user || (status === 'authenticated') || !!storedToken
+  const token = session?.user?.authToken || storedToken
   const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0
 

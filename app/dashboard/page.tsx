@@ -8,13 +8,15 @@ import { useAuth } from "@/contexts/AuthContext"
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { isLoading, isAuthenticated } = useAuth()
+  const { isLoading, isAuthenticated, token } = useAuth()
 
   useEffect(() => {
+    console.log('Dashboard: Auth state', { isLoading, isAuthenticated, hasToken: !!token })
     if (!isLoading && !isAuthenticated) {
+      console.log('Dashboard: Not authenticated, redirecting to sign-in')
       router.push("/auth/signin")
     }
-  }, [isLoading, isAuthenticated, router])
+  }, [isLoading, isAuthenticated, token, router])
 
   if (isLoading) {
     return (
