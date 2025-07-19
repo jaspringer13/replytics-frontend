@@ -23,6 +23,6 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: ALLOWED_ORIGINS
-        value: '["https://replytics-frontend.vercel.app"]'
+        sync: false
     healthCheckPath: /health
     autoDeploy: true

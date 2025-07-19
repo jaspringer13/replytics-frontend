@@ -38,6 +38,18 @@ export default function AnalyticsPage() {
     }).format(value)
   }
   
+  // Calculate retention rate from customer segments
+  const calculateRetentionRate = () => {
+    if (!analytics?.customerSegments) return 0
+    const segments = analytics.customerSegments
+    const totalCustomers = Object.values(segments).reduce((sum, count) => sum + count, 0)
+    if (totalCustomers === 0) return 0
+    
+    // Retention = (VIP + Regular customers) / Total customers * 100
+    const retainedCustomers = (segments.vip || 0) + (segments.regular || 0)
+    return (retainedCustomers / totalCustomers) * 100
+  }
+  
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -116,8 +128,8 @@ export default function AnalyticsPage() {
           
           <KPICard
             title="Retention Rate"
-            value={`${((analytics?.metrics.totalCustomers || 0) > 0 ? 85.0 : 0).toFixed(1)}%`}
-            previousValue={`${analytics?.metrics.totalCustomers || 0} total customers`}
+            value={`${calculateRetentionRate().toFixed(1)}%`}
+            previousValue={`${Object.values(analytics?.customerSegments || {}).reduce((sum, count) => sum + count, 0)} total customers`}
             changeType="neutral"
             icon={<Star className="h-6 w-6" />}
             iconColor="text-yellow-400"
@@ -187,7 +199,7 @@ export default function AnalyticsPage() {
             className="lg:col-span-2"
           >
             {analytics && (
-              <PopularTimesChart data={[]} />
+              <PopularTimesChart data={analytics?.popularTimes || []} />
             )}
           </ChartWrapper>
         </div>

@@ -428,7 +428,9 @@ BEGIN
       SUM(
         CASE 
           WHEN oh.is_closed = false AND oh.open_time IS NOT NULL AND oh.close_time IS NOT NULL
-          THEN EXTRACT(EPOCH FROM (oh.close_time - oh.open_time)) / 60 * (p_end_date - p_start_date + 1)
+          THEN EXTRACT(EPOCH FROM (oh.close_time - oh.open_time)) / 60 * 
+               (SELECT COUNT(*) FROM generate_series(p_start_date, p_end_date, '1 day'::interval) d 
+                WHERE EXTRACT(DOW FROM d) = oh.day_of_week)
           ELSE 0
         END
       ) as total_available_minutes

@@ -2,9 +2,9 @@
 Analytics endpoints
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Request, Depends, Query, HTTPException
 
 from api.dashboard.auth import get_current_user
 from services.supabase_service import SupabaseService
@@ -12,14 +12,29 @@ from services.supabase_service import SupabaseService
 router = APIRouter()
 
 
+def validate_date(date_string: Optional[str]) -> Optional[str]:
+    """Validate date format and return the validated date string"""
+    if date_string:
+        try:
+            # Try to parse ISO format dates, handling both with and without timezone
+            datetime.fromisoformat(date_string.replace('Z', '+00:00'))
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid date format: {date_string}. Use ISO format (YYYY-MM-DDTHH:MM:SS)")
+    return date_string
+
+
 @router.get("/overview")
 async def get_analytics_overview(
     request: Request,
-    startDate: Optional[str] = Query(None),
-    endDate: Optional[str] = Query(None),
+    startDate: Optional[str] = Query(None, description="ISO format date (YYYY-MM-DDTHH:MM:SS)"),
+    endDate: Optional[str] = Query(None, description="ISO format date (YYYY-MM-DDTHH:MM:SS)"),
     current_user: dict = Depends(get_current_user)
 ):
     """Get analytics overview for date range"""
+    # Validate date parameters
+    startDate = validate_date(startDate)
+    endDate = validate_date(endDate)
+    
     supabase: SupabaseService = request.app.state.supabase
     
     # Get business profile
@@ -50,9 +65,9 @@ async def get_analytics_overview(
     
     # Default date range (last 30 days)
     if not endDate:
-        endDate = datetime.now().isoformat()
+        endDate = datetime.now(timezone.utc).isoformat()
     if not startDate:
-        startDate = (datetime.now() - timedelta(days=30)).isoformat()
+        startDate = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
     
     # Get analytics data
     stats = await supabase.get_analytics_overview(profile["id"], startDate, endDate)

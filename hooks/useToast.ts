@@ -27,28 +27,23 @@ const useToastStore = create<ToastStore>((set, get) => ({
   toasts: [],
   addToast: (toast) => {
     const id = `${Date.now()}-${++counter}`;
-    const newToast = { ...toast, id };
-    
-    set((state) => ({
-      toasts: [...state.toasts, newToast],
-    }));
     
     // Auto remove after duration (default 5 seconds)
     const duration = toast.duration || 5000;
+    let timeoutId: NodeJS.Timeout | undefined;
+    
     if (duration > 0) {
-      const timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         set((state) => ({
           toasts: state.toasts.filter((t) => t.id !== id),
         }));
       }, duration);
-      
-      // Store timeout ID for cleanup
-      set((state) => ({
-        toasts: state.toasts.map(t => 
-          t.id === id ? { ...t, timeoutId } : t
-        )
-      }));
     }
+    
+    const newToast = { ...toast, id, timeoutId };
+    set((state) => ({
+      toasts: [...state.toasts, newToast],
+    }));
   },
   removeToast: (id) => {
     // Clear timeout if toast is manually removed
@@ -61,6 +56,12 @@ const useToastStore = create<ToastStore>((set, get) => ({
     }));
   },
   clearToasts: () => {
+    // Clear all timeouts before clearing toasts
+    get().toasts.forEach(toast => {
+      if (toast.timeoutId) {
+        clearTimeout(toast.timeoutId);
+      }
+    });
     set({ toasts: [] });
   },
 }));

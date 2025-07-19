@@ -104,7 +104,7 @@ export interface ServiceCreate {
   active?: boolean;
 }
 
-export interface ServiceUpdate {
+export interface ServiceUpdatePayload {
   name?: string;
   duration?: number;
   price?: number;
@@ -183,6 +183,7 @@ export interface Customer {
 
 export const CUSTOMER_SEGMENTS = ['vip', 'regular', 'at_risk', 'new', 'dormant'] as const;
 export type CustomerSegment = typeof CUSTOMER_SEGMENTS[number];
+export type CustomerSegmentFilter = CustomerSegment | 'all';
 
 // Customer segment data with count
 export interface CustomerSegmentData {
@@ -208,6 +209,7 @@ export interface DashboardOverview {
   };
   topServices: ServicePerformance[];
   customerSegments: SegmentDistribution;
+  popularTimes: PopularTime[];
 }
 
 export interface DateRange {

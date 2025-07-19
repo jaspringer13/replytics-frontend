@@ -1,4 +1,4 @@
-import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules } from '@/app/models/dashboard';
+import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules, SMSSettings } from '@/app/models/dashboard';
 
 interface AuthResponse {
   token: string;
@@ -639,7 +639,7 @@ class APIClient {
     return this.request('/api/v2/dashboard/sms/settings');
   }
 
-  async updateSMSSettings(settings: any) {
+  async updateSMSSettings(settings: Partial<SMSSettings>) {
     return this.request('/api/v2/dashboard/sms/settings', {
       method: 'PATCH',
       body: JSON.stringify(settings),
@@ -681,8 +681,16 @@ class APIClient {
       throw new Error('No auth token available for WebSocket connection');
     }
 
-    const baseURL = this.baseURL.replace(/^http/, 'ws');
-    return new WebSocket(`${baseURL}/api/v2/config/businesses/${businessId}/ws?token=${token}`);
+    // Use secure WebSocket (wss) and remove token from URL for security
+    const baseURL = this.baseURL.replace(/^http/, 'wss');
+    const ws = new WebSocket(`${baseURL}/api/v2/config/businesses/${businessId}/ws`);
+    
+    // Send authentication token as first message after connection opens
+    ws.addEventListener('open', () => {
+      ws.send(JSON.stringify({ type: 'auth', token }));
+    });
+    
+    return ws;
   }
 }
 

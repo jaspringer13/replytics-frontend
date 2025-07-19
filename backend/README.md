@@ -187,6 +187,7 @@ CREATE TABLE services (
   category TEXT,
   is_active BOOLEAN DEFAULT true,
   display_order INTEGER DEFAULT 0,
+  deleted_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

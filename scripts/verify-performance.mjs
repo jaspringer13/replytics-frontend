@@ -25,9 +25,9 @@ if (existsSync(performanceModulePath)) {
 }
 
 // Check if test page exists
-const testPagePath = join(process.cwd(), 'app/test-performance/page.tsx');
+const testPagePath = join(process.cwd(), 'app/performance-smoke-test/page.tsx');
 if (existsSync(testPagePath)) {
-  console.log('✅ Test page created at app/test-performance/page.tsx');
+  console.log('✅ Test page created at app/performance-smoke-test/page.tsx');
 } else {
   console.error('❌ Test page not found');
   process.exit(1);

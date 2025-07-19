@@ -33,7 +33,9 @@ export async function GET(request: NextRequest) {
 
     // Validate pagination
     if (filters.page! < 1) filters.page = 1;
-    if (filters.pageSize! < 1 || filters.pageSize! > 100) filters.pageSize = 20;
+    if (filters.pageSize! < 1 || filters.pageSize! > 100) {
+      filters.pageSize = Math.max(1, Math.min(100, filters.pageSize!));
+    }
 
     // Use materialized view for efficient segment filtering
     let query = getSupabaseServer()

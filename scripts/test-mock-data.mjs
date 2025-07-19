@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 
 import { mockDataGenerator } from '../lib/testing/mock-data-generator.ts';
 

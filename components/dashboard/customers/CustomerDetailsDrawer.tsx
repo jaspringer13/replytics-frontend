@@ -6,6 +6,7 @@ import { X, Phone, Mail, Calendar, DollarSign, Clock, MessageSquare, Star, Flag 
 import { Customer } from '@/app/models/dashboard'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
+import { useToast } from '@/hooks/useToast'
 
 interface CustomerDetailsDrawerProps {
   customer: Customer | null
@@ -16,13 +17,14 @@ interface CustomerDetailsDrawerProps {
 export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDetailsDrawerProps) {
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'notes'>('info')
   const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
 
   if (!customer) return null
 
   // Handle send message action
   const handleSendMessage = async () => {
     if (!customer.phone) {
-      alert('No phone number available for this customer')
+      toast.error('No phone number available for this customer')
       return
     }
     
@@ -30,10 +32,10 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
     try {
       // TODO: Implement SMS sending logic
       // For now, show a coming soon message
-      alert(`SMS messaging feature coming soon! Would send message to ${customer.phone}`)
+      toast.info('SMS messaging feature coming soon!')
     } catch (error) {
       console.error('Failed to send message:', error)
-      alert('Failed to send message. Please try again.')
+      toast.error('Failed to send message. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -45,11 +47,11 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
     try {
       // TODO: Implement appointment booking logic
       // For now, show a coming soon message and close drawer
-      alert(`Appointment booking feature coming soon! Would create appointment for ${customer.firstName || 'customer'}`)
+      toast.info('Appointment booking feature coming soon!')
       onClose()
     } catch (error) {
       console.error('Failed to book appointment:', error)
-      alert('Failed to book appointment. Please try again.')
+      toast.error('Failed to book appointment. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -57,14 +59,29 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
 
-  // Format phone number
+  // Format phone number with international support
   const formatPhone = (phone: string) => {
     if (!phone) return 'No phone'
     const cleaned = phone.replace(/\D/g, '')
-    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-    if (match) {
-      return `(${match[1]}) ${match[2]}-${match[3]}`
+    
+    // US/Canada format (10 digits)
+    const usMatch = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
+    if (usMatch) {
+      return `(${usMatch[1]}) ${usMatch[2]}-${usMatch[3]}`
     }
+    
+    // US/Canada with country code (11 digits starting with 1)
+    const usWithCountryMatch = cleaned.match(/^1(\d{3})(\d{3})(\d{4})$/)
+    if (usWithCountryMatch) {
+      return `+1 (${usWithCountryMatch[1]}) ${usWithCountryMatch[2]}-${usWithCountryMatch[3]}`
+    }
+    
+    // International format - add + if it starts with a country code pattern
+    if (cleaned.length >= 10 && cleaned.length <= 15) {
+      return `+${cleaned}`
+    }
+    
+    // Fallback to original if no pattern matches
     return phone
   }
 

@@ -145,8 +145,8 @@ export default function PerformanceSmokeTest() {
                     <span className="font-semibold text-lg">{metric.name}</span>
                     <span className={`text-lg ${getMetricColor(metric.rating)}`}>
                       {metric.name === 'CLS' 
-                        ? metric.value!.toFixed(3)
-                        : `${Math.round(metric.value!)}ms`
+                        ? (metric.value?.toFixed(3) ?? 'N/A')
+                        : `${Math.round(metric.value ?? 0)}ms`
                       }
                     </span>
                   </div>

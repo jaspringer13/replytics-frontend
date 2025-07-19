@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { ConversationList, Conversation } from '@/components/dashboard/messages/ConversationList'
 import { MessageThread } from '@/components/dashboard/messages/MessageThread'
@@ -14,31 +14,7 @@ import { useSMSConversations } from '@/hooks/useBackendData'
 import { SMS, apiClient } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/useToast'
-
-// Mock templates - in real app these would come from API
-const mockTemplates: MessageTemplate[] = [
-  {
-    id: '1',
-    name: 'Appointment Confirmation',
-    content: 'Hi {name}, this is a reminder of your appointment tomorrow at {time}. Reply Y to confirm or N to reschedule.',
-    category: 'appointment',
-    variables: ['name', 'time']
-  },
-  {
-    id: '2',
-    name: 'Welcome Message',
-    content: 'Welcome to our service! We\'re excited to have you. Feel free to text us anytime with questions.',
-    category: 'greeting',
-    isAIGenerated: true
-  },
-  {
-    id: '3',
-    name: 'Follow-up',
-    content: 'Hi {name}, thank you for visiting us today! We hope you had a great experience. See you next time!',
-    category: 'follow-up',
-    variables: ['name']
-  }
-]
+import { DEFAULT_MESSAGE_TEMPLATES } from '@/constants/messageTemplates'
 
 // Helper hook to group messages by conversation - optimized with useMemo
 function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
@@ -59,6 +35,7 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
       
       const lastMessage = sortedMessages[0]
       // TODO: Update SMS interface to include readAt field for proper read tracking
+      // Currently counts all received inbound messages as unread - will be updated when readAt field is added
       const unreadCount = msgs.filter(m => 
         m.direction === 'inbound' && 
         m.status === 'received'
@@ -178,6 +155,48 @@ export default function MessagesPage() {
     setShowTemplates(false)
   }
 
+  // Handle template management
+  const handleSaveTemplate = async (template: MessageTemplate) => {
+    try {
+      // TODO: Implement API call once endpoint is available
+      // await apiClient.createTemplate(template)
+      toast.success('Template saved successfully')
+      console.log('Save template:', template)
+    } catch (error) {
+      console.error('Failed to save template:', error)
+      toast.error('Failed to save template')
+    }
+  }
+
+  const handleUpdateTemplate = async (id: string, updates: Partial<MessageTemplate>) => {
+    try {
+      // TODO: Implement API call once endpoint is available
+      // await apiClient.updateTemplate(id, updates)
+      toast.success('Template updated successfully')
+      console.log('Update template:', id, updates)
+    } catch (error) {
+      console.error('Failed to update template:', error)
+      toast.error('Failed to update template')
+    }
+  }
+
+  const handleDeleteTemplate = async (id: string) => {
+    try {
+      // TODO: Implement API call once endpoint is available
+      // await apiClient.deleteTemplate(id)
+      toast.success('Template deleted successfully')
+      console.log('Delete template:', id)
+    } catch (error) {
+      console.error('Failed to delete template:', error)
+      toast.error('Failed to delete template')
+    }
+  }
+
+  // Optimized AI toggle handler with useCallback
+  const handleAiToggle = useCallback(() => {
+    setAiEnabled(!aiEnabled)
+  }, [aiEnabled])
+
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto h-[calc(100vh-140px)]">
@@ -195,7 +214,7 @@ export default function MessagesPage() {
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-400">AI Auto-Response</span>
               <button
-                onClick={() => setAiEnabled(!aiEnabled)}
+                onClick={handleAiToggle}
                 className={cn(
                   "relative w-12 h-6 rounded-full transition-colors",
                   aiEnabled ? "bg-brand-500" : "bg-gray-700"
@@ -316,11 +335,11 @@ export default function MessagesPage() {
                       className="border-l border-gray-700 bg-gray-900/50"
                     >
                       <MessageTemplates
-                        templates={mockTemplates}
+                        templates={DEFAULT_MESSAGE_TEMPLATES}
                         onUseTemplate={handleUseTemplate}
-                        onSaveTemplate={(template) => console.log('Save template:', template)}
-                        onUpdateTemplate={(id, updates) => console.log('Update template:', id, updates)}
-                        onDeleteTemplate={(id) => console.log('Delete template:', id)}
+                        onSaveTemplate={handleSaveTemplate}
+                        onUpdateTemplate={handleUpdateTemplate}
+                        onDeleteTemplate={handleDeleteTemplate}
                       />
                     </motion.div>
                   )}

@@ -21,9 +21,20 @@ const SEGMENT_COLORS = {
 }
 
 export function CustomerSegmentsChart({ data, height = 300, minLabelPercentage = 5 }: CustomerSegmentsChartProps) {
+  // Validate input data
+  if (!Array.isArray(data) || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400">No data available</p>
+      </div>
+    )
+  }
+
   // Calculate total and sort by count
   const enhancedData = useMemo(() => {
     const total = data.reduce((sum, segment) => sum + segment.count, 0)
+    if (total === 0) return []
+    
     return data
       .map(segment => ({
         ...segment,
@@ -49,7 +60,7 @@ export function CustomerSegmentsChart({ data, height = 300, minLabelPercentage =
           className="rounded-lg shadow-lg"
         >
           <p style={chartTheme.tooltip.labelStyle} className="font-medium mb-2 capitalize">
-            {data.segment.replace('_', ' ')}
+            {data.segment.replace(/_/g, ' ')}
           </p>
           <div style={chartTheme.tooltip.itemStyle} className="space-y-1">
             <p>Customers: <span className="font-semibold">{data.count.toLocaleString()}</span></p>
@@ -73,11 +84,20 @@ export function CustomerSegmentsChart({ data, height = 300, minLabelPercentage =
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-sm text-gray-300 capitalize">
-              {entry.value.replace('_', ' ')}
+              {entry.value.replace(/_/g, ' ')}
             </span>
           </li>
         ))}
       </ul>
+    )
+  }
+
+  // Handle case where all counts are zero
+  if (enhancedData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-400">No customer data available</p>
+      </div>
     )
   }
 

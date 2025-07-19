@@ -24,6 +24,33 @@ const INSIGHT_THRESHOLDS = {
   PEAK_HOUR_APPOINTMENTS: 10
 } as const
 
+const MOCK_AI_ACTIVITIES: Omit<AIActivity, 'businessId'>[] = [
+  {
+    id: '1',
+    type: 'call',
+    customer: 'Sarah Johnson',
+    action: 'Scheduled haircut appointment for tomorrow at 2 PM',
+    timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+    aiConfidence: 95
+  },
+  {
+    id: '2',
+    type: 'sms',
+    customer: 'Mike Chen',
+    action: 'Confirmed appointment reminder and answered pricing question',
+    timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+    aiConfidence: 88
+  },
+  {
+    id: '3',
+    type: 'call',
+    customer: 'Lisa Brown',
+    action: 'Rescheduled appointment from Friday to Monday',
+    timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+    aiConfidence: 92
+  }
+]
+
 export function DashboardOverview() {
   const { data: dashboardStats, isLoading: statsLoading } = useStats()
   const { businessProfile, loading: profileLoading } = useDashboardData()
@@ -55,35 +82,10 @@ export function DashboardOverview() {
       try {
         setActivitiesLoading(true)
         // Mock AI activities for now - replace with real API call
-        const mockActivities: AIActivity[] = [
-          {
-            id: '1',
-            type: 'call',
-            customer: 'Sarah Johnson',
-            action: 'Scheduled haircut appointment for tomorrow at 2 PM',
-            timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-            aiConfidence: 95,
-            businessId: businessProfile.id
-          },
-          {
-            id: '2',
-            type: 'sms',
-            customer: 'Mike Chen',
-            action: 'Confirmed appointment reminder and answered pricing question',
-            timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
-            aiConfidence: 88,
-            businessId: businessProfile.id
-          },
-          {
-            id: '3',
-            type: 'call',
-            customer: 'Lisa Brown',
-            action: 'Rescheduled appointment from Friday to Monday',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-            aiConfidence: 92,
-            businessId: businessProfile.id
-          }
-        ]
+        const mockActivities = MOCK_AI_ACTIVITIES.map(activity => ({
+          ...activity,
+          businessId: businessProfile.id
+        }))
         setAiActivities(mockActivities)
       } catch (error) {
         console.error('Error fetching AI activities:', error)

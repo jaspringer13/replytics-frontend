@@ -241,7 +241,7 @@ export function AIChatWidget() {
     if (lowerQuery.includes('revenue')) {
       return {
         id: Date.now().toString(),
-        content: "Revenue is up 18% this month compared to last month. You've generated $24,500 so far, with an average service value of $85.",
+        content: "I'll help you check your revenue data. This feature is currently showing example data until integrated with your analytics.",
         role: 'assistant',
         timestamp: new Date(),
         actions: [{
@@ -255,7 +255,7 @@ export function AIChatWidget() {
     if (lowerQuery.includes('missed call')) {
       return {
         id: Date.now().toString(),
-        content: "You have 3 missed calls today. The AI handled 2 of them by sending follow-up messages. One requires your attention.",
+        content: "I'll help you check your missed calls. This feature is currently showing example data until integrated with your call system.",
         role: 'assistant',
         timestamp: new Date(),
         actions: [{

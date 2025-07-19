@@ -76,25 +76,20 @@ async def update_business_hours(
     if not profile:
         raise HTTPException(status_code=404, detail="Business profile not found")
     
-    # Delete existing hours
-    await supabase.client.table('business_hours')\
-        .delete()\
-        .eq('business_id', profile["id"])\
-        .execute()
-    
-    # Insert new hours
+    # Prepare hours data
     hours_data = []
     for day_hours in hours:
         hours_data.append({
             "business_id": profile["id"],
             "day_of_week": day_hours.dayOfWeek,
             "is_closed": day_hours.isClosed,
-            "time_slots": [slot.dict() for slot in day_hours.timeSlots]
+            "time_slots": [slot.model_dump() for slot in day_hours.timeSlots]
         })
     
     if hours_data:
+        # Use upsert to avoid race conditions
         result = await supabase.client.table('business_hours')\
-            .insert(hours_data)\
+            .upsert(hours_data, on_conflict="business_id,day_of_week")\
             .execute()
         
         if not result.data:

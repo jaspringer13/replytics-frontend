@@ -257,8 +257,18 @@ class PerformanceTracker {
 
     console.log('[Performance] Sending metrics:', data);
 
-    if (endpoint && navigator.sendBeacon) {
-      navigator.sendBeacon(endpoint, JSON.stringify(data));
+    if (endpoint) {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(endpoint, JSON.stringify(data));
+      } else {
+        // Fallback for browsers without sendBeacon support
+        fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+          keepalive: true
+        }).catch(error => console.warn('[Performance] Failed to send metrics:', error));
+      }
     }
   }
 
@@ -286,23 +296,39 @@ export const getPerformanceTracker = (budget?: PerformanceBudget): PerformanceTr
 
 // Export convenience functions
 export const markStatsLoaded = () => {
-  const t = getPerformanceTracker();
-  if (t) t.markStatsLoaded();
+  try {
+    const t = getPerformanceTracker();
+    if (t) t.markStatsLoaded();
+  } catch (error) {
+    console.warn('[Performance] Failed to mark stats loaded:', error);
+  }
 };
 
 export const onPerformanceMetrics = (callback: (metrics: PerformanceMetrics) => void) => {
-  const t = getPerformanceTracker();
-  if (t) t.onMetricsUpdate(callback);
+  try {
+    const t = getPerformanceTracker();
+    if (t) t.onMetricsUpdate(callback);
+  } catch (error) {
+    console.warn('[Performance] Failed to register metrics callback:', error);
+  }
 };
 
 export const sendPerformanceMetrics = (endpoint?: string) => {
-  const t = getPerformanceTracker();
-  if (t) t.sendToAnalytics(endpoint);
+  try {
+    const t = getPerformanceTracker();
+    if (t) t.sendToAnalytics(endpoint);
+  } catch (error) {
+    console.warn('[Performance] Failed to send metrics:', error);
+  }
 };
 
 export const cleanupPerformanceTracker = () => {
-  if (tracker) {
-    tracker.cleanup();
-    tracker = null;
+  try {
+    if (tracker) {
+      tracker.cleanup();
+      tracker = null;
+    }
+  } catch (error) {
+    console.warn('[Performance] Failed to cleanup tracker:', error);
   }
 };

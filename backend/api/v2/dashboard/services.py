@@ -93,8 +93,21 @@ async def update_service(
     """Update a service"""
     supabase: SupabaseService = request.app.state.supabase
     
-    # Verify ownership
-    # TODO: Add ownership verification
+    # Get business profile
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Business profile not found")
+    
+    # Verify service belongs to user's business
+    service = await supabase.client.table('services')\
+        .select('id')\
+        .eq('id', service_id)\
+        .eq('business_id', profile["id"])\
+        .single()\
+        .execute()
+    
+    if not service.data:
+        raise HTTPException(status_code=404, detail="Service not found or unauthorized")
     
     # Convert to dict and remove None values
     update_data = {k: v for k, v in updates.dict().items() if v is not None}
@@ -103,7 +116,7 @@ async def update_service(
         return {"message": "No updates provided"}
     
     # Update service
-    result = await supabase.client.table('services').update(update_data).eq('id', service_id).execute()
+    result = supabase.client.table('services').update(update_data).eq('id', service_id).execute()
     
     if not result.data:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -119,6 +132,22 @@ async def delete_service(
 ):
     """Delete a service (soft delete)"""
     supabase: SupabaseService = request.app.state.supabase
+    
+    # Get business profile
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Business profile not found")
+    
+    # Verify service belongs to user's business
+    service = await supabase.client.table('services')\
+        .select('id')\
+        .eq('id', service_id)\
+        .eq('business_id', profile["id"])\
+        .single()\
+        .execute()
+    
+    if not service.data:
+        raise HTTPException(status_code=404, detail="Service not found or unauthorized")
     
     # Soft delete by setting is_active to false
     result = await supabase.client.table('services').update({
@@ -141,10 +170,25 @@ async def reorder_services(
     """Reorder services"""
     supabase: SupabaseService = request.app.state.supabase
     
+    # Get business profile
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Business profile not found")
+    
+    # Verify all services belong to user's business
+    services = await supabase.client.table('services')\
+        .select('id')\
+        .eq('business_id', profile["id"])\
+        .in_('id', reorder_data.serviceIds)\
+        .execute()
+    
+    if not services.data or len(services.data) != len(reorder_data.serviceIds):
+        raise HTTPException(status_code=404, detail="One or more services not found or unauthorized")
+    
     # Update display order for each service
     for index, service_id in enumerate(reorder_data.serviceIds):
         await supabase.client.table('services').update({
             'display_order': index
-        }).eq('id', service_id).execute()
+        }).eq('id', service_id).eq('business_id', profile["id"]).execute()
     
     return {"success": True, "message": "Services reordered"}

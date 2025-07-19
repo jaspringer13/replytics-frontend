@@ -14,6 +14,8 @@ const AVAILABLE_VOICES = {
   'VR6AewLTigWG4xSOukaG': 'Warm Female'
 };
 
+const VALID_SPEAKING_STYLES = ['friendly_professional', 'casual', 'formal', 'enthusiastic'] as const;
+
 /**
  * GET /api/v2/dashboard/business/voice-settings
  * Get voice configuration for the business
@@ -105,8 +107,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const validStyles = ['friendly_professional', 'casual', 'formal', 'enthusiastic'];
-    if (updates.speakingStyle && !validStyles.includes(updates.speakingStyle)) {
+    if (updates.speakingStyle && !VALID_SPEAKING_STYLES.includes(updates.speakingStyle)) {
       return NextResponse.json(
         { error: 'Invalid speaking style' },
         { status: 400 }

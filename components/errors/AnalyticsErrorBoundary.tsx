@@ -12,11 +12,13 @@ export function AnalyticsErrorBoundary({ children }: Props) {
     <FeatureErrorBoundary
       feature="analytics"
       onError={(error) => {
-        console.warn('[Analytics Error]', {
-          error,
-          timestamp: new Date().toISOString(),
-          message: 'Analytics error caught - data collection continues in background',
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Analytics Error]', {
+            error,
+            timestamp: new Date().toISOString(),
+            message: 'Analytics error caught - data collection continues in background',
+          });
+        }
       }}
     >
       {children}

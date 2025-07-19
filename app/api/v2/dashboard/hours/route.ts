@@ -152,6 +152,13 @@ export async function POST(request: NextRequest) {
     // Create default hours
     const defaultHours = await createDefaultHours(tenantId);
     
+    if (defaultHours.length === 0) {
+      return NextResponse.json(
+        { error: 'Failed to create default operating hours' },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json({
       success: true,
       data: defaultHours,
@@ -339,7 +346,7 @@ async function createDefaultHours(businessId: string): Promise<OperatingHours[]>
 
   if (error) {
     console.error('Error creating default hours:', error);
-    return [];
+    throw new Error(`Failed to create default hours: ${error.message}`);
   }
 
   return data.map(hour => ({

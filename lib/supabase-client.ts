@@ -13,8 +13,7 @@ export function getSupabaseClient() {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('Supabase configuration missing. Real-time features will not work.');
-      throw new Error('supabaseKey is required.');
+      throw new Error('Supabase URL and anon key are required for client initialization.');
     }
 
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {

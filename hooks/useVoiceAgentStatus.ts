@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { useUserTenant } from '@/hooks/useUserTenant'
 import { useDashboardData } from '@/hooks/useDashboardData'
+import { isWithinBusinessHours, getBusinessTime } from '@/utils/businessHours'
 
 interface StatusUpdatePayload {
   isActive?: boolean
@@ -47,19 +48,8 @@ export function useVoiceAgentStatus(): UseVoiceAgentStatusReturn {
     try {
       // In a real implementation, this would check the actual voice agent status
       // For now, we'll simulate it based on business hours and settings
-      const now = new Date()
-      
-      // Convert to business timezone if available
-      const businessTime = businessProfile?.timezone 
-        ? new Date(now.toLocaleString("en-US", { timeZone: businessProfile.timezone }))
-        : now
-      
-      const hour = businessTime.getHours()
-      const isBusinessHours = hour >= 9 && hour < 17 // 9 AM to 5 PM
-      const isWeekday = businessTime.getDay() >= 1 && businessTime.getDay() <= 5
-
-      // Simulate agent being active during business hours on weekdays
-      const isActive = isBusinessHours && isWeekday
+      const businessTime = getBusinessTime(businessProfile?.timezone)
+      const isActive = isWithinBusinessHours(businessProfile?.timezone)
       
       setStatus(prev => ({
         ...prev,

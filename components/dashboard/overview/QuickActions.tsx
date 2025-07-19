@@ -91,10 +91,15 @@ export function QuickActions({ dashboardStats, loading }: QuickActionsProps) {
           >
             <Link
               href={action.href}
+              role="button"
+              aria-label={`${action.label}${action.count ? ` (${action.count} items)` : ''}`}
               className="relative block p-6 bg-gray-800/50 backdrop-blur border border-gray-700 rounded-xl hover:bg-gray-800 hover:border-gray-600 transition-all group"
             >
               {action.count !== undefined && action.count > 0 && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                <div 
+                  className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center"
+                  aria-label={`${action.count} items`}
+                >
                   {action.count}
                 </div>
               )}

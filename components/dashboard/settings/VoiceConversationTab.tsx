@@ -28,7 +28,7 @@ export function VoiceConversationTab({ businessId }: VoiceConversationTabProps) 
 
   useEffect(() => {
     loadSettings();
-  }, [businessId]);
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -134,7 +134,7 @@ export function VoiceConversationTab({ businessId }: VoiceConversationTabProps) 
                 <Label htmlFor="speaking-style" className="text-gray-300">Speaking Style</Label>
                 <Select 
                   value={voiceSettings.speakingStyle}
-                  onValueChange={(value: any) => setVoiceSettings({ ...voiceSettings, speakingStyle: value })}
+                  onValueChange={(value) => setVoiceSettings({ ...voiceSettings, speakingStyle: value as VoiceSettings['speakingStyle'] })}
                 >
                   <SelectTrigger className="mt-1 bg-gray-700/50 border-gray-600 text-white">
                     <SelectValue placeholder="Select speaking style" />

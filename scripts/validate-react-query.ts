@@ -11,12 +11,12 @@ const validationResults: Array<{
 }> = [];
 
 function checkFile(filePath: string): boolean {
-  return fs.existsSync(path.join(process.cwd(), filePath));
+  return fs.existsSync(path.resolve(process.cwd(), filePath));
 }
 
 function readFile(filePath: string): string {
   try {
-    return fs.readFileSync(path.join(process.cwd(), filePath), 'utf-8');
+    return fs.readFileSync(path.resolve(process.cwd(), filePath), 'utf-8');
   } catch (error) {
     console.warn(`Failed to read file: ${filePath}`, error instanceof Error ? error.message : 'Unknown error');
     return '';
@@ -135,7 +135,7 @@ function hasNumericLiteral(sourceFile: ts.SourceFile, value: number): boolean {
       const nodeValue = node.text.includes('.') 
         ? parseFloat(node.text) 
         : parseInt(node.text, 10);
-      if (nodeValue === value) {
+      if (Math.abs(nodeValue - value) < Number.EPSILON) {
         found = true;
       }
     }
@@ -284,6 +284,7 @@ console.log(`\nSummary: ${passed} passed, ${failed} failed, ${warnings} warnings
 
 if (failed === 0) {
   console.log('\n✨ All requirements met! React Query integration is complete.');
+  process.exit(0);
 } else {
   console.log('\n❗ Some requirements are not met. Please review the failures above.');
   process.exit(1);

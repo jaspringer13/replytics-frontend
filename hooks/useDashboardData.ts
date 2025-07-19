@@ -63,16 +63,28 @@ export function useDashboardData(): UseDashboardDataReturn {
     realtimeManager.startAll({
       onVoiceSettingsUpdate: (update: any) => {
         console.log('Voice settings updated:', update)
-        setVoiceSettings(update.settings as VoiceSettings)
+        if (update.settings && typeof update.settings === 'object') {
+          setVoiceSettings(update.settings as VoiceSettings)
+        } else {
+          console.error('Invalid voice settings update:', update)
+        }
       },
       onConversationRulesUpdate: (update: any) => {
         console.log('Conversation rules updated:', update)
-        setConversationRules(update.rules as ConversationRules)
+        if (update.rules && typeof update.rules === 'object') {
+          setConversationRules(update.rules as ConversationRules)
+        } else {
+          console.error('Invalid conversation rules update:', update)
+        }
       },
       onBusinessUpdate: (update: any) => {
         if (update.type === 'profile_updated') {
           console.log('Business profile updated:', update)
-          setBusinessProfile(update.data as BusinessProfile)
+          if (update.data && typeof update.data === 'object') {
+            setBusinessProfile(update.data as BusinessProfile)
+          } else {
+            console.error('Invalid business profile update:', update)
+          }
         }
       }
     })

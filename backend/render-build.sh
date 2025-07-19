@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Render build script with pip upgrade
 
@@ -14,6 +15,6 @@ python -m pip install --upgrade setuptools wheel
 
 # Install requirements
 echo "Installing dependencies..."
-python -m pip install -r requirements.txt
+python -m pip install --no-cache-dir -r requirements.txt
 
 echo "Build complete!"

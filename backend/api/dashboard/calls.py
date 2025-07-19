@@ -44,7 +44,7 @@ async def get_calls(
     # Apply pagination
     query = query.order('created_at', desc=True).range(offset, offset + limit - 1)
     
-    result = await query.execute()
+    result = query.execute()
     
     return {
         "calls": result.data or [],
@@ -61,10 +61,16 @@ async def get_call_recording(
     """Get recording URL for a call"""
     supabase: SupabaseService = request.app.state.supabase
     
+    # Get business profile
+    profile = await supabase.get_business_profile(current_user["id"])
+    if not profile:
+        raise HTTPException(status_code=404, detail="Business profile not found")
+    
     # Get call details
-    result = await supabase.client.table('calls')\
+    result = supabase.client.table('calls')\
         .select('recording_url')\
         .eq('id', call_id)\
+        .eq('business_id', profile["id"])\
         .single()\
         .execute()
     
@@ -103,14 +109,14 @@ async def get_call_stats(
     week_ago = today - timedelta(days=7)
     
     # Get today's stats
-    today_result = await supabase.client.table('calls')\
+    today_result = supabase.client.table('calls')\
         .select('status', count='exact')\
         .eq('business_id', profile["id"])\
         .gte('created_at', today.isoformat())\
         .execute()
     
     # Get week stats
-    week_result = await supabase.client.table('calls')\
+    week_result = supabase.client.table('calls')\
         .select('status', count='exact')\
         .eq('business_id', profile["id"])\
         .gte('created_at', week_ago.isoformat())\

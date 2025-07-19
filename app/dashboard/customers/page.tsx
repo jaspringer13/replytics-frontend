@@ -136,7 +136,7 @@ export default function CustomersPage() {
           {/* Segment Filters */}
           <SegmentFilter
             selectedSegment={selectedSegment}
-            onSegmentChange={(segment) => setSelectedSegment(segment as CustomerSegment | 'all')}
+            onSegmentChange={(segment) => setSelectedSegment(segment)}
             segmentCounts={segmentCounts}
           />
         </div>

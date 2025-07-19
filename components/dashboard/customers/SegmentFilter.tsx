@@ -1,23 +1,22 @@
 "use client"
 
 import { motion } from 'framer-motion'
-import { Star, TrendingDown, Clock, AlertCircle, Users } from 'lucide-react'
+import { Star, TrendingDown, Clock, AlertCircle, Users, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-type SegmentId = 'all' | 'vip' | 'regular' | 'at_risk' | 'new' | 'dormant'
+import { CustomerSegmentFilter } from '@/app/models/dashboard'
 
 interface SegmentFilterProps {
-  selectedSegment: string
-  onSegmentChange: (segment: string) => void
+  selectedSegment: CustomerSegmentFilter
+  onSegmentChange: (segment: CustomerSegmentFilter) => void
   segmentCounts?: {
-    [K in SegmentId]: number
+    [K in CustomerSegmentFilter]: number
   }
 }
 
 const segments: Array<{
-  id: SegmentId
+  id: CustomerSegmentFilter
   label: string
-  icon: any
+  icon: LucideIcon
   color: string
   bgColor: string
   borderColor: string
@@ -91,6 +90,8 @@ export function SegmentFilter({
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.05 }}
             onClick={() => onSegmentChange(segment.id)}
+            aria-pressed={isSelected}
+            aria-label={`Filter by ${segment.label}, ${count} customers`}
             className={cn(
               "px-4 py-2 rounded-lg border transition-all duration-200",
               "flex items-center gap-2 text-sm font-medium",

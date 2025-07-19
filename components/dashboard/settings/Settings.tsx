@@ -114,7 +114,7 @@ export function Settings({ businessId }: SettingsProps) {
         </TabsList>
 
         <TabsContent value="business-profile">
-          <BusinessProfileTab businessId={businessId} />
+          <BusinessProfileTab />
         </TabsContent>
 
         <TabsContent value="services">

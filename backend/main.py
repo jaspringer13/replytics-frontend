@@ -13,7 +13,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 # Add backend to Python path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Load environment variables
 load_dotenv()
@@ -82,9 +82,9 @@ app.add_middleware(
 )
 
 # Add custom middleware
-app.add_middleware(AuthMiddleware)
-app.add_middleware(LoggingMiddleware)
-app.add_middleware(RateLimitMiddleware)
+app.add_middleware(RateLimitMiddleware)  # Execute after auth
+app.add_middleware(AuthMiddleware)       # Execute after logging
+app.add_middleware(LoggingMiddleware)    # Execute first (after CORS)
 
 # Include routers
 app.include_router(auth_router, prefix="/api/dashboard/auth", tags=["Authentication"])

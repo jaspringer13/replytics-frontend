@@ -192,6 +192,7 @@ export class DataCoordinator {
     this.updateQueue = [];
     this.debouncers.forEach(debouncer => clearTimeout(debouncer));
     this.debouncers.clear();
+    this.isProcessing = false;
   }
 
   /**

@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       return () => clearInterval(interval)
     }
-  }, [session, status, update])
+  }, [session, status, update, logout])
 
   // Convert NextAuth session to our User type, or use local user
   const user: User | null = session?.user ? {

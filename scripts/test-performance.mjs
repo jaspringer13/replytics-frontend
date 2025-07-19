@@ -36,7 +36,7 @@ try {
       markStatsLoaded();
       console.log('✅ Stats loaded marked successfully');
       console.log('\nPerformance metrics module is ready for use!');
-      resolve();
+      resolve(void 0);
     }, 100);
   });
   

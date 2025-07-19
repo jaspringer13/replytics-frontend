@@ -13,11 +13,9 @@ import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
 import { BusinessProfile } from '@/app/models/dashboard';
 
-interface BusinessProfileTabProps {
-  businessId: string;
-}
+interface BusinessProfileTabProps {}
 
-export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
+export function BusinessProfileTab({}: BusinessProfileTabProps) {
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,7 +23,7 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
 
   useEffect(() => {
     loadProfile();
-  }, [businessId]);
+  }, []);
 
   const loadProfile = async () => {
     try {
@@ -40,8 +38,37 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
     }
   };
 
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const isValidUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSave = async () => {
     if (!profile) return;
+    
+    // Basic validation
+    if (!profile.name?.trim()) {
+      toast.error('Business name is required');
+      return;
+    }
+    
+    if (profile.email && !isValidEmail(profile.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    if (profile.website && !isValidUrl(profile.website)) {
+      toast.error('Please enter a valid website URL');
+      return;
+    }
 
     try {
       setSaving(true);
@@ -159,7 +186,7 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
               value={profile.address?.street || ''}
               onChange={(e) => setProfile({ 
                 ...profile, 
-                address: { ...profile.address, street: e.target.value }
+                address: { ...profile.address || {}, street: e.target.value }
               })}
               className="bg-gray-700/50 border-gray-600 text-white"
               placeholder="Street Address"
@@ -169,7 +196,7 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
               value={profile.address?.city || ''}
               onChange={(e) => setProfile({ 
                 ...profile, 
-                address: { ...profile.address, city: e.target.value }
+                address: { ...profile.address || {}, city: e.target.value }
               })}
               className="bg-gray-700/50 border-gray-600 text-white"
               placeholder="City"
@@ -179,7 +206,7 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
               value={profile.address?.state || ''}
               onChange={(e) => setProfile({ 
                 ...profile, 
-                address: { ...profile.address, state: e.target.value }
+                address: { ...profile.address || {}, state: e.target.value }
               })}
               className="bg-gray-700/50 border-gray-600 text-white"
               placeholder="State"
@@ -189,7 +216,7 @@ export function BusinessProfileTab({ businessId }: BusinessProfileTabProps) {
               value={profile.address?.zip || ''}
               onChange={(e) => setProfile({ 
                 ...profile, 
-                address: { ...profile.address, zip: e.target.value }
+                address: { ...profile.address || {}, zip: e.target.value }
               })}
               className="bg-gray-700/50 border-gray-600 text-white"
               placeholder="ZIP Code"

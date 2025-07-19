@@ -269,7 +269,7 @@ export class DashboardRealtimeManager {
     onServiceUpdate?: (update: ServiceUpdate) => void;
     onBusinessUpdate?: (update: BusinessUpdate) => void;
     onConversationRulesUpdate?: (update: ConversationRulesUpdate) => void;
-    onOperatingHoursUpdate?: (update: any) => void;
+    onOperatingHoursUpdate?: (update: OperatingHoursUpdate) => void;
   }) {
     // Voice settings subscription (highest priority for real-time voice agent updates)
     if (handlers.onVoiceSettingsUpdate) {

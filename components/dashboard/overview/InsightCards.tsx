@@ -70,6 +70,7 @@ export function InsightCards({ insights, loading }: InsightCardsProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {insights.map((insight, index) => {
         const TypeIcon = typeIcons[insight.type]
+        const typeIconElement = <TypeIcon className="w-5 h-5 mt-2 opacity-70" />
         
         return (
           <motion.div
@@ -86,7 +87,7 @@ export function InsightCards({ insights, loading }: InsightCardsProps) {
               <div className="p-2 rounded-lg bg-white/10">
                 {insight.icon}
               </div>
-              <TypeIcon className="w-5 h-5 mt-2 opacity-70" />
+              {typeIconElement}
             </div>
             
             <h3 className="font-semibold text-lg mb-2">{insight.title}</h3>

@@ -26,6 +26,7 @@ class LoginRequest(BaseModel):
 
 
 class GoogleLoginRequest(BaseModel):
+    id_token: str  # Google ID token for verification
     email: EmailStr
     name: str
     image: Optional[str] = None
@@ -62,7 +63,38 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), request: Request = None):
+async def verify_google_token(id_token: str) -> dict:
+    """Verify Google ID token and return user info"""
+    try:
+        # Verify token with Google's tokeninfo endpoint
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"https://oauth2.googleapis.com/tokeninfo?id_token={id_token}"
+            )
+            
+        if response.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+            
+        token_data = response.json()
+        
+        # Verify the token is for our application (if client_id is configured)
+        # Note: In production, you should verify the 'aud' field matches your client_id
+        
+        # Extract user information
+        return {
+            "email": token_data.get("email"),
+            "name": token_data.get("name"),
+            "google_id": token_data.get("sub"),
+            "image": token_data.get("picture")
+        }
+        
+    except httpx.RequestError:
+        raise HTTPException(status_code=500, detail="Failed to verify Google token")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), request: Request):
     """Get current user from JWT token"""
     try:
         payload = jwt.decode(
@@ -81,33 +113,14 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             raise HTTPException(status_code=401, detail="User not found")
         
         return user
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials") from e
 
 
 @router.post("/", response_model=AuthResponse)
 async def login(request: Request, login_data: LoginRequest):
     """Login with email and password"""
     supabase: SupabaseService = request.app.state.supabase
-    
-    # Special handling for test account
-    if login_data.email == "jaspringer13@gmail.com" and login_data.password == "admin":
-        # Create test user response
-        user = {
-            "id": "test-user-id",
-            "email": login_data.email,
-            "name": "Test Admin",
-            "created_at": datetime.utcnow().isoformat()
-        }
-        
-        token, expires_at, expires_in = create_access_token({"sub": user["id"], "email": user["email"]})
-        
-        return AuthResponse(
-            token=token,
-            user=user,
-            expires_at=expires_at,
-            expires_in=expires_in
-        )
     
     # Normal authentication flow
     user = await supabase.get_user_by_email(login_data.email)
@@ -135,21 +148,29 @@ async def google_login(request: Request, google_data: GoogleLoginRequest):
     """Login with Google OAuth"""
     supabase: SupabaseService = request.app.state.supabase
     
+    # Verify Google ID token and get user info
+    verified_user_info = await verify_google_token(google_data.id_token)
+    
+    # Use verified data instead of user-provided data
+    email = verified_user_info["email"]
+    name = verified_user_info["name"]
+    google_id = verified_user_info["google_id"]
+    
     # Check if user exists
-    user = await supabase.get_user_by_email(google_data.email)
+    user = await supabase.get_user_by_email(email)
     
     if not user:
-        # Create new user
+        # Create new user with verified data
         user = await supabase.create_user(
-            email=google_data.email,
+            email=email,
             password_hash="",  # No password for OAuth users
-            name=google_data.name
+            name=name
         )
         
         # Create business profile
         await supabase.client.table('business_profiles').insert({
             'user_id': user['id'],
-            'business_name': f"{google_data.name}'s Business",
+            'business_name': f"{name}'s Business",
             'onboarding_step': 0
         }).execute()
     

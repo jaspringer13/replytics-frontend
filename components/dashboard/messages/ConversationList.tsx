@@ -87,7 +87,7 @@ export function ConversationList({
           key={conversation.id}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.05 }}
+          transition={{ delay: Math.min(index * 0.05, 0.5) }}
           onClick={() => onSelect(conversation.id)}
           aria-label={`Conversation with ${conversation.customerName || conversation.phoneNumber}, ${conversation.unreadCount} unread messages, last message: ${conversation.lastMessage}`}
           role="button"

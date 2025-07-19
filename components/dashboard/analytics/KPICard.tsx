@@ -37,7 +37,7 @@ export function KPICard({
 
   // Format change percentage
   const formatChange = (value: number) => {
-    if (!isFinite(value)) return 'N/A'
+    if (!Number.isFinite(value)) return 'N/A'
     const prefix = value > 0 ? '+' : ''
     return `${prefix}${value.toFixed(1)}%`
   }

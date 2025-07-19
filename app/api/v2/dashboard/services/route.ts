@@ -101,6 +101,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate data types
+    if (typeof serviceData.name !== 'string' || 
+        typeof serviceData.duration !== 'number' || 
+        typeof serviceData.price !== 'number') {
+      return NextResponse.json(
+        { error: 'Invalid data types' },
+        { status: 400 }
+      );
+    }
+
+    // Validate string length
+    if (serviceData.name.length > 255) {
+      return NextResponse.json(
+        { error: 'Service name too long (max 255 characters)' },
+        { status: 400 }
+      );
+    }
+
     // Validate duration
     if (serviceData.duration < 15 || serviceData.duration > 480) {
       return NextResponse.json(

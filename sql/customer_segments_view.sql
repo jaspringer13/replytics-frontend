@@ -29,24 +29,24 @@ BEGIN
   END;
   
   -- Apply segmentation logic
-  -- New customer: First visit within 90 days
-  IF days_since_first_visit < 90 THEN
-    RETURN 'new';
-  END IF;
-  
-  -- Dormant: No visit in 60+ days
-  IF days_since_last_visit > 60 THEN
-    RETURN 'dormant';
-  END IF;
-  
-  -- VIP: High lifetime value and regular visits
+  -- VIP: High lifetime value and regular visits (check first to preserve VIP status)
   IF total_revenue > 2000 AND total_appointments > 10 THEN
     RETURN 'vip';
+  END IF;
+  
+  -- Dormant: No visit in 60+ days (but not VIP)
+  IF days_since_last_visit > 60 THEN
+    RETURN 'dormant';
   END IF;
   
   -- At risk: Declining frequency
   IF days_since_last_visit > 45 AND total_appointments > 3 THEN
     RETURN 'at_risk';
+  END IF;
+  
+  -- New customer: First visit within 90 days
+  IF days_since_first_visit < 90 THEN
+    RETURN 'new';
   END IF;
   
   RETURN 'regular';

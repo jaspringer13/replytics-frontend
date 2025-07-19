@@ -23,7 +23,15 @@ interface AIActivityFeedProps {
 // Helper function to format relative time
 function getRelativeTime(timestamp: Date): string {
   const now = new Date()
+  
+  // Handle future timestamps
+  if (timestamp > now) return 'Just now'
+  
   const diffMs = now.getTime() - timestamp.getTime()
+  
+  // Handle invalid dates
+  if (isNaN(diffMs)) return 'Unknown'
+  
   const diffMins = Math.floor(diffMs / (1000 * 60))
   const diffHours = Math.floor(diffMins / 60)
   const diffDays = Math.floor(diffHours / 24)
@@ -92,7 +100,7 @@ export function AIActivityFeed({ activities, loading }: AIActivityFeedProps) {
         href="/dashboard/calls"
         className="mt-4 block text-center text-sm text-brand-400 hover:text-brand-300 transition-colors"
       >
-        View all AI activity →
+        View all calls →
       </Link>
     </motion.div>
   )

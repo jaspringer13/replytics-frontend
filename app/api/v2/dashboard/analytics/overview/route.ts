@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServer } from '@/lib/supabase-server';
-import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution } from '@/app/models/dashboard';
+import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution, PopularTime, DayOfWeek } from '@/app/models/dashboard';
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
       fetchCustomerSegments(tenantId),
       fetchRevenueTrend(tenantId, dateRange),
       fetchAppointmentTrend(tenantId, dateRange),
-      fetchNewCustomerTrend(tenantId, dateRange)
+      fetchNewCustomerTrend(tenantId, dateRange),
+      fetchPopularTimes(tenantId, dateRange)
     ]);
     
     // Extract successful results with fallbacks
@@ -71,11 +72,12 @@ export async function GET(request: NextRequest) {
     const revenueTrend = results[4].status === 'fulfilled' ? results[4].value : [];
     const appointmentTrend = results[5].status === 'fulfilled' ? results[5].value : [];
     const newCustomerTrend = results[6].status === 'fulfilled' ? results[6].value : [];
+    const popularTimes = results[7].status === 'fulfilled' ? results[7].value : [];
     
     // Log any failures for monitoring
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        const functionNames = ['currentMetrics', 'previousMetrics', 'servicePerformance', 'customerSegments', 'revenueTrend', 'appointmentTrend', 'newCustomerTrend'];
+        const functionNames = ['currentMetrics', 'previousMetrics', 'servicePerformance', 'customerSegments', 'revenueTrend', 'appointmentTrend', 'newCustomerTrend', 'popularTimes'];
         console.error(`Failed to fetch ${functionNames[index]}:`, result.reason);
       }
     });
@@ -110,7 +112,8 @@ export async function GET(request: NextRequest) {
         }
       },
       topServices: servicePerformance,
-      customerSegments
+      customerSegments,
+      popularTimes
     };
 
     return NextResponse.json({
@@ -279,7 +282,9 @@ async function fetchCustomerSegments(tenantId: string): Promise<SegmentDistribut
   const { data: appointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('customer_id, price, status, created_at, appointment_time')
-    .eq('business_id', tenantId);
+    .eq('business_id', tenantId)
+    // Limit to last 2 years for performance while maintaining segmentation accuracy
+    .gte('created_at', new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString());
 
   if (error) {
     console.error('Error fetching customer data for segmentation:', error);
@@ -441,10 +446,15 @@ async function fetchAppointmentTrend(tenantId: string, dateRange: DateRange): Pr
 
 async function fetchNewCustomerTrend(tenantId: string, dateRange: DateRange): Promise<{ date: string; value: number }[]> {
   // Find first appointment for each customer to identify new customers
+  // Optimize by limiting the search to a reasonable time window (e.g., 1 year before start date)
+  const searchStartDate = new Date(dateRange.start);
+  searchStartDate.setFullYear(searchStartDate.getFullYear() - 1);
+  
   const { data: customerFirstAppointments, error } = await getSupabaseServer()
     .from('appointments')
     .select('customer_id, appointment_time')
     .eq('business_id', tenantId)
+    .gte('appointment_time', searchStartDate.toISOString())
     .order('appointment_time', { ascending: true });
 
   if (error) {
@@ -487,4 +497,64 @@ async function fetchNewCustomerTrend(tenantId: string, dateRange: DateRange): Pr
   }
 
   return dataPoints;
+}
+
+async function fetchPopularTimes(tenantId: string, dateRange: DateRange): Promise<PopularTime[]> {
+  // Fetch all appointments in the date range
+  const { data: appointments, error } = await getSupabaseServer()
+    .from('appointments')
+    .select('appointment_time')
+    .eq('business_id', tenantId)
+    .gte('appointment_time', dateRange.start.toISOString())
+    .lte('appointment_time', dateRange.end.toISOString())
+    .neq('status', 'cancelled');
+
+  if (error) {
+    console.error('Error fetching popular times:', error);
+    return [];
+  }
+
+  // Create a map to count bookings by hour and day of week
+  const timeSlotCounts = new Map<string, number>();
+  
+  appointments?.forEach(apt => {
+    const appointmentDate = new Date(apt.appointment_time);
+    const hour = appointmentDate.getHours();
+    const dayOfWeek = appointmentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    // Create a key for hour-dayOfWeek combination
+    const key = `${hour}-${dayOfWeek}`;
+    const currentCount = timeSlotCounts.get(key) || 0;
+    timeSlotCounts.set(key, currentCount + 1);
+  });
+
+  // Convert to PopularTime array and aggregate by hour across all days
+  const hourlyAggregation = new Map<number, number>();
+  
+  timeSlotCounts.forEach((count, key) => {
+    const [hourStr] = key.split('-');
+    const hour = parseInt(hourStr);
+    const currentTotal = hourlyAggregation.get(hour) || 0;
+    hourlyAggregation.set(hour, currentTotal + count);
+  });
+
+  // Convert to PopularTime array
+  const popularTimes: PopularTime[] = [];
+  
+  for (let hour = 0; hour < 24; hour++) {
+    const bookingCount = hourlyAggregation.get(hour) || 0;
+    
+    // Only include hours with bookings or during typical business hours (7 AM - 8 PM)
+    if (bookingCount > 0 || (hour >= 7 && hour <= 20)) {
+      popularTimes.push({
+        hour,
+        dayOfWeek: DayOfWeek.MONDAY, // Using Monday as default since we're aggregating across all days
+        bookingCount,
+        label: `${hour.toString().padStart(2, '0')}:00`
+      });
+    }
+  }
+
+  // Sort by booking count descending to get most popular times first
+  return popularTimes.sort((a, b) => b.bookingCount - a.bookingCount);
 }

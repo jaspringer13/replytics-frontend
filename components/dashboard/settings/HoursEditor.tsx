@@ -43,7 +43,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await apiClient.updateBusinessHours(hours);
+      await apiClient.updateBusinessHours(businessId, hours);
       toast.success('Business hours updated successfully');
     } catch (error) {
       console.error('Failed to update business hours:', error);

@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 from config.settings import get_settings
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class SupabaseService:
     
     # User operations
     async def create_user(self, email: str, password_hash: str, name: str) -> Dict[str, Any]:
-        """Create a new user"""
+        """Create a new user. Raises exception on failure."""
         try:
             result = self.client.table('users').insert({
                 'email': email,
@@ -59,7 +60,7 @@ class SupabaseService:
             raise
     
     async def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
-        """Get user by email"""
+        """Get user by email. Returns None if not found."""
         try:
             result = self.client.table('users').select('*').eq('email', email).single().execute()
             return result.data
@@ -68,7 +69,7 @@ class SupabaseService:
             return None
     
     async def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get user by ID"""
+        """Get user by ID. Returns None if not found."""
         try:
             result = self.client.table('users').select('*').eq('id', user_id).single().execute()
             return result.data
@@ -78,7 +79,7 @@ class SupabaseService:
     
     # Business profile operations
     async def get_business_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
-        """Get business profile for user"""
+        """Get business profile for user. Returns None if not found."""
         try:
             result = self.client.table('business_profiles').select('*').eq('user_id', user_id).single().execute()
             return result.data
@@ -87,7 +88,7 @@ class SupabaseService:
             return None
     
     async def update_business_profile(self, user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update business profile"""
+        """Update business profile. Raises exception on failure."""
         try:
             result = self.client.table('business_profiles').update(updates).eq('user_id', user_id).execute()
             return result.data[0] if result.data else None
@@ -97,7 +98,7 @@ class SupabaseService:
     
     # Voice settings operations
     async def get_voice_settings(self, business_id: str) -> Optional[Dict[str, Any]]:
-        """Get voice settings for business"""
+        """Get voice settings for business. Returns None if not found."""
         try:
             result = self.client.table('voice_settings').select('*').eq('business_id', business_id).single().execute()
             return result.data
@@ -106,7 +107,7 @@ class SupabaseService:
             return None
     
     async def update_voice_settings(self, business_id: str, settings: Dict[str, Any]) -> Dict[str, Any]:
-        """Update voice settings"""
+        """Update voice settings. Raises exception on failure."""
         try:
             result = self.client.table('voice_settings').upsert({
                 'business_id': business_id,
@@ -119,19 +120,19 @@ class SupabaseService:
     
     # Services operations
     async def get_services(self, business_id: str, include_inactive: bool = False) -> List[Dict[str, Any]]:
-        """Get services for business"""
+        """Get services for business. Returns empty list if none found."""
         try:
             query = self.client.table('services').select('*').eq('business_id', business_id)
             if not include_inactive:
                 query = query.eq('is_active', True)
             result = query.order('display_order').execute()
-            return result.data
+            return result.data or []
         except Exception as e:
             logger.error(f"Failed to get services: {e}")
             return []
     
     async def create_service(self, business_id: str, service_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create a new service"""
+        """Create a new service. Raises exception on failure."""
         try:
             result = self.client.table('services').insert({
                 'business_id': business_id,
@@ -144,7 +145,7 @@ class SupabaseService:
     
     # Analytics operations
     async def get_analytics_overview(self, business_id: str, start_date: str, end_date: str) -> Dict[str, Any]:
-        """Get analytics overview for date range"""
+        """Get analytics overview for date range. Raises exception on failure."""
         try:
             # Get call stats
             calls_result = self.client.table('calls').select('*').eq('business_id', business_id)\
@@ -175,13 +176,15 @@ class SupabaseService:
     
     # Customer operations
     async def get_customers(self, business_id: str, filters: Dict[str, Any]) -> Dict[str, Any]:
-        """Get customers with filtering and pagination"""
+        """Get customers with filtering and pagination. Raises exception on failure."""
         try:
             query = self.client.table('customers').select('*').eq('business_id', business_id)
             
             # Apply filters
             if filters.get('search'):
-                search_term = f"%{filters['search']}%"
+                # Sanitize search input to prevent injection
+                clean_search = re.sub(r'[^0-9A-Za-z ]+', '', filters['search'])
+                search_term = f"%{clean_search}%"
                 query = query.or_(f"first_name.ilike.{search_term},last_name.ilike.{search_term},phone.ilike.{search_term}")
             
             if filters.get('segment'):
@@ -192,16 +195,12 @@ class SupabaseService:
             page_size = filters.get('pageSize', 10)
             offset = (page - 1) * page_size
             
-            # Get total count
-            count_result = self.client.table('customers').select('id', count='exact').eq('business_id', business_id).execute()
-            total = count_result.count if count_result else 0
-            
-            # Get paginated results
-            result = query.range(offset, offset + page_size - 1).execute()
+            # Get paginated results with count in a single query
+            result = query.select('*', count='exact').range(offset, offset + page_size - 1).execute()
             
             return {
                 'customers': result.data or [],
-                'total': total
+                'total': result.count or 0
             }
         except Exception as e:
             logger.error(f"Failed to get customers: {e}")

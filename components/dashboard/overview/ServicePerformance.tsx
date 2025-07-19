@@ -49,8 +49,8 @@ export function ServicePerformance({ topServices, loading }: ServicePerformanceP
       <h2 className="text-xl font-semibold text-white mb-4">Top Services</h2>
       {topServices && topServices.length > 0 ? (
         <div className="space-y-3">
-          {topServices.slice(0, 5).map((service, index) => (
-            <div key={index} className="flex items-center justify-between">
+          {topServices.slice(0, 5).map((service) => (
+            <div key={service.serviceName} className="flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-white font-medium">{service.serviceName}</p>
                 <p className="text-sm text-gray-400">

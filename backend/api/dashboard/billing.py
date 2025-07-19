@@ -49,7 +49,7 @@ async def get_billing_info(
     
     # Get usage for current billing period
     calls_result = await supabase.client.table('calls')\
-        .select('duration', count='exact')\
+        .select('duration, recording_url', count='exact')\
         .eq('business_id', profile["id"])\
         .gte('created_at', billing_start.isoformat())\
         .lt('created_at', billing_end.isoformat())\
@@ -120,6 +120,10 @@ async def upgrade_plan(
     current_user: dict = Depends(get_current_user)
 ):
     """Upgrade billing plan"""
+    allowed_plans = ["starter", "professional", "enterprise"]
+    if plan not in allowed_plans:
+        raise HTTPException(status_code=400, detail=f"Invalid plan. Must be one of: {', '.join(allowed_plans)}")
+    
     # TODO: Integrate with payment provider (Stripe)
     return {
         "success": True,

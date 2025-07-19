@@ -74,13 +74,40 @@ async def get_segment_counts(
             "dormant": 0
         }
     
-    # For now, return mock data
-    # TODO: Implement actual segment counting logic
-    return {
-        "all": 150,
-        "vip": 20,
-        "regular": 80,
-        "at_risk": 15,
-        "new": 25,
-        "dormant": 10
+    # Query customer_segments materialized view for actual counts
+    query = supabase.client.from('customer_segments').select('segment').eq('tenant_id', profile["id"])
+    
+    # Apply search filter if provided
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.or(f"first_name.ilike.{search_term},last_name.ilike.{search_term},ani_hash.ilike.{search_term}")
+    
+    response = query.execute()
+    
+    if response.data is None:
+        return {
+            "all": 0,
+            "vip": 0,
+            "regular": 0,
+            "at_risk": 0,
+            "new": 0,
+            "dormant": 0
+        }
+    
+    # Count segments
+    segment_counts = {
+        "all": 0,
+        "vip": 0,
+        "regular": 0,
+        "at_risk": 0,
+        "new": 0,
+        "dormant": 0
     }
+    
+    for row in response.data:
+        segment_counts["all"] += 1
+        segment = row.get("segment")
+        if segment in segment_counts:
+            segment_counts[segment] += 1
+    
+    return segment_counts

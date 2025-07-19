@@ -66,7 +66,7 @@ async def get_business_profile(request: Request, current_user: dict = Depends(ge
             "industry": "general",
             "timezone": "America/New_York"
         }
-        await supabase.client.table('business_profiles').insert(profile).execute()
+        supabase.client.table('business_profiles').insert(profile).execute()
     
     return profile
 

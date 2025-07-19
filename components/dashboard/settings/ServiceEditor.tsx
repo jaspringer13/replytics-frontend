@@ -120,7 +120,7 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
         await apiClient.createService({
           ...formData,
           businessId: businessId,
-          displayOrder: services.length
+          displayOrder: services.length > 0 ? Math.max(...services.map(s => s.displayOrder)) + 1 : 0
         });
         toast.success('Service created successfully');
       }

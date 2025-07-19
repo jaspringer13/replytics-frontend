@@ -88,6 +88,12 @@ export class VoiceSettingsService {
       // Broadcast real-time update
       await this.broadcastConversationRulesUpdate(businessId, rules);
 
+      // Log important changes for monitoring
+      console.log(`Conversation rules updated for business ${businessId}:`, {
+        timestamp: new Date().toISOString(),
+        changes: rules
+      });
+
       return { success: true };
     } catch (error) {
       console.error('Conversation rules update error:', error);
@@ -138,16 +144,18 @@ export class VoiceSettingsService {
     error?: string;
   } {
     if (settings.speed !== undefined) {
-      const { min, max } = VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.speed;
-      if (settings.speed < min || settings.speed > max) {
-        return { isValid: false, error: `Speed must be between ${min} and ${max}` };
+      try {
+        createVoiceSpeed(settings.speed);
+      } catch (error) {
+        return { isValid: false, error: (error as Error).message };
       }
     }
 
     if (settings.pitch !== undefined) {
-      const { min, max } = VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.pitch;
-      if (settings.pitch < min || settings.pitch > max) {
-        return { isValid: false, error: `Pitch must be between ${min} and ${max}` };
+      try {
+        createVoicePitch(settings.pitch);
+      } catch (error) {
+        return { isValid: false, error: (error as Error).message };
       }
     }
 
@@ -242,6 +250,24 @@ export class VoiceSettingsService {
     
     // Clean up the channel
     await getSupabaseServer().removeChannel(channel);
+
+    // Also send to general business channel for consistency
+    const businessChannel = getSupabaseServer().channel(`business:${businessId}`);
+    await businessChannel.subscribe();
+    
+    await businessChannel.send({
+      type: 'broadcast',
+      event: 'settings_updated',
+      payload: {
+        businessId,
+        type: 'conversation_rules',
+        rules,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    // Clean up the business channel
+    await getSupabaseServer().removeChannel(businessChannel);
   }
 
   /**
@@ -249,7 +275,7 @@ export class VoiceSettingsService {
    */
   private getDefaultVoiceSettings(): VoiceSettings {
     return {
-      voiceId: 'kdmDKE6EkgrWrrykO9Qt',
+      voiceId: process.env.DEFAULT_VOICE_ID || 'kdmDKE6EkgrWrrykO9Qt',
       speakingStyle: 'friendly_professional',
       speed: createVoiceSpeed(1.0),
       pitch: createVoicePitch(1.0)
