@@ -23,25 +23,32 @@ export default function SignInPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    console.log('Sign-in page: isAuthenticated =', isAuthenticated)
     if (isAuthenticated) {
-      console.log('Sign-in page: User is authenticated, redirecting to dashboard')
       router.push("/dashboard")
     }
   }, [isAuthenticated, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    
+    console.log('=== SIGN IN ATTEMPT ===')
+    console.log('Email:', email)
+    console.log('Password length:', password.length)
+    
+    if (!email || !password) {
+      setError("Please enter email and password")
+      return
+    }
+    
     setError("")
     setIsLoading(true)
 
     try {
-      console.log('Sign-in form submitted with email:', email)
+      console.log('Calling login function...')
       const success = await login(email, password)
       console.log('Login result:', success)
       
       if (!success) {
-        // Don't navigate here - AuthContext handles navigation on success
         setError("Invalid email or password")
         setIsLoading(false)
       }
@@ -106,37 +113,6 @@ export default function SignInPage() {
               </p>
             </div>
 
-            {/* Debug Test Button */}
-            <button
-              type="button"
-              onClick={() => {
-                console.log('TEST BUTTON CLICKED!')
-                console.log('Current email:', email)
-                console.log('Current password:', password)
-                alert('Test button works! Check console for form values.')
-              }}
-              className="w-full mb-4 py-2 px-4 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-            >
-              🔧 Debug: Test JavaScript (Click Me)
-            </button>
-
-            {/* Manual Submit Test Button */}
-            <button
-              type="button"
-              onClick={() => {
-                console.log('Manual submit attempt!')
-                const form = document.getElementById('signin-form') as HTMLFormElement
-                if (form) {
-                  console.log('Form found, submitting manually...')
-                  form.requestSubmit()
-                } else {
-                  console.log('Form not found!')
-                }
-              }}
-              className="w-full mb-4 py-2 px-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              🚀 Debug: Manual Form Submit
-            </button>
 
             {/* Sign In Form */}
             <form 
@@ -153,10 +129,7 @@ export default function SignInPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => {
-                    console.log('Email input changed:', e.target.value)
-                    setEmail(e.target.value)
-                  }}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
@@ -172,10 +145,7 @@ export default function SignInPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => {
-                    console.log('Password input changed:', e.target.value.length, 'characters')
-                    setPassword(e.target.value)
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
@@ -203,9 +173,12 @@ export default function SignInPage() {
 
               {/* Sign In Button */}
               <button
-                type="submit"
+                type="button"
                 disabled={isLoading}
-                onClick={() => console.log('Sign-in button clicked!')}
+                onClick={() => {
+                  console.log('Sign in button clicked!')
+                  handleSubmit()
+                }}
                 className="w-full py-3 px-4 bg-gradient-to-r from-brand-400 to-brand-600 text-white font-medium rounded-lg hover:from-brand-500 hover:to-brand-700 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading ? (
