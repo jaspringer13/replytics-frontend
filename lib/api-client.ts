@@ -264,7 +264,7 @@ class APIClient {
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>('/api/dashboard/auth', {
+    const response = await this.request<AuthResponse>('/api/dashboard/auth/', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
