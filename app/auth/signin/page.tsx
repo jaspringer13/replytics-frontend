@@ -23,7 +23,9 @@ export default function SignInPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('Sign-in page: isAuthenticated =', isAuthenticated)
     if (isAuthenticated) {
+      console.log('Sign-in page: User is authenticated, redirecting to dashboard')
       router.push("/dashboard")
     }
   }, [isAuthenticated, router])
@@ -34,15 +36,19 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
+      console.log('Sign-in form submitted with email:', email)
       const success = await login(email, password)
-      if (success) {
-        router.push("/dashboard")
-      } else {
+      console.log('Login result:', success)
+      
+      if (!success) {
+        // Don't navigate here - AuthContext handles navigation on success
         setError("Invalid email or password")
+        setIsLoading(false)
       }
+      // If success, AuthContext will handle the navigation
     } catch (err) {
+      console.error('Sign-in error:', err)
       setError("An error occurred. Please try again.")
-    } finally {
       setIsLoading(false)
     }
   }
@@ -157,6 +163,7 @@ export default function SignInPage() {
               <button
                 type="submit"
                 disabled={isLoading}
+                onClick={() => console.log('Sign-in button clicked!')}
                 className="w-full py-3 px-4 bg-gradient-to-r from-brand-400 to-brand-600 text-white font-medium rounded-lg hover:from-brand-500 hover:to-brand-700 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading ? (
