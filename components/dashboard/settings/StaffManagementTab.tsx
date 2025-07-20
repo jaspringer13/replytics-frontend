@@ -6,11 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, UserPlus, Shield, Calendar } from 'lucide-react';
 
-interface StaffManagementTabProps {
-  businessId: string;
-}
-
-export function StaffManagementTab({ businessId }: StaffManagementTabProps) {
+export function StaffManagementTab() {
   return (
     <div className="space-y-6">
       <Card className="p-6 bg-gray-800/50 border-gray-700">

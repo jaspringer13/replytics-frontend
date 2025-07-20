@@ -179,7 +179,7 @@ export function useUpdateBusinessProfile() {
       updates: Partial<BusinessProfile>;
     }) => voiceBotAPI.updateBusinessProfile(businessId, updates),
     onSuccess: (_, { businessId }) => {
-      queryClient.invalidateQueries(['business-profile', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['business-profile', businessId] });
     },
   });
 }
@@ -204,7 +204,7 @@ export function useCreateService() {
       service: Partial<Service>;
     }) => voiceBotAPI.createService(businessId, service),
     onSuccess: (_, { businessId }) => {
-      queryClient.invalidateQueries(['services', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['services', businessId] });
     },
   });
 }
@@ -223,7 +223,7 @@ export function useUpdateService() {
       updates: Partial<Service>;
     }) => voiceBotAPI.updateService(businessId, serviceId, updates),
     onSuccess: (_, { businessId }) => {
-      queryClient.invalidateQueries(['services', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['services', businessId] });
     },
   });
 }
@@ -240,7 +240,7 @@ export function useReorderServices() {
       serviceIds: string[];
     }) => voiceBotAPI.reorderServices(businessId, serviceIds),
     onSuccess: (_, { businessId }) => {
-      queryClient.invalidateQueries(['services', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['services', businessId] });
     },
   });
 }
@@ -265,7 +265,7 @@ export function useUpdateBusinessHours() {
       hours: BusinessHours;
     }) => voiceBotAPI.updateBusinessHours(businessId, hours),
     onSuccess: (_, { businessId }) => {
-      queryClient.invalidateQueries(['business-hours', businessId]);
+      queryClient.invalidateQueries({ queryKey: ['business-hours', businessId] });
     },
   });
 }

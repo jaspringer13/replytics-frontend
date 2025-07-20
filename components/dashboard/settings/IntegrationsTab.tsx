@@ -6,10 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Calendar, CreditCard, Zap, MessageSquare, Phone, ExternalLink, Settings, X } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-
-interface IntegrationsTabProps {
-  businessId: string;
-}
+import { useBusinessId } from '@/contexts/SettingsContext';
 
 interface Integration {
   id: string;
@@ -185,7 +182,8 @@ const integrations: Integration[] = [
   }
 ];
 
-export function IntegrationsTab({ businessId }: IntegrationsTabProps) {
+export function IntegrationsTab() {
+  const businessId = useBusinessId();
   const { toast } = useToast();
   const [integrationConfigs, setIntegrationConfigs] = useState<IntegrationConfig>({});
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);

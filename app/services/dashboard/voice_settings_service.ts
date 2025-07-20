@@ -6,11 +6,10 @@
 import { getSupabaseServer } from '@/lib/supabase-server';
 import { 
   VoiceSettings, 
-  ConversationRules, 
-  createVoiceSpeed, 
-  createVoicePitch 
+  ConversationRules 
 } from '@/app/models/dashboard';
 import { voiceSynthesisService } from '@/lib/voice-synthesis';
+import { env } from '@/lib/config';
 
 export class VoiceSettingsService {
   /**
@@ -130,11 +129,14 @@ export class VoiceSettingsService {
     }
   }
 
-  // Validation constants
-  private static readonly VOICE_SETTINGS_CONSTRAINTS = {
-    speed: { min: 0.5, max: 2.0 },
-    pitch: { min: 0.5, max: 2.0 },
-    validStyles: ['friendly_professional', 'casual', 'formal', 'enthusiastic'] as const
+  // Available voice options
+  public static readonly VOICE_OPTIONS = {
+    'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
+    'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
+    'Yko7PKHZNXotIFUBG7I9': 'Sam - Professional Male',
+    'VR6AewLTigWG4xSOukaG': 'Bella - Warm Female',
+    'EXAVITQu4vr4xnSDxMaL': 'Sarah - Energetic Female',
+    'ErXwobaYiN019PkySvjV': 'Antoni - Calm Male',
   };
 
   /**
@@ -144,24 +146,8 @@ export class VoiceSettingsService {
     isValid: boolean;
     error?: string;
   } {
-    if (settings.speed !== undefined) {
-      try {
-        createVoiceSpeed(settings.speed);
-      } catch (error) {
-        return { isValid: false, error: (error as Error).message };
-      }
-    }
-
-    if (settings.pitch !== undefined) {
-      try {
-        createVoicePitch(settings.pitch);
-      } catch (error) {
-        return { isValid: false, error: (error as Error).message };
-      }
-    }
-
-    if (settings.speakingStyle && !VoiceSettingsService.VOICE_SETTINGS_CONSTRAINTS.validStyles.includes(settings.speakingStyle)) {
-      return { isValid: false, error: 'Invalid speaking style' };
+    if (settings.voiceId && !(settings.voiceId in VoiceSettingsService.VOICE_OPTIONS)) {
+      return { isValid: false, error: 'Invalid voice selection' };
     }
 
     return { isValid: true };
@@ -275,7 +261,7 @@ export class VoiceSettingsService {
    * Get default voice settings
    */
   private getDefaultVoiceSettings(): VoiceSettings {
-    const envVoiceId = process.env.DEFAULT_VOICE_ID;
+    const envVoiceId = env.get('DEFAULT_VOICE_ID');
     const fallbackVoiceId = 'kdmDKE6EkgrWrrykO9Qt';
     
     // Validate environment variable and log appropriately
@@ -290,10 +276,7 @@ export class VoiceSettingsService {
     const defaultVoiceId = envVoiceId && envVoiceId.trim() !== '' ? envVoiceId : fallbackVoiceId;
     
     return {
-      voiceId: defaultVoiceId,
-      speakingStyle: 'friendly_professional',
-      speed: createVoiceSpeed(1.0),
-      pitch: createVoicePitch(1.0)
+      voiceId: defaultVoiceId
     };
   }
 
@@ -369,7 +352,9 @@ export class VoiceSettingsService {
         // Clean up old cache entries (keep only last 10)
         if (this.testAudioCache.size > 10) {
           const oldestKey = this.testAudioCache.keys().next().value;
-          this.testAudioCache.delete(oldestKey);
+          if (oldestKey !== undefined) {
+            this.testAudioCache.delete(oldestKey);
+          }
         }
       }
 
@@ -410,12 +395,7 @@ export class VoiceSettingsService {
    * Generate cache key for test audio
    */
   private generateTestCacheKey(settings: VoiceSettings, message: string): string {
-    const settingsHash = JSON.stringify({
-      voiceId: settings.voiceId,
-      speakingStyle: settings.speakingStyle,
-      speed: settings.speed,
-      pitch: settings.pitch
-    });
+    const settingsHash = settings.voiceId;
     return `${Buffer.from(settingsHash + message).toString('base64').slice(0, 32)}`;
   }
 }

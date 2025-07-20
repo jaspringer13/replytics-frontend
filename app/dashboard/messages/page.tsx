@@ -42,6 +42,8 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
         !m.readAt  // Message is unread if readAt is not set
       ).length
       
+      const lastAIMessage = sortedMessages.find(m => m.aiMetadata?.isAIGenerated);
+      
       return {
         id,
         phoneNumber: lastMessage.phoneNumber,
@@ -52,7 +54,10 @@ function useGroupMessagesByConversation(messages: SMS[]): Conversation[] {
         // Use AI metadata from messages to determine AI handling
         isAIHandled: sortedMessages.some(m => m.aiMetadata?.isAIGenerated),
         needsAttention: (unreadCount > 2),
-        lastAIResponse: sortedMessages.find(m => m.aiMetadata?.isAIGenerated)?.message
+        lastAIResponse: lastAIMessage ? {
+          timestamp: lastAIMessage.timestamp,
+          confidence: lastAIMessage.aiMetadata?.confidence || 0.9
+        } : undefined
       }
     })
 

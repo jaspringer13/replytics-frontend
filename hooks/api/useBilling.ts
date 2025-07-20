@@ -26,6 +26,7 @@ interface BillingInfo {
     recordings: number;
   };
   daysRemaining: number;
+  plan?: string;
 }
 
 export function useBilling() {

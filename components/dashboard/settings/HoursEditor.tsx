@@ -30,7 +30,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
   const loadHours = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getBusinessHours(businessId);
+      const data = await apiClient.getBusinessHours();
       setHours(data.sort((a, b) => a.dayOfWeek - b.dayOfWeek));
     } catch (error) {
       console.error('Failed to load business hours:', error);
@@ -43,7 +43,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await apiClient.updateBusinessHours(businessId, hours);
+      await apiClient.updateBusinessHours(hours);
       toast.success('Business hours updated successfully');
     } catch (error) {
       console.error('Failed to update business hours:', error);

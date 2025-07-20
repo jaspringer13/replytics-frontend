@@ -11,18 +11,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, GripVertical, Edit2, Trash2, DollarSign, Clock, Loader2 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
-import { realtimeConfigManager } from '@/lib/realtime-config';
 import { useToast } from '@/hooks/useToast';
+import { useSettings, useBusinessId } from '@/contexts/SettingsContext';
 import { Service } from '@/app/models/dashboard';
 
-interface ServiceEditorProps {
-  businessId: string;
-}
-
-export function ServiceEditor({ businessId }: ServiceEditorProps) {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+export function ServiceEditor() {
+  const businessId = useBusinessId();
+  const { settingsData } = useSettings();
+  const { data, loading, createService, updateService, deleteService, reorderServices } = settingsData;
+  const services = data.services;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [formData, setFormData] = useState({
@@ -35,33 +32,8 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; serviceId: string | null }>({ isOpen: false, serviceId: null });
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadServices();
-
-    // Subscribe to real-time updates
-    const unsubscribe = realtimeConfigManager.subscribe('service_update', (update) => {
-      if (update.businessId === businessId) {
-        loadServices();
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [businessId]);
-
-  const loadServices = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getServices(true);
-      setServices(data.sort((a, b) => a.displayOrder - b.displayOrder));
-    } catch (error) {
-      console.error('Failed to load services:', error);
-      toast.error('Failed to load services');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Services are already loaded and managed by the SettingsContext
+  // No need for separate loading logic here
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -70,21 +42,12 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Update display order
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      displayOrder: index
-    }));
-
-    setServices(updatedItems);
-
     try {
-      await apiClient.reorderServices(updatedItems.map(s => s.id));
+      await reorderServices(items.map(s => s.id));
       toast.success('Services reordered successfully');
     } catch (error) {
       console.error('Failed to reorder services:', error);
       toast.error('Failed to reorder services');
-      loadServices(); // Reload to get correct order
     }
   };
 
@@ -115,10 +78,10 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
   const handleSaveService = async () => {
     try {
       if (editingService) {
-        await apiClient.updateService(editingService.id, formData);
+        await updateService(editingService.id, formData);
         toast.success('Service updated successfully');
       } else {
-        await apiClient.createService({
+        await createService({
           ...formData,
           businessId: businessId,
           displayOrder: services.length > 0 ? Math.max(...services.map(s => s.displayOrder)) + 1 : 0
@@ -126,7 +89,6 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
         toast.success('Service created successfully');
       }
       setIsDialogOpen(false);
-      loadServices();
     } catch (error) {
       console.error('Failed to save service:', error);
       toast.error('Failed to save service');
@@ -142,9 +104,8 @@ export function ServiceEditor({ businessId }: ServiceEditorProps) {
     if (!serviceId) return;
 
     try {
-      await apiClient.deleteService(serviceId);
+      await deleteService(serviceId);
       toast.success('Service deleted successfully');
-      loadServices();
     } catch (error) {
       console.error('Failed to delete service:', error);
       toast.error('Failed to delete service');

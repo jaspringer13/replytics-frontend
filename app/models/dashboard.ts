@@ -3,7 +3,7 @@
  */
 
 // Validation Types
-const VALID_TIMEZONES = [
+export const VALID_TIMEZONES = [
   'America/New_York',
   'America/Chicago', 
   'America/Denver',
@@ -20,7 +20,7 @@ const VALID_TIMEZONES = [
   'Australia/Sydney'
 ] as const;
 
-type ValidTimezone = typeof VALID_TIMEZONES[number];
+export type ValidTimezone = typeof VALID_TIMEZONES[number];
 
 export function createValidTimezone(value: string): ValidTimezone {
   if (!VALID_TIMEZONES.includes(value as ValidTimezone)) {
@@ -28,9 +28,6 @@ export function createValidTimezone(value: string): ValidTimezone {
   }
   return value as ValidTimezone;
 }
-
-type VoiceSpeed = number & { __brand: 'VoiceSpeed' }; // 0.5 to 2.0
-type VoicePitch = number & { __brand: 'VoicePitch' }; // 0.5 to 2.0
 
 // Business Configuration Types
 export interface BusinessProfile {
@@ -55,24 +52,6 @@ export interface BusinessProfile {
 
 export interface VoiceSettings {
   voiceId: string;
-  speakingStyle: 'friendly_professional' | 'casual' | 'formal' | 'enthusiastic';
-  speed: VoiceSpeed;
-  pitch: VoicePitch;
-}
-
-// Helper functions for creating valid ranges
-export function createVoiceSpeed(value: number): VoiceSpeed {
-  if (value < 0.5 || value > 2.0) {
-    throw new Error('Voice speed must be between 0.5 and 2.0');
-  }
-  return value as VoiceSpeed;
-}
-
-export function createVoicePitch(value: number): VoicePitch {
-  if (value < 0.5 || value > 2.0) {
-    throw new Error('Voice pitch must be between 0.5 and 2.0');
-  }
-  return value as VoicePitch;
 }
 
 export interface ConversationRules {
@@ -121,6 +100,9 @@ export interface ServiceUpdatePayload {
   active?: boolean;
   displayOrder?: number;
 }
+
+// Alias for compatibility
+export type ServiceUpdate = ServiceUpdatePayload;
 
 export interface ServiceTemplate {
   industry: string;

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/Input';
@@ -8,69 +8,126 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, Loader2 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { Save, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import { BusinessProfile } from '@/app/models/dashboard';
+import { useSettings } from '@/contexts/SettingsContext';
+import { BusinessProfile } from '@/lib/hooks/useSettingsData';
 
-export function BusinessProfileTab() {
-  const [profile, setProfile] = useState<BusinessProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      const data = await apiClient.getBusinessProfile();
-      setProfile(data);
-    } catch (error) {
-      console.error('Failed to load business profile:', error);
-      toast.error('Failed to load business profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const isValidUrl = (url: string) => {
+// Validation utilities
+const validators = {
+  email: (email: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+  url: (url: string): boolean => {
     try {
       new URL(url);
       return true;
     } catch {
       return false;
     }
-  };
+  },
+  phone: (phone: string): boolean => {
+    // Basic phone validation - can be enhanced based on requirements
+    const cleaned = phone.replace(/\D/g, '');
+    return cleaned.length >= 10 && cleaned.length <= 15;
+  }
+};
 
-  const handleSave = async () => {
-    if (!profile) return;
-    
-    // Basic validation
-    if (!profile.name?.trim()) {
-      toast.error('Business name is required');
-      return;
-    }
-    
-    if (profile.email && !isValidEmail(profile.email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    
-    if (profile.website && !isValidUrl(profile.website)) {
-      toast.error('Please enter a valid website URL');
-      return;
-    }
+interface ValidationErrors {
+  email?: string;
+  website?: string;
+  phone?: string;
+}
 
+interface ExtendedBusinessProfile extends Omit<BusinessProfile, 'timezone' | 'voiceSettings' | 'conversationRules' | 'smsSettings' | 'createdAt' | 'updatedAt'> {
+  website?: string;
+  timezone?: string; // Allow any string in form, convert to ValidTimezone on save
+  industry?: string;
+  addressString?: string;
+}
+
+export function BusinessProfileTab() {
+  const { settingsData } = useSettings();
+  const { data, updateProfile } = settingsData;
+  const { profile } = data;
+  
+  const [formData, setFormData] = useState<Partial<ExtendedBusinessProfile>>({});
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const { toast } = useToast();
+
+  // Update form data when profile loads
+  React.useEffect(() => {
+    if (profile && Object.keys(formData).length === 0) {
+      const { voiceSettings, conversationRules, smsSettings, createdAt, updatedAt, ...profileData } = profile;
+      setFormData({
+        ...profileData,
+        timezone: profileData.timezone as string,
+        addressString: profile.address ? 
+          `${profile.address.street || ''} ${profile.address.city || ''} ${profile.address.state || ''} ${profile.address.zip || ''}`.trim() : 
+          ''
+      });
+    }
+  }, [profile, formData]);
+
+  const handleChange = useCallback((field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error for this field when user starts typing
+    if (errors[field as keyof ValidationErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
+    }
+  }, [errors]);
+
+  const validateForm = useCallback((): boolean => {
+    const newErrors: ValidationErrors = {};
+    
+    if (formData.email && !validators.email(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (formData.website && !validators.url(formData.website)) {
+      newErrors.website = 'Please enter a valid URL (e.g., https://example.com)';
+    }
+    
+    if (formData.phone && !validators.phone(formData.phone)) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the validation errors');
+      return;
+    }
+    
     try {
       setSaving(true);
-      await apiClient.updateBusinessProfile(profile);
+      // Convert addressString back to address object
+      const profileUpdate: any = {
+        id: formData.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+      };
+      
+      // Only include address if addressString has content
+      if (formData.addressString && formData.addressString.trim()) {
+        profileUpdate.address = {
+          street: formData.addressString,
+        };
+      }
+      
+      await updateProfile(profileUpdate);
       toast.success('Business profile updated successfully');
     } catch (error) {
       console.error('Failed to update business profile:', error);
@@ -80,168 +137,159 @@ export function BusinessProfileTab() {
     }
   };
 
-  if (loading) {
+  if (!profile) {
     return (
       <Card className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-700 rounded w-1/4"></div>
-          <div className="h-10 bg-gray-700 rounded"></div>
-          <div className="h-10 bg-gray-700 rounded"></div>
-          <div className="h-10 bg-gray-700 rounded"></div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">No business profile found</p>
+          </div>
         </div>
       </Card>
     );
   }
 
-  if (!profile) {
-    return (
-      <Alert>
-        <AlertDescription>Failed to load business profile</AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
-    <Card className="p-6 bg-gray-800/50 border-gray-700">
-      <h2 className="text-xl font-semibold text-white mb-6">Business Information</h2>
-      
-      <div className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card className="p-6">
+        <h2 className="text-xl font-semibold text-white mb-6">Business Information</h2>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <Label htmlFor="name" className="text-gray-300">Business Name</Label>
+          <div className="space-y-2">
+            <Label htmlFor="name">Business Name</Label>
             <Input
               id="name"
-              value={profile.name || ''}
-              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              className="mt-1 bg-gray-700/50 border-gray-600 text-white"
+              value={formData.name || ''}
+              onChange={(e) => handleChange('name', e.target.value)}
               placeholder="Your Business Name"
+              className="bg-gray-700/50"
+              required
             />
           </div>
 
-          <div>
-            <Label htmlFor="phone" className="text-gray-300">Phone Number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={profile.phone || ''}
-              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              className="mt-1 bg-gray-700/50 border-gray-600 text-white"
-              placeholder="+1 (555) 123-4567"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="email" className="text-gray-300">Email Address</Label>
+          <div className="space-y-2">
+            <Label htmlFor="email">Business Email</Label>
             <Input
               id="email"
               type="email"
-              value={profile.email || ''}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              className="mt-1 bg-gray-700/50 border-gray-600 text-white"
-              placeholder="contact@yourbusiness.com"
+              value={formData.email || ''}
+              onChange={(e) => handleChange('email', e.target.value)}
+              placeholder="contact@business.com"
+              className={`bg-gray-700/50 ${errors.email ? 'border-red-500' : ''}`}
+              required
             />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
-          <div>
-            <Label htmlFor="website" className="text-gray-300">Website</Label>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={formData.phone || ''}
+              onChange={(e) => handleChange('phone', e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              className={`bg-gray-700/50 ${errors.phone ? 'border-red-500' : ''}`}
+              required
+            />
+            {errors.phone && (
+              <p className="text-sm text-red-500">{errors.phone}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="website">Website</Label>
             <Input
               id="website"
               type="url"
-              value={profile.website || ''}
-              onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-              className="mt-1 bg-gray-700/50 border-gray-600 text-white"
+              value={formData.website || ''}
+              onChange={(e) => handleChange('website', e.target.value)}
               placeholder="https://www.yourbusiness.com"
+              className={`bg-gray-700/50 ${errors.website ? 'border-red-500' : ''}`}
+            />
+            {errors.website && (
+              <p className="text-sm text-red-500">{errors.website}</p>
+            )}
+          </div>
+
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="address">Business Address</Label>
+            <Textarea
+              id="address"
+              value={formData.addressString || ''}
+              onChange={(e) => handleChange('addressString', e.target.value)}
+              placeholder="123 Main St, City, State ZIP"
+              className="bg-gray-700/50"
+              rows={3}
             />
           </div>
 
-          <div>
-            <Label htmlFor="timezone" className="text-gray-300">Timezone</Label>
+          <div className="space-y-2">
+            <Label htmlFor="timezone">Timezone</Label>
             <Select 
-              value={profile.timezone || 'America/New_York'}
-              onValueChange={(value) => setProfile({ ...profile, timezone: value })}
+              value={formData.timezone || 'America/New_York'}
+              onValueChange={(value) => handleChange('timezone', value)}
             >
-              <SelectTrigger className="mt-1 bg-gray-700/50 border-gray-600 text-white">
-                <SelectValue placeholder="Select timezone" />
+              <SelectTrigger id="timezone" className="bg-gray-700/50">
+                <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectContent>
                 <SelectItem value="America/New_York">Eastern Time</SelectItem>
                 <SelectItem value="America/Chicago">Central Time</SelectItem>
                 <SelectItem value="America/Denver">Mountain Time</SelectItem>
                 <SelectItem value="America/Los_Angeles">Pacific Time</SelectItem>
                 <SelectItem value="America/Phoenix">Arizona Time</SelectItem>
-                <SelectItem value="America/Anchorage">Alaska Time</SelectItem>
                 <SelectItem value="Pacific/Honolulu">Hawaii Time</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="industry">Industry</Label>
+            <Select 
+              value={formData.industry || ''}
+              onValueChange={(value) => handleChange('industry', value)}
+            >
+              <SelectTrigger id="industry" className="bg-gray-700/50">
+                <SelectValue placeholder="Select your industry" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="healthcare">Healthcare</SelectItem>
+                <SelectItem value="beauty">Beauty & Wellness</SelectItem>
+                <SelectItem value="automotive">Automotive</SelectItem>
+                <SelectItem value="professional">Professional Services</SelectItem>
+                <SelectItem value="home_services">Home Services</SelectItem>
+                <SelectItem value="retail">Retail</SelectItem>
+                <SelectItem value="restaurant">Restaurant</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="address" className="text-gray-300">Business Address</Label>
-          <div className="mt-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              id="street"
-              value={profile.address?.street || ''}
-              onChange={(e) => setProfile({ 
-                ...profile, 
-                address: { ...profile.address || {}, street: e.target.value }
-              })}
-              className="bg-gray-700/50 border-gray-600 text-white"
-              placeholder="Street Address"
-            />
-            <Input
-              id="city"
-              value={profile.address?.city || ''}
-              onChange={(e) => setProfile({ 
-                ...profile, 
-                address: { ...profile.address || {}, city: e.target.value }
-              })}
-              className="bg-gray-700/50 border-gray-600 text-white"
-              placeholder="City"
-            />
-            <Input
-              id="state"
-              value={profile.address?.state || ''}
-              onChange={(e) => setProfile({ 
-                ...profile, 
-                address: { ...profile.address || {}, state: e.target.value }
-              })}
-              className="bg-gray-700/50 border-gray-600 text-white"
-              placeholder="State"
-            />
-            <Input
-              id="zip"
-              value={profile.address?.zip || ''}
-              onChange={(e) => setProfile({ 
-                ...profile, 
-                address: { ...profile.address || {}, zip: e.target.value }
-              })}
-              className="bg-gray-700/50 border-gray-600 text-white"
-              placeholder="ZIP Code"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-6">
           <Button
-            onClick={handleSave}
+            type="submit"
             disabled={saving}
-            className="bg-brand-500 hover:bg-brand-600 text-white"
+            className="gap-2"
           >
             {saving ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Saving...
               </>
             ) : (
               <>
-                <Save className="w-4 h-4 mr-2" />
+                <Save className="w-4 h-4" />
                 Save Changes
               </>
             )}
           </Button>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </form>
   );
 }

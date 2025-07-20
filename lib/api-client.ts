@@ -1,5 +1,7 @@
 import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules, SMSSettings } from '@/app/models/dashboard';
+import { PhoneNumber, PhoneNumberCreate, PhoneNumberUpdate } from '@/app/models/phone-number';
 import { validateSMSPayload } from './message-validation';
+import { env, API_CONFIG } from '@/lib/config';
 
 interface AuthResponse {
   token: string;
@@ -82,11 +84,11 @@ class APIClient {
   private requestQueue: Array<() => void> = [];
   private isRefreshing = false;
 
-  constructor(private requestTimeout: number = 30000) {
-    this.baseURL = process.env.NEXT_PUBLIC_BACKEND_API_URL || '';
+  constructor(private requestTimeout: number = API_CONFIG.REQUEST.TIMEOUT) {
+    this.baseURL = env.get('BACKEND_API_URL');
     console.log('APIClient initialized with baseURL:', this.baseURL);
     if (!this.baseURL) {
-      console.warn('Backend API URL not configured. Please set NEXT_PUBLIC_BACKEND_API_URL in .env.local');
+      console.warn('Backend API URL not configured. Please set BACKEND_API_URL in environment.');
     }
   }
 
@@ -475,7 +477,7 @@ class APIClient {
     return this.request('/api/v2/dashboard/business/profile');
   }
 
-  async updateBusinessProfile(updates: Partial<BusinessProfile>) {
+  async updateBusinessProfile(updates: Partial<BusinessProfile>): Promise<BusinessProfile> {
     return this.request('/api/v2/dashboard/business/profile', {
       method: 'PATCH',
       body: JSON.stringify(updates),
@@ -711,6 +713,222 @@ class APIClient {
     });
     
     return ws;
+  }
+
+  // Phone Number Management
+  async getPhoneNumbers(businessId: string): Promise<PhoneNumber[]> {
+    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers`);
+  }
+
+  async getPhoneNumber(phoneId: string): Promise<PhoneNumber> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}`);
+  }
+
+  async searchAvailablePhoneNumbers(filters?: {
+    areaCode?: string;
+    contains?: string;
+  }): Promise<Array<{
+    phone_number: string;
+    friendly_name: string;
+    locality: string;
+    region: string;
+    postal_code: string;
+    capabilities: {
+      voice: boolean;
+      sms: boolean;
+      mms: boolean;
+    };
+  }>> {
+    const params = new URLSearchParams();
+    if (filters?.areaCode) params.append('areaCode', filters.areaCode);
+    if (filters?.contains) params.append('contains', filters.contains);
+    
+    return this.request(`/api/v2/dashboard/phone-numbers/search?${params.toString()}`);
+  }
+
+  async provisionPhoneNumber(businessId: string, data: {
+    displayName: string;
+    areaCode?: string;
+    timezone?: string;
+    description?: string;
+  }): Promise<PhoneNumber> {
+    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Alias for compatibility
+  async createPhoneNumber(businessId: string, data: any): Promise<PhoneNumber> {
+    return this.provisionPhoneNumber(businessId, data);
+  }
+
+  async updatePhoneNumber(phoneId: string, updates: Partial<PhoneNumber>): Promise<PhoneNumber> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async setPrimaryPhoneNumber(businessId: string, phoneId: string): Promise<PhoneNumber> {
+    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers/${phoneId}/set-primary`, {
+      method: 'POST',
+    });
+  }
+
+  async suspendPhoneNumber(phoneId: string): Promise<PhoneNumber> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/suspend`, {
+      method: 'POST',
+    });
+  }
+
+  async releasePhoneNumber(phoneId: string): Promise<void> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/release`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Alias for compatibility
+  async deletePhoneNumber(phoneId: string): Promise<void> {
+    return this.releasePhoneNumber(phoneId);
+  }
+
+  // Phone-specific settings methods
+  async getPhoneVoiceSettings(phoneId: string): Promise<VoiceSettings> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/voice-settings`);
+  }
+
+  async updatePhoneVoiceSettings(phoneId: string, settings: Partial<VoiceSettings>): Promise<VoiceSettings> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/voice-settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async getPhoneConversationRules(phoneId: string): Promise<ConversationRules> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/conversation-rules`);
+  }
+
+  async updatePhoneConversationRules(phoneId: string, rules: Partial<ConversationRules>): Promise<ConversationRules> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/conversation-rules`, {
+      method: 'PATCH',
+      body: JSON.stringify(rules),
+    });
+  }
+
+  async getPhoneOperatingHours(phoneId: string): Promise<OperatingHours[]> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/operating-hours`);
+  }
+
+  async updatePhoneOperatingHours(phoneId: string, hours: OperatingHours[]): Promise<OperatingHours[]> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/operating-hours`, {
+      method: 'PATCH',
+      body: JSON.stringify({ hours }),
+    });
+  }
+
+  // Phone-scoped operations
+  async getPhoneServices(phoneId: string): Promise<Service[]> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/services`);
+  }
+
+  async getPhoneCalls(phoneId: string, filters?: {
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ calls: Call[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/calls?${params.toString()}`);
+  }
+
+  async getPhoneSMS(phoneId: string, filters?: {
+    conversationId?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ messages: SMS[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/sms?${params.toString()}`);
+  }
+
+  async getPhoneBookings(phoneId: string, filters?: {
+    date?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ bookings: Booking[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/bookings?${params.toString()}`);
+  }
+
+  // Create phone-specific WebSocket connection
+  createPhoneWebSocketConnection(phoneId: string) {
+    this.initializeFromStorage();
+    const token = this.token;
+    if (!token) {
+      throw new Error('No auth token available for WebSocket connection');
+    }
+
+    const baseURL = this.baseURL.replace(/^http/, 'wss');
+    const ws = new WebSocket(`${baseURL}/api/v2/dashboard/phone-numbers/${phoneId}/ws`);
+    
+    ws.addEventListener('open', () => {
+      ws.send(JSON.stringify({ type: 'auth', token }));
+    });
+    
+    return ws;
+  }
+
+  // Test voice configuration
+  async testVoiceConfiguration(
+    phoneId: string, 
+    voiceId: string, 
+    testText: string
+  ): Promise<{ success: boolean; audioUrl?: string; error?: string; duration?: number }> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/voice-test`, {
+      method: 'POST',
+      body: JSON.stringify({ voiceId, text: testText }),
+    });
+  }
+
+  // Backward compatibility methods for tests
+  async setPrimaryPhone(businessId: string, phoneId: string): Promise<PhoneNumber> {
+    return this.setPrimaryPhoneNumber(businessId, phoneId);
+  }
+
+  async testPhoneVoice(
+    phoneId: string, 
+    voiceId: string, 
+    testText: string
+  ): Promise<{ success: boolean; audioUrl?: string; error?: string; duration?: number }> {
+    return this.testVoiceConfiguration(phoneId, voiceId, testText);
   }
 }
 

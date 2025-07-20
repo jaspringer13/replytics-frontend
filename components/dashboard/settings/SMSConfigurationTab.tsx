@@ -13,10 +13,6 @@ import { Save, MessageSquare, Bell, Loader2 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
 
-interface SMSConfigurationTabProps {
-  businessId?: string; // Currently unused - API uses auth context
-}
-
 interface SMSSettings {
   enabled: boolean;
   remindersEnabled: boolean;
@@ -32,7 +28,7 @@ interface SMSTemplate {
   variables: string[];
 }
 
-export function SMSConfigurationTab({ businessId }: SMSConfigurationTabProps) {
+export function SMSConfigurationTab() {
   const [smsSettings, setSmsSettings] = useState<SMSSettings | null>(null);
   const [smsTemplates, setSmsTemplates] = useState<SMSTemplate[]>([]);
   const [loading, setLoading] = useState(true);

@@ -61,24 +61,22 @@ export function useAIActivities(options: AIActivitiesOptions = {}): UseAIActivit
         callsResponse.calls.forEach(call => {
           let action = 'Handled incoming call'
           
-          if (call.outcome === 'completed') {
+          if (call.status === 'completed') {
             action = call.summary || 'Successfully completed call'
-          } else if (call.outcome === 'missed') {
+          } else if (call.status === 'missed') {
             action = 'Missed call - attempted to handle'
-          } else if (call.outcome === 'appointment_booked') {
-            action = 'Booked appointment during call'
           }
 
           combinedActivities.push({
             id: `call-${call.id}`,
             type: 'call',
-            customer: call.caller_name || call.caller_phone || 'Unknown',
+            customer: call.customerName || call.phoneNumber || 'Unknown',
             action,
-            timestamp: new Date(call.created_at || call.call_time),
-            aiConfidence: call.outcome === 'completed' ? 95 : call.outcome === 'appointment_booked' ? 98 : 75,
-            businessId: call.business_id,
+            timestamp: new Date(call.startTime),
+            aiConfidence: call.status === 'completed' ? 95 : 75,
+            businessId: 'default', // Call interface doesn't include businessId
             callId: call.id,
-            customerPhone: call.caller_phone
+            customerPhone: call.phoneNumber
           })
         })
       }
@@ -90,25 +88,25 @@ export function useAIActivities(options: AIActivitiesOptions = {}): UseAIActivit
             combinedActivities.push({
               id: `sms-${sms.id}`,
               type: 'sms',
-              customer: sms.customer_name || sms.from_phone || 'Unknown',
-              action: `Sent: ${sms.content?.substring(0, 50)}${sms.content?.length > 50 ? '...' : ''}`,
-              timestamp: new Date(sms.created_at),
+              customer: sms.customerName || sms.phoneNumber || 'Unknown',
+              action: `Sent: ${sms.message?.substring(0, 50)}${sms.message?.length > 50 ? '...' : ''}`,
+              timestamp: new Date(sms.timestamp),
               aiConfidence: 92,
-              businessId: sms.business_id,
+              businessId: 'default', // SMS interface doesn't include businessId
               smsId: sms.id,
-              customerPhone: sms.from_phone
+              customerPhone: sms.phoneNumber
             })
           } else if (sms.direction === 'inbound') {
             combinedActivities.push({
               id: `sms-response-${sms.id}`,
               type: 'sms',
-              customer: sms.customer_name || sms.from_phone || 'Unknown',
+              customer: sms.customerName || sms.phoneNumber || 'Unknown',
               action: 'Responded to customer message',
-              timestamp: new Date(sms.created_at),
+              timestamp: new Date(sms.timestamp),
               aiConfidence: 88,
-              businessId: sms.business_id,
+              businessId: 'default', // SMS interface doesn't include businessId
               smsId: sms.id,
-              customerPhone: sms.from_phone
+              customerPhone: sms.phoneNumber
             })
           }
         })

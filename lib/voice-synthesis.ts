@@ -1,8 +1,5 @@
 import { VoiceSettings } from '../app/models/dashboard';
-
-// Helper types for working with branded types
-type VoiceSpeed = number & { __brand: 'VoiceSpeed' };
-type VoicePitch = number & { __brand: 'VoicePitch' };
+import { env, EXTERNAL_APIS } from '@/lib/config';
 
 interface VoiceSynthesisOptions {
   text: string;
@@ -18,23 +15,17 @@ interface VoiceSynthesisResult {
 }
 
 // ElevenLabs API configuration
-const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+const ELEVENLABS_API_URL = EXTERNAL_APIS.ELEVENLABS.BASE_URL;
+const ELEVENLABS_API_KEY = env.get('ELEVENLABS_API_KEY');
 
 // Voice ID mapping for ElevenLabs
 const VOICE_ID_MAPPING: Record<string, string> = {
-  'kdmDKE6EkgrWrrykO9Qt': 'Rachel', // Professional Female
-  'pNInz6obpgDQGcFmaJgB': 'Adam',   // Friendly Male
-  'Yko7PKHZNXotIFUBG7I9': 'Sam',    // Professional Male
-  'VR6AewLTigWG4xSOukaG': 'Bella'   // Warm Female
-};
-
-// Style to stability/similarity_boost mapping
-const STYLE_MAPPING = {
-  'friendly_professional': { stability: 0.75, similarity_boost: 0.8, style: 0.4 },
-  'casual': { stability: 0.5, similarity_boost: 0.75, style: 0.6 },
-  'formal': { stability: 0.9, similarity_boost: 0.9, style: 0.2 },
-  'enthusiastic': { stability: 0.3, similarity_boost: 0.7, style: 0.8 }
+  'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
+  'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
+  'Yko7PKHZNXotIFUBG7I9': 'Sam - Professional Male',
+  'VR6AewLTigWG4xSOukaG': 'Bella - Warm Female',
+  'EXAVITQu4vr4xnSDxMaL': 'Sarah - Energetic Female',
+  'ErXwobaYiN019PkySvjV': 'Antoni - Calm Male',
 };
 
 export class VoiceSynthesisService {
@@ -57,11 +48,9 @@ export class VoiceSynthesisService {
     }
 
     try {
-      // Prepare voice synthesis parameters
-      const voiceParams = this.buildVoiceParameters(settings);
       const voiceId = settings.voiceId || 'kdmDKE6EkgrWrrykO9Qt';
 
-      // Call ElevenLabs API
+      // Call ElevenLabs API with default voice settings
       const response = await fetch(`${ELEVENLABS_API_URL}/text-to-speech/${voiceId}`, {
         method: 'POST',
         headers: {
@@ -72,7 +61,12 @@ export class VoiceSynthesisService {
         body: JSON.stringify({
           text: text,
           model_id: 'eleven_monolingual_v1',
-          voice_settings: voiceParams
+          voice_settings: {
+            stability: 0.75,
+            similarity_boost: 0.8,
+            style: 0.4,
+            use_speaker_boost: true
+          }
         })
       });
 
@@ -107,16 +101,6 @@ export class VoiceSynthesisService {
     }
   }
 
-  private buildVoiceParameters(settings: VoiceSettings) {
-    const styleConfig = STYLE_MAPPING[settings.speakingStyle] || STYLE_MAPPING['friendly_professional'];
-    
-    return {
-      stability: styleConfig.stability,
-      similarity_boost: styleConfig.similarity_boost,
-      style: styleConfig.style,
-      use_speaker_boost: true
-    };
-  }
 
   private async storeAudioFile(audioBuffer: ArrayBuffer, tenantId: string, contentType: string = 'audio/mpeg'): Promise<string> {
     // In production, you'd typically store this in cloud storage (S3, Supabase Storage, etc.)
@@ -154,7 +138,7 @@ export class VoiceSynthesisService {
     
     return {
       success: true,
-      audioUrl: `/api/v2/dashboard/business/voice-settings/test-audio?voice=${encodeURIComponent(settings.voiceId || 'default')}&text=${encodeURIComponent(text)}`,
+      audioUrl: `/api/v2/dashboard/business/voice-settings/test-audio?voice=${encodeURIComponent(settings.voiceId || 'kdmDKE6EkgrWrrykO9Qt')}&text=${encodeURIComponent(text)}`,
       duration: estimatedDuration
     };
   }

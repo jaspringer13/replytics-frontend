@@ -3,19 +3,18 @@ import { getSupabaseServer } from '@/lib/supabase-server';
 import { VoiceSettings } from '@/app/models/dashboard';
 import { voiceSynthesisService } from '@/lib/voice-synthesis';
 
-
-
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
+
 // Available voice IDs from ElevenLabs or similar service
 const AVAILABLE_VOICES = {
-  'kdmDKE6EkgrWrrykO9Qt': 'Professional Female',
-  'pNInz6obpgDQGcFmaJgB': 'Friendly Male',
-  'Yko7PKHZNXotIFUBG7I9': 'Professional Male',
-  'VR6AewLTigWG4xSOukaG': 'Warm Female'
+  'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
+  'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
+  'Yko7PKHZNXotIFUBG7I9': 'Sam - Professional Male',
+  'VR6AewLTigWG4xSOukaG': 'Bella - Warm Female',
+  'EXAVITQu4vr4xnSDxMaL': 'Sarah - Energetic Female',
+  'ErXwobaYiN019PkySvjV': 'Antoni - Calm Male',
 };
-
-const VALID_SPEAKING_STYLES = ['friendly_professional', 'casual', 'formal', 'enthusiastic'] as const;
 
 /**
  * GET /api/v2/dashboard/business/voice-settings
@@ -54,10 +53,7 @@ export async function GET(request: NextRequest) {
 
     // Return voice settings with defaults if not set
     const voiceSettings: VoiceSettings = business.voice_settings || {
-      voiceId: 'kdmDKE6EkgrWrrykO9Qt',
-      speakingStyle: 'friendly_professional',
-      speed: 1.0,
-      pitch: 1.0
+      voiceId: 'kdmDKE6EkgrWrrykO9Qt'
     };
 
     // Get available voices from synthesis service
@@ -103,27 +99,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    if (updates.speed !== undefined && (updates.speed < 0.5 || updates.speed > 2.0)) {
-      return NextResponse.json(
-        { error: 'Speed must be between 0.5 and 2.0' },
-        { status: 400 }
-      );
-    }
-
-    if (updates.pitch !== undefined && (updates.pitch < 0.5 || updates.pitch > 2.0)) {
-      return NextResponse.json(
-        { error: 'Pitch must be between 0.5 and 2.0' },
-        { status: 400 }
-      );
-    }
-
-    if (updates.speakingStyle && !VALID_SPEAKING_STYLES.includes(updates.speakingStyle)) {
-      return NextResponse.json(
-        { error: 'Invalid speaking style' },
-        { status: 400 }
-      );
-    }
-
     // Get current settings to merge with updates
     const { data: business, error: fetchError } = await getSupabaseServer()
       .from('businesses')
@@ -139,10 +114,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const currentSettings = business?.voice_settings || {
-      voiceId: 'kdmDKE6EkgrWrrykO9Qt',
-      speakingStyle: 'friendly_professional',
-      speed: 1.0,
-      pitch: 1.0
+      voiceId: 'kdmDKE6EkgrWrrykO9Qt'
     };
 
     // Merge updates with current settings
@@ -272,10 +244,7 @@ export async function POST(request: NextRequest) {
       }
 
       voiceSettings = business.voice_settings || {
-        voiceId: 'kdmDKE6EkgrWrrykO9Qt',
-        speakingStyle: 'friendly_professional',
-        speed: 1.0,
-        pitch: 1.0
+        voiceId: 'kdmDKE6EkgrWrrykO9Qt'
       };
     }
 

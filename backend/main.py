@@ -74,6 +74,10 @@ app = FastAPI(
     redirect_slashes=True  # This ensures both /path and /path/ work
 )
 
+# Register error handlers
+from shared.errors import register_error_handlers
+register_error_handlers(app)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,

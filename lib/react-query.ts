@@ -14,9 +14,10 @@ const defaultQueryOptions: DefaultOptions = {
   queries: {
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
-    retry: (failureCount, error: QueryError) => {
+    retry: (failureCount: number, error: unknown) => {
+      const queryError = error as QueryError;
       // Don't retry on 4xx errors except 401 (which we'll handle with token refresh)
-      if (error?.response?.status >= 400 && error?.response?.status < 500 && error?.response?.status !== 401) {
+      if (queryError?.response?.status && queryError.response.status >= 400 && queryError.response.status < 500 && queryError.response.status !== 401) {
         return false;
       }
       // Retry up to 3 times for other errors

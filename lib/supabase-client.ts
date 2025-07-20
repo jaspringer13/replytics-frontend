@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/config';
 
 // Singleton instance
 let supabaseClient: ReturnType<typeof createClient> | null = null;
@@ -9,8 +10,8 @@ let supabaseClient: ReturnType<typeof createClient> | null = null;
  */
 export function getSupabaseClient() {
   if (!supabaseClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    const supabaseUrl = env.get('SUPABASE_URL');
+    const supabaseAnonKey = env.get('SUPABASE_ANON_KEY');
 
     if (!supabaseUrl || !supabaseAnonKey) {
       throw new Error('Supabase URL and anon key are required for client initialization.');

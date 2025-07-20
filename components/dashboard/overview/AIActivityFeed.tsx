@@ -11,7 +11,7 @@ export interface AIActivity {
   customer: string
   action: string
   timestamp: Date
-  aiConfidence: number
+  aiConfidence?: number
   businessId: string
 }
 
@@ -83,7 +83,7 @@ export function AIActivityFeed({ activities, loading }: AIActivityFeedProps) {
                   <span className="text-xs text-gray-500">{getRelativeTime(activity.timestamp)}</span>
                   <span className="text-xs text-green-400 flex items-center gap-1">
                     <Bot className="w-3 h-3" />
-                    {activity.aiConfidence}% confidence
+                    {activity.aiConfidence ?? 0}% confidence
                   </span>
                 </div>
               </div>

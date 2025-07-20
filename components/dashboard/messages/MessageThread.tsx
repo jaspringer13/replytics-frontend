@@ -18,16 +18,9 @@ interface MessageThreadProps {
   disabled?: boolean
 }
 
-interface AIMessageMetadata {
-  isAI: boolean
-  confidence: number // Always required for AI messages
-  suggestedResponse?: string
-  overridden?: boolean
-}
-
-// Extend SMS type locally for AI metadata
+// Use the standard SMS type with proper aiMetadata structure
 interface ExtendedSMS extends SMS {
-  aiMetadata?: AIMessageMetadata
+  // aiMetadata is already properly typed in SMS interface
 }
 
 export function MessageThread({ 
@@ -85,41 +78,7 @@ export function MessageThread({
     })
   }
 
-  const enhancedMessages: ExtendedSMS[] = messages.map(msg => {
-    // Check if AI metadata exists on the message (from backend)
-    const hasBackendAIData = 'aiGenerated' in msg || 'aiConfidence' in msg || 'aiOverridden' in msg
-    
-    let aiMetadata: AIMessageMetadata | undefined
-    
-    if (hasBackendAIData) {
-      // Use backend AI metadata when available
-      aiMetadata = {
-        isAI: (msg as any).aiGenerated === true,
-        confidence: (msg as any).aiConfidence || 0,
-        suggestedResponse: (msg as any).aiSuggestedResponse,
-        overridden: (msg as any).aiOverridden === true
-      }
-    } else {
-      // Temporary mock logic based on message characteristics
-      // This should be replaced when backend provides AI metadata
-      const isOutbound = msg.direction === 'outbound'
-      const hasAIIndicators = /^(Thank you|Hi|Hello|I can help|Let me check)/i.test(msg.message)
-      const isLikelyAI = isOutbound && (hasAIIndicators || msg.message.length > 50)
-      
-      if (isLikelyAI) {
-        aiMetadata = {
-          isAI: true,
-          confidence: Math.floor(Math.random() * 20) + 80, // 80-99% confidence for demo
-          overridden: false
-        }
-      }
-    }
-    
-    return {
-      ...msg,
-      aiMetadata
-    }
-  })
+  const enhancedMessages: ExtendedSMS[] = messages
 
   return (
     <div className="flex flex-col h-full">
@@ -128,7 +87,7 @@ export function MessageThread({
         <AnimatePresence>
           {enhancedMessages.map((message, index) => {
             const isOutbound = message.direction === 'outbound'
-            const isAI = message.aiMetadata?.isAI
+            const isAI = message.aiMetadata?.isAIGenerated
             const isEditing = editingMessageId === message.id
 
             return (
@@ -160,12 +119,6 @@ export function MessageThread({
                           </span>
                         )}
                       </div>
-                      {message.aiMetadata?.overridden && (
-                        <span className="text-xs text-orange-400 flex items-center gap-1">
-                          <Edit2 className="w-3 h-3" />
-                          Edited
-                        </span>
-                      )}
                     </div>
                   )}
 

@@ -46,15 +46,26 @@ export async function GET(request: NextRequest) {
     // Build the base query with search filter if provided
     let baseQuery = supabase
       .from('customer_segments')
-      .eq('tenant_id', tenantId);
+      .select('*');
+    
+    baseQuery = baseQuery.eq('tenant_id', tenantId);
 
     if (search) {
       baseQuery = buildSearchFilter(baseQuery, search);
     }
 
-    // Get total count
-    const { count: totalCount, error: totalError } = await baseQuery
+    // Get total count using separate query
+    const countQuery = supabase
+      .from('customer_segments')
       .select('*', { count: 'exact', head: true });
+    
+    // Apply same filters as base query
+    countQuery.eq('tenant_id', tenantId);
+    if (search) {
+      buildSearchFilter(countQuery, search);
+    }
+    
+    const { count: totalCount, error: totalError } = await countQuery;
 
     if (totalError) {
       console.error('Error fetching total count:', totalError);
@@ -89,7 +100,7 @@ export async function GET(request: NextRequest) {
     // Aggregate counts client-side
     segmentData?.forEach((item: any) => {
       const segment = item.segment as CustomerSegment;
-      if (segment in segmentCounts && segment !== 'all') {
+      if (segment in segmentCounts) {
         segmentCounts[segment]++;
       }
     });
