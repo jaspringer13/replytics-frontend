@@ -37,7 +37,7 @@ export interface Analytics {
   total_sms: number;
   successful_bookings: number;
   period: string;
-  metrics: Record<string, any>;
+  metrics: Record<string, unknown>;
 }
 
 // API Client

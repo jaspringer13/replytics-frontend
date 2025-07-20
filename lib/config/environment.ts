@@ -5,7 +5,7 @@
 
 type EnvironmentType = 'development' | 'production' | 'test';
 
-interface EnvironmentConfig {
+export interface EnvironmentConfig {
   // Environment type
   NODE_ENV: EnvironmentType;
   IS_PRODUCTION: boolean;

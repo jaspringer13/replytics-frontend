@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "generate-filetree": "node scripts/generate-filetree.js",
+    "generate-filetree": "node dev-tools/scripts/generate-filetree.js",
+    "test": "jest --config=dev-tools/configs/jest.config.js",
     "setup-hooks": "pre-commit install"
   },
   "dependencies": {

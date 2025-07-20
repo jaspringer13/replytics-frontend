@@ -3,7 +3,7 @@
  * Ensures all required configuration is present and valid
  */
 
-import { env } from './environment';
+import { env, EnvironmentConfig } from './environment';
 import { LIMITS } from './limits';
 
 interface ValidationResult {
@@ -43,7 +43,7 @@ function validateEnvironment(errors: string[], warnings: string[]) {
 
   if (env.get('IS_PRODUCTION')) {
     requiredInProd.forEach(({ key, name }) => {
-      if (!env.get(key as any)) {
+      if (!env.get(key as keyof EnvironmentConfig)) {
         errors.push(`${name} is required in production`);
       }
     });

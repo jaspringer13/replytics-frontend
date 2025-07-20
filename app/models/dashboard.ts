@@ -168,7 +168,7 @@ export interface Customer {
   lastInteraction: Date;
   firstInteraction: Date;
   segment: CustomerSegment;
-  preferences?: Record<string, any>;
+  preferences?: Record<string, unknown>;
   flags?: string[];
 }
 
@@ -349,7 +349,7 @@ export interface StaffAvailability {
 export interface CalendarIntegration {
   type: 'google' | 'square';
   enabled: boolean;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   lastSync?: Date;
   syncStatus: 'active' | 'error' | 'disabled';
 }

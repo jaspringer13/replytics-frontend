@@ -24,6 +24,19 @@ import {
 interface CompositeError extends ThirdPartyError {
   allCauses?: Error[];
 }
+
+interface ErrorResponseData {
+  businessCode?: string;
+  retryAfter?: number;
+  limit?: number;
+  requiredPermission?: string;
+  resourceType?: string;
+  resourceId?: string;
+  details?: Record<string, unknown>;
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
 import { isAxiosError, isErrorLike } from './guards';
 
 // Helper to extract error message from various formats
@@ -107,7 +120,7 @@ function mapStatusToError(
     case 422: {
       // Check if it's a business logic error (Axios-specific)
       const businessCode = data && typeof data === 'object' && 'businessCode' in data
-        ? (data as any).businessCode
+        ? (data as ErrorResponseData).businessCode
         : undefined;
       if (businessCode) {
         return new BusinessLogicError(
@@ -141,7 +154,7 @@ function mapStatusToError(
 
     case 403: {
       const requiredPermission = data && typeof data === 'object' && 'requiredPermission' in data
-        ? (data as any).requiredPermission
+        ? (data as ErrorResponseData).requiredPermission
         : undefined;
       return new AuthorizationError(
         requiredPermission,
@@ -152,10 +165,10 @@ function mapStatusToError(
 
     case 404: {
       const resourceType = data && typeof data === 'object' && 'resourceType' in data
-        ? (data as any).resourceType
+        ? (data as ErrorResponseData).resourceType
         : undefined;
       const resourceId = data && typeof data === 'object' && 'resourceId' in data
-        ? (data as any).resourceId
+        ? (data as ErrorResponseData).resourceId
         : undefined;
       return new NotFoundError(
         resourceType,
@@ -169,7 +182,7 @@ function mapStatusToError(
       // Handle both direct data and Axios headers
       const retryAfterHeader = response?.headers?.['retry-after'];
       const dataRetryAfter = data && typeof data === 'object' && 'retryAfter' in data
-        ? (data as any).retryAfter
+        ? (data as ErrorResponseData).retryAfter
         : undefined;
       const retryAfter = retryAfterHeader 
         ? (isNaN(parseInt(retryAfterHeader)) ? undefined : parseInt(retryAfterHeader))
@@ -177,7 +190,7 @@ function mapStatusToError(
       
       const limitHeader = response?.headers?.['x-rate-limit-limit'];
       const dataLimit = data && typeof data === 'object' && 'limit' in data
-        ? (data as any).limit
+        ? (data as ErrorResponseData).limit
         : undefined;
       const limit = limitHeader
         ? (isNaN(parseInt(limitHeader)) ? undefined : parseInt(limitHeader))
@@ -214,7 +227,7 @@ function mapStatusToError(
     default: {
       // Check if it's a business logic error (4xx range)
       const businessCode = data && typeof data === 'object' && 'businessCode' in data
-        ? (data as any).businessCode
+        ? (data as ErrorResponseData).businessCode
         : undefined;
       if (status >= 400 && status < 500 && businessCode) {
         return new BusinessLogicError(

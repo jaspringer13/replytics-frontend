@@ -44,6 +44,12 @@ interface Call {
   summary?: string;
 }
 
+interface TestConnectionResult {
+  success: boolean;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
 interface SMS {
   id: string;
   phoneNumber: string;
@@ -658,6 +664,24 @@ class APIClient {
     });
   }
 
+  // Phone-scoped SMS operation with context validation
+  async sendSMS(phoneId: string, data: {
+    conversationId: string;
+    message: string;
+    direction: 'outbound' | 'inbound';
+  }): Promise<SMS> {
+    if (!phoneId) {
+      throw new Error('Phone ID is required for SMS operations');
+    }
+    return this.request('/api/v2/dashboard/sms', {
+      method: 'POST',
+      headers: {
+        'X-Phone-Number-Id': phoneId
+      },
+      body: JSON.stringify(data),
+    });
+  }
+
   // Industry Templates
   async getIndustryTemplates() {
     return this.request('/api/v2/dashboard/services/templates');
@@ -807,7 +831,7 @@ class APIClient {
     return this.provisionPhoneNumber(data);
   }
 
-  async updatePhoneNumber(phoneId: string, updates: Partial<PhoneNumber>): Promise<PhoneNumber> {
+  async updatePhoneNumber(phoneId: string, updates: PhoneNumberUpdate): Promise<PhoneNumber> {
     return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
@@ -1016,6 +1040,14 @@ class APIClient {
     });
   }
 
+  // Test integration connection
+  async testIntegration(integrationId: string): Promise<TestConnectionResult> {
+    return this.request('/api/v2/dashboard/integrations/test', {
+      method: 'POST',
+      body: JSON.stringify({ integration_id: integrationId })
+    });
+  }
+
   // Staff Management
   async getStaffMembers(filters?: {
     role?: string;
@@ -1133,6 +1165,26 @@ class APIClient {
     }
     
     return this.request(`/api/v2/dashboard/staff/${staffId}/activity?${params.toString()}`);
+  }
+
+  // Business Security Settings
+  async getBusinessSecuritySettings(): Promise<{
+    require_2fa?: boolean;
+    session_timeout?: boolean;
+    email_notifications?: boolean;
+  }> {
+    return this.request('/api/v2/dashboard/business/security-settings');
+  }
+
+  async updateBusinessSecuritySettings(settings: {
+    require_2fa?: boolean;
+    session_timeout?: boolean;
+    email_notifications?: boolean;
+  }): Promise<void> {
+    return this.request('/api/v2/dashboard/business/security-settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
   }
 
   // Backward compatibility methods for tests

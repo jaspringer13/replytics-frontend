@@ -10,6 +10,7 @@ import {
 } from '@/app/models/dashboard';
 import { voiceSynthesisService } from '@/lib/voice-synthesis';
 import { env } from '@/lib/config';
+import { VOICE_OPTIONS } from '@/config/voice-options';
 
 export class VoiceSettingsService {
   /**
@@ -159,15 +160,6 @@ export class VoiceSettingsService {
     }
   }
 
-  // Available voice options
-  public static readonly VOICE_OPTIONS = {
-    'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
-    'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
-    'Yko7PKHZNXotIFUBG7I9': 'Sam - Professional Male',
-    'VR6AewLTigWG4xSOukaG': 'Bella - Warm Female',
-    'EXAVITQu4vr4xnSDxMaL': 'Sarah - Energetic Female',
-    'ErXwobaYiN019PkySvjV': 'Antoni - Calm Male',
-  };
 
   /**
    * Validate voice settings
@@ -176,7 +168,7 @@ export class VoiceSettingsService {
     isValid: boolean;
     error?: string;
   } {
-    if (settings.voiceId && !(settings.voiceId in VoiceSettingsService.VOICE_OPTIONS)) {
+    if (settings.voiceId && !(settings.voiceId in VOICE_OPTIONS)) {
       return { isValid: false, error: 'Invalid voice selection' };
     }
 

@@ -9,17 +9,13 @@
  * - Provides loading states
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { usePhoneSpecificSettings } from '@/contexts/SettingsContext';
 
 interface VoicePreviewSettings {
   voice_id: string;
   text: string;
-  speed?: number;
-  pitch?: number;
-  stability?: number;
-  similarity_boost?: number;
 }
 
 interface UseVoicePreviewReturn {
@@ -36,6 +32,16 @@ export const useVoicePreview = (): UseVoicePreviewReturn => {
   const [error, setError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { selectedPhoneId } = usePhoneSpecificSettings();
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const playPreview = useCallback(async (settings: VoicePreviewSettings) => {
     try {

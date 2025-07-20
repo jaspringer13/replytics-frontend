@@ -195,3 +195,16 @@ export class VoiceSynthesisService {
 }
 
 export const voiceSynthesisService = VoiceSynthesisService.getInstance();
+
+// Export wrapper functions for easier testing and usage
+export const synthesizeVoice = (options: VoiceSynthesisOptions): Promise<VoiceSynthesisResult> => {
+  return voiceSynthesisService.synthesizeVoice(options);
+};
+
+export const validateVoiceId = (voiceId: string): Promise<boolean> => {
+  return voiceSynthesisService.validateVoiceId(voiceId);
+};
+
+export const getAvailableVoices = (): Promise<Record<string, string>> => {
+  return voiceSynthesisService.getAvailableVoices();
+};

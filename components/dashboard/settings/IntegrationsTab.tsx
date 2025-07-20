@@ -22,7 +22,7 @@ interface Integration {
 interface IntegrationConfig {
   [key: string]: {
     connected: boolean;
-    settings?: Record<string, any>;
+    settings?: Record<string, unknown>;
     lastSync?: string;
   };
 }
@@ -31,8 +31,8 @@ interface ConfigModalProps {
   integration: Integration;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (config: Record<string, any>) => void;
-  currentConfig?: Record<string, any>;
+  onSave: (config: Record<string, unknown>) => void;
+  currentConfig?: Record<string, unknown>;
 }
 
 function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: ConfigModalProps) {
@@ -64,7 +64,7 @@ function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: Co
                 </label>
                 <input
                   type="text"
-                  value={config.accountSid || ''}
+                  value={(config.accountSid as string) || ''}
                   onChange={(e) => setConfig({ ...config, accountSid: e.target.value })}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                   placeholder="Enter Twilio Account SID"
@@ -76,7 +76,7 @@ function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: Co
                 </label>
                 <input
                   type="password"
-                  value={config.authToken || ''}
+                  value={(config.authToken as string) || ''}
                   onChange={(e) => setConfig({ ...config, authToken: e.target.value })}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                   placeholder="Enter Twilio Auth Token"
@@ -88,7 +88,7 @@ function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: Co
                 </label>
                 <input
                   type="tel"
-                  value={config.phoneNumber || ''}
+                  value={(config.phoneNumber as string) || ''}
                   onChange={(e) => setConfig({ ...config, phoneNumber: e.target.value })}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                   placeholder="+1234567890"
@@ -111,7 +111,7 @@ function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: Co
                 </label>
                 <input
                   type="text"
-                  value={config.applicationId || ''}
+                  value={(config.applicationId as string) || ''}
                   onChange={(e) => setConfig({ ...config, applicationId: e.target.value })}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                   placeholder="Enter Square Application ID"
@@ -123,7 +123,7 @@ function ConfigModal({ integration, isOpen, onClose, onSave, currentConfig }: Co
                 </label>
                 <input
                   type="password"
-                  value={config.accessToken || ''}
+                  value={(config.accessToken as string) || ''}
                   onChange={(e) => setConfig({ ...config, accessToken: e.target.value })}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white"
                   placeholder="Enter Square Access Token"
@@ -243,7 +243,7 @@ export function IntegrationsTab() {
     setIsConfigModalOpen(true);
   };
 
-  const handleSaveConfig = async (config: Record<string, any>) => {
+  const handleSaveConfig = async (config: Record<string, unknown>) => {
     if (!selectedIntegration) return;
 
     setLoading(true);

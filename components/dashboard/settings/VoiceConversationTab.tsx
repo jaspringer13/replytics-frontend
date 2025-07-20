@@ -8,36 +8,20 @@ import { Label } from '@/components/ui/label';
 import { Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { usePhoneSpecificSettings } from '@/contexts/SettingsContext';
 import { VoicePreviewSection } from './voice/VoicePreviewSection';
-import { VoiceSettingsControls } from './voice/VoiceSettingsControls';
 import { useVoicePreview } from './voice/useVoicePreview';
+import { VOICE_OPTIONS } from '@/config/voice-options';
 
-// Available voices - keep it simple
-const VOICE_OPTIONS = {
-  'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
-  'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
-  'Yko7PKHZNXotIFUBG7I9': 'Sam - Professional Male',
-  'VR6AewLTigWG4xSOukaG': 'Bella - Warm Female',
-  'EXAVITQu4vr4xnSDxMaL': 'Sarah - Energetic Female',
-  'ErXwobaYiN019PkySvjV': 'Antoni - Calm Male',
-};
 
 // Default test script
 const DEFAULT_TEST_SCRIPT = 'Hello! Welcome to our business. How can I help you today?';
 
-interface VoiceConversationTabProps {}
-
-export function VoiceConversationTab({}: VoiceConversationTabProps) {
+export function VoiceConversationTab() {
   const { phoneSettings, selectedPhoneId } = usePhoneSpecificSettings();
   const { isPlaying, isLoading, error: previewError, playPreview, stopPreview } = useVoicePreview();
   
   // Voice settings state
   const [selectedVoice, setSelectedVoice] = useState('kdmDKE6EkgrWrrykO9Qt');
   const [testText, setTestText] = useState(DEFAULT_TEST_SCRIPT);
-  const [voiceSpeed, setVoiceSpeed] = useState(1.0);
-  const [voicePitch, setVoicePitch] = useState(1.0);
-  const [voiceStability, setVoiceStability] = useState(50);
-  const [similarityBoost, setSimilarityBoost] = useState(75);
-  const [speakerBoost, setSpeakerBoost] = useState(false);
   
   // UI state
   const [isSaving, setIsSaving] = useState(false);
@@ -62,10 +46,6 @@ export function VoiceConversationTab({}: VoiceConversationTabProps) {
     await playPreview({
       voice_id: selectedVoice,
       text: testText,
-      speed: voiceSpeed,
-      pitch: voicePitch,
-      stability: voiceStability / 100,
-      similarity_boost: similarityBoost / 100,
     });
   };
 
@@ -100,11 +80,7 @@ export function VoiceConversationTab({}: VoiceConversationTabProps) {
   };
 
   const handleReset = () => {
-    setVoiceSpeed(1.0);
-    setVoicePitch(1.0);
-    setVoiceStability(50);
-    setSimilarityBoost(75);
-    setSpeakerBoost(false);
+    setSelectedVoice('kdmDKE6EkgrWrrykO9Qt');
     setTestText(DEFAULT_TEST_SCRIPT);
   };
 
@@ -155,40 +131,6 @@ export function VoiceConversationTab({}: VoiceConversationTabProps) {
             onStop={stopPreview}
           />
 
-          {/* Advanced Voice Controls */}
-          <div className="border-t border-gray-700 pt-6">
-            <h4 className="text-base font-medium text-white mb-4">
-              Advanced Voice Settings
-            </h4>
-            <VoiceSettingsControls
-              settings={{
-                speed: voiceSpeed,
-                pitch: voicePitch,
-                stability: voiceStability,
-                similarity_boost: similarityBoost,
-                use_speaker_boost: speakerBoost,
-              }}
-              onSettingChange={(key, value) => {
-                switch (key) {
-                  case 'speed':
-                    setVoiceSpeed(value as number);
-                    break;
-                  case 'pitch':
-                    setVoicePitch(value as number);
-                    break;
-                  case 'stability':
-                    setVoiceStability(value as number);
-                    break;
-                  case 'similarity_boost':
-                    setSimilarityBoost(value as number);
-                    break;
-                  case 'use_speaker_boost':
-                    setSpeakerBoost(value as boolean);
-                    break;
-                }
-              }}
-            />
-          </div>
 
           {/* Error Display */}
           {(error || previewError) && (

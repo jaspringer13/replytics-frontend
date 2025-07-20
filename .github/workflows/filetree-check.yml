@@ -14,108 +14,107 @@ on:
 jobs:
   check-filetree-update:
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.pull_request.changed_files, 'FILETREE.md') }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Get changed files
-      id: changed-files
-      uses: tj-actions/changed-files@v41
-      with:
-        files: |
-          app/**
-          components/**
-          lib/**
-          backend/**
-          supabase/**
-          scripts/**
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v41
+        with:
+          files: |
+            app/**
+            components/**
+            lib/**
+            backend/**
+            supabase/**
+            scripts/**
 
-    - name: Check for significant changes
-      id: check-changes
-      run: |
-        echo "Checking for significant file structure changes..."
-        
-        NEW_COMPONENTS=0
-        NEW_PAGES=0
-        NEW_LIBS=0
-        NEW_BACKEND=0
-        readarray -t CHANGED_FILES_ARRAY <<< "${{ steps.changed-files.outputs.all_changed_files }}"
-        
-        for file in "${CHANGED_FILES_ARRAY[@]}"; do
-          if [[ "$file" == components/* && "$file" == *.tsx ]]; then
-            NEW_COMPONENTS=$((NEW_COMPONENTS + 1))
-          elif [[ "$file" == app/* && "$file" == *page.tsx ]]; then
-            NEW_PAGES=$((NEW_PAGES + 1))
-          elif [[ "$file" == lib/* && "$file" == *.ts ]]; then
-            NEW_LIBS=$((NEW_LIBS + 1))
-          elif [[ "$file" == backend/* && "$file" == *.py ]]; then
-            NEW_BACKEND=$((NEW_BACKEND + 1))
-          fi
-        done
-        
-        TOTAL_CHANGES=$((NEW_COMPONENTS + NEW_PAGES + NEW_LIBS + NEW_BACKEND))
-        
-        echo "new_components=$NEW_COMPONENTS" >> $GITHUB_OUTPUT
-        echo "new_pages=$NEW_PAGES" >> $GITHUB_OUTPUT
-        echo "new_libs=$NEW_LIBS" >> $GITHUB_OUTPUT
-        echo "new_backend=$NEW_BACKEND" >> $GITHUB_OUTPUT
-        echo "total_changes=$TOTAL_CHANGES" >> $GITHUB_OUTPUT
-        echo "needs_update=$([[ $TOTAL_CHANGES -gt 2 ]] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
-
-    - name: Comment on PR if FILETREE.md update needed
-      if: steps.check-changes.outputs.needs_update == 'true'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const newComponents = '${{ steps.check-changes.outputs.new_components }}';
-          const newPages = '${{ steps.check-changes.outputs.new_pages }}';
-          const newLibs = '${{ steps.check-changes.outputs.new_libs }}';
-          const newBackend = '${{ steps.check-changes.outputs.new_backend }}';
+      - name: Check for significant changes
+        id: check-changes
+        run: |
+          echo "Checking for significant file structure changes..."
           
-          const body = `## 📁 FILETREE.md Update Reminder
+          NEW_COMPONENTS=0
+          NEW_PAGES=0
+          NEW_LIBS=0
+          NEW_BACKEND=0
+          readarray -t CHANGED_FILES_ARRAY <<< "${{ steps.changed-files.outputs.all_changed_files }}"
+          
+          for file in "${CHANGED_FILES_ARRAY[@]}"; do
+            if [[ "$file" == components/* && "$file" == *.tsx ]]; then
+              NEW_COMPONENTS=$((NEW_COMPONENTS + 1))
+            elif [[ "$file" == app/* && "$file" == *page.tsx ]]; then
+              NEW_PAGES=$((NEW_PAGES + 1))
+            elif [[ "$file" == lib/* && "$file" == *.ts ]]; then
+              NEW_LIBS=$((NEW_LIBS + 1))
+            elif [[ "$file" == backend/* && "$file" == *.py ]]; then
+              NEW_BACKEND=$((NEW_BACKEND + 1))
+            fi
+          done
+          
+          TOTAL_CHANGES=$((NEW_COMPONENTS + NEW_PAGES + NEW_LIBS + NEW_BACKEND))
+          
+          echo "new_components=$NEW_COMPONENTS" >> "$GITHUB_OUTPUT"
+          echo "new_pages=$NEW_PAGES" >> "$GITHUB_OUTPUT"
+          echo "new_libs=$NEW_LIBS" >> "$GITHUB_OUTPUT"
+          echo "new_backend=$NEW_BACKEND" >> "$GITHUB_OUTPUT"
+          echo "total_changes=$TOTAL_CHANGES" >> "$GITHUB_OUTPUT"
+          echo "needs_update=$([[ $TOTAL_CHANGES -gt 2 ]] && echo "true" || echo "false")" >> "$GITHUB_OUTPUT"
 
-          This PR includes significant file structure changes:
-          - 🧩 **${newComponents}** new components
-          - 📄 **${newPages}** new pages  
-          - 📚 **${newLibs}** new library files
-          - 🐍 **${newBackend}** new backend files
+      - name: Comment on PR if FILETREE.md update needed
+        if: ${{ steps.check-changes.outputs.needs_update == 'true' && !contains(steps.changed-files.outputs.all_changed_files, 'FILETREE.md') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newComponents = '${{ steps.check-changes.outputs.new_components }}';
+            const newPages = '${{ steps.check-changes.outputs.new_pages }}';
+            const newLibs = '${{ steps.check-changes.outputs.new_libs }}';
+            const newBackend = '${{ steps.check-changes.outputs.new_backend }}';
+            
+            const body = `## 📁 FILETREE.md Update Reminder
 
-          ### 📋 Please consider updating FILETREE.md if you've:
-          - Added new major components or pages
-          - Created new directories  
-          - Changed the project structure
-          - Implemented previously placeholder features
+            This PR includes significant file structure changes:
+            - 🧩 **${newComponents}** new components
+            - 📄 **${newPages}** new pages  
+            - 📚 **${newLibs}** new library files
+            - 🐍 **${newBackend}** new backend files
 
-          ### 🔧 To update:
-          1. Edit \`FILETREE.md\` with your changes
-          2. Update the timestamp at the top
-          3. Use status indicators: ✅ IMPLEMENTED, 🚧 PLACEHOLDER, ❌ NOT IMPLEMENTED
+            ### 📋 Please consider updating FILETREE.md if you've:
+            - Added new major components or pages
+            - Created new directories  
+            - Changed the project structure
+            - Implemented previously placeholder features
 
-          ### ⚡ Quick update:
-          You can run \`npm run generate-filetree\` to auto-generate the basic structure, then add your status annotations.
+            ### 🔧 To update:
+            1. Edit \`FILETREE.md\` with your changes
+            2. Update the timestamp at the top
+            3. Use status indicators: ✅ IMPLEMENTED, 🚧 PLACEHOLDER, ❌ NOT IMPLEMENTED
 
-          ---
-          <sub>This reminder is triggered when significant file changes are detected. You can dismiss this if the changes don't affect the documented structure.</sub>`;
+            ### ⚡ Quick update:
+            You can run \`npm run generate-filetree\` to auto-generate the basic structure, then add your status annotations.
 
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
+            ---
+            <sub>This reminder is triggered when significant file changes are detected. You can dismiss this if the changes don't affect the documented structure.</sub>`;
 
-    - name: Add label if update needed
-      if: steps.check-changes.outputs.needs_update == 'true'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          github.rest.issues.addLabels({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            labels: ['documentation', 'filetree-update-needed']
-          });
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Add label if update needed
+        if: ${{ steps.check-changes.outputs.needs_update == 'true' && !contains(steps.changed-files.outputs.all_changed_files, 'FILETREE.md') }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['documentation', 'filetree-update-needed']
+            });

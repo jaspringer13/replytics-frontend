@@ -11,13 +11,9 @@ import { apiClient } from '@/lib/api-client';
 import { useToast } from '@/hooks/useToast';
 import { OperatingHours, DayOfWeek } from '@/app/models/dashboard';
 
-interface HoursEditorProps {
-  businessId: string;
-}
-
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-export function HoursEditor({ businessId }: HoursEditorProps) {
+export function HoursEditor() {
   const [hours, setHours] = useState<OperatingHours[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,7 +21,7 @@ export function HoursEditor({ businessId }: HoursEditorProps) {
 
   useEffect(() => {
     loadHours();
-  }, [businessId]);
+  }, []);
 
   const loadHours = async () => {
     try {

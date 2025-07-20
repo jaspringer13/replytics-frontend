@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/useToast';
 import { Phone, Plus, Settings, Trash2, Check, X } from 'lucide-react';
 import { PhoneNumber } from '@/app/models/phone-number';
 import { VoiceSettingsService } from '@/app/services/dashboard/voice_settings_service';
+import { VOICE_OPTIONS } from '@/config/voice-options';
 import { formatPhoneNumber } from '@/lib/utils';
 
 export default function PhoneNumbersPage() {
@@ -260,8 +261,8 @@ export default function PhoneNumbersPage() {
                   <div>
                     <p className="text-gray-500">Voice</p>
                     <p className="text-white">
-                      {phone.voiceSettings?.voiceId && phone.voiceSettings.voiceId in VoiceSettingsService.VOICE_OPTIONS 
-                        ? (VoiceSettingsService.VOICE_OPTIONS as any)[phone.voiceSettings.voiceId] 
+                      {phone.voiceSettings?.voiceId && phone.voiceSettings.voiceId in VOICE_OPTIONS 
+                        ? VOICE_OPTIONS[phone.voiceSettings.voiceId] 
                         : 'Custom'}
                     </p>
                   </div>

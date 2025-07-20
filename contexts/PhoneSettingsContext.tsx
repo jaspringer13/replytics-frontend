@@ -1,7 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PhoneNumber, PhoneNumberOption } from '@/app/models/phone-number';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { PhoneNumber, PhoneNumberOption, PhoneNumberCreate, PhoneNumberUpdate } from '@/app/models/phone-number';
 import { useSettingsData, UseSettingsDataReturn } from '@/lib/hooks/useSettingsData';
 import { useRealtimeConfig } from '@/lib/hooks/useRealtimeConfig';
 import { apiClient } from '@/lib/api-client';
@@ -16,11 +16,11 @@ interface PhoneSettingsContextValue {
   loadingPhones: boolean;
   
   // Phone-specific settings
-  phoneSettings: UseSettingsDataReturn | null;
+  phoneSettings: UseSettingsDataReturn;
   
   // Actions
-  addPhoneNumber: (phoneData: any) => Promise<void>;
-  updatePhoneSettings: (updates: any) => Promise<void>;
+  addPhoneNumber: (phoneData: PhoneNumberCreate) => Promise<void>;
+  updatePhoneSettings: (updates: PhoneNumberUpdate) => Promise<void>;
   deletePhoneNumber: (phoneId: string) => Promise<void>;
   refreshPhoneNumbers: () => Promise<void>;
 }
@@ -39,8 +39,8 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   const [loadingPhones, setLoadingPhones] = useState(true);
   const { toast } = useToast();
 
-  // Phone-specific settings (only loaded when a phone is selected)
-  const phoneSettings = selectedPhoneId ? useSettingsData(selectedPhoneId) : null;
+  // Phone-specific settings (always called but handles null phoneId gracefully)
+  const phoneSettings = useSettingsData(selectedPhoneId);
 
   // Real-time updates for the selected phone
   const realtimeConfig = useRealtimeConfig(selectedPhoneId, {
@@ -51,7 +51,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   });
 
   // Load phone numbers for the business
-  const loadPhoneNumbers = async () => {
+  const loadPhoneNumbers = useCallback(async () => {
     try {
       setLoadingPhones(true);
       const phones = await apiClient.getPhoneNumbers();
@@ -79,7 +79,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
     } finally {
       setLoadingPhones(false);
     }
-  };
+  }, [selectedPhoneId, toast]);
 
   // Load full phone details when selection changes
   const loadPhoneDetails = async (phoneId: string) => {
@@ -95,7 +95,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   // Initial load
   useEffect(() => {
     loadPhoneNumbers();
-  }, [businessId]);
+  }, [loadPhoneNumbers]);
 
   // Load phone details when selection changes
   useEffect(() => {
@@ -107,7 +107,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   }, [selectedPhoneId]);
 
   // Actions
-  const addPhoneNumber = async (phoneData: any) => {
+  const addPhoneNumber = async (phoneData: PhoneNumberCreate) => {
     try {
       const newPhone = await apiClient.createPhoneNumber(phoneData);
       await loadPhoneNumbers();
@@ -120,7 +120,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
     }
   };
 
-  const updatePhoneSettings = async (updates: any) => {
+  const updatePhoneSettings = async (updates: PhoneNumberUpdate) => {
     if (!selectedPhoneId) return;
     
     try {
@@ -137,11 +137,11 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   const deletePhoneNumber = async (phoneId: string) => {
     try {
       await apiClient.deletePhoneNumber(phoneId);
-      await loadPhoneNumbers();
+      const freshPhones = await apiClient.getPhoneNumbers();
       
       // If deleted phone was selected, select another
       if (phoneId === selectedPhoneId) {
-        const remaining = phoneNumbers.filter(p => p.id !== phoneId);
+        const remaining = freshPhones.filter(p => p.id !== phoneId);
         if (remaining.length > 0) {
           setSelectedPhoneId(remaining[0].id);
         } else {
@@ -149,6 +149,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
         }
       }
       
+      await loadPhoneNumbers();
       toast.success('Phone number deleted');
     } catch (error) {
       console.error('Failed to delete phone number:', error);

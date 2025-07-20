@@ -33,6 +33,13 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# backup files
+*.backup
+*.bak
+*.orig
+*.tmp
+*~
+
 # backend
 backend/__pycache__/
 backend/venv/

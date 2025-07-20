@@ -14,6 +14,11 @@ interface NoShowData {
   showRate: number; // Percentage of customers who showed up
 }
 
+interface Appointment {
+  scheduled_at: string;
+  status: 'no_show' | 'completed' | 'cancelled' | 'pending' | string;
+}
+
 interface NoShowVisualizationProps {
   data: NoShowData[];
   dateRange?: string;
@@ -21,6 +26,22 @@ interface NoShowVisualizationProps {
 
 export function NoShowVisualization({ data, dateRange = 'Last 30 Days' }: NoShowVisualizationProps) {
   // Calculate summary statistics
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Bookings vs No-Shows</CardTitle>
+          <CardDescription>No data available for {dateRange}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+            No appointment data to display
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   const totalBookings = data.reduce((sum, day) => sum + day.bookings, 0);
   const totalNoShows = data.reduce((sum, day) => sum + day.noShows, 0);
   const overallShowRate = totalBookings > 0 ? ((totalBookings - totalNoShows) / totalBookings * 100).toFixed(1) : '0';
@@ -85,7 +106,7 @@ export function NoShowVisualization({ data, dateRange = 'Last 30 Days' }: NoShow
         </div>
         
         {/* Additional insights */}
-        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Total Bookings</p>
             <p className="text-lg font-semibold">{totalBookings}</p>
@@ -107,7 +128,7 @@ export function NoShowVisualization({ data, dateRange = 'Last 30 Days' }: NoShow
 /**
  * Hook to transform raw appointment data into no-show visualization data
  */
-export function useNoShowData(appointments: any[], dateRange: { start: Date; end: Date }) {
+export function useNoShowData(appointments: Appointment[]) {
   return React.useMemo(() => {
     // Group appointments by date
     const groupedByDate = appointments.reduce((acc, apt) => {

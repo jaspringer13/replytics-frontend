@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Phone, Mail, Calendar, DollarSign, Clock, MessageSquare, Star, Flag } from 'lucide-react'
 import { Customer, CustomerMemory } from '@/app/models/dashboard'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { useToast } from '@/hooks/useToast'
 import { CustomerMemoryTab } from './CustomerMemoryTab'
@@ -42,30 +42,10 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
 
-  // Format phone number with international support
+  // Helper to format phone with fallback for empty values
   const formatPhone = (phone: string) => {
     if (!phone) return 'No phone'
-    const cleaned = phone.replace(/\D/g, '')
-    
-    // US/Canada format (10 digits)
-    const usMatch = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-    if (usMatch) {
-      return `(${usMatch[1]}) ${usMatch[2]}-${usMatch[3]}`
-    }
-    
-    // US/Canada with country code (11 digits starting with 1)
-    const usWithCountryMatch = cleaned.match(/^1(\d{3})(\d{3})(\d{4})$/)
-    if (usWithCountryMatch) {
-      return `+1 (${usWithCountryMatch[1]}) ${usWithCountryMatch[2]}-${usWithCountryMatch[3]}`
-    }
-    
-    // International format - add + if it starts with a country code pattern
-    if (cleaned.length >= 10 && cleaned.length <= 15) {
-      return `+${cleaned}`
-    }
-    
-    // Fallback to original if no pattern matches
-    return phone
+    return formatPhoneNumber(phone)
   }
 
 
@@ -260,10 +240,12 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
                   <CustomerMemoryTab 
                     customer={{
                       ...customer,
-                      totalInteractions: customer.totalAppointments + 10, // Estimate based on appointments + calls/messages
+                      // TODO: Replace with actual interaction count from API
+                      totalInteractions: customer.totalAppointments, // Currently showing only appointments
                       totalBookings: customer.totalAppointments,
                       completedBookings: customer.totalAppointments - customer.noShowCount,
-                      cancelledBookings: 0, // This would come from actual data
+                      // TODO: Fetch actual cancellation data
+                      cancelledBookings: 0, // Data not yet available
                       noShows: customer.noShowCount,
                       customFlags: customer.flags || [],
                     } as CustomerMemory}

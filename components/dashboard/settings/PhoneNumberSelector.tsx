@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, ChevronDown, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/Badge';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneNumber } from '@/lib/utils';
 import { PhoneNumber, PhoneNumberOption } from '@/app/models/phone-number';
 
 interface PhoneNumberSelectorProps {
@@ -34,24 +34,17 @@ export function PhoneNumberSelector({
 }: PhoneNumberSelectorProps) {
   const selectedPhone = phoneNumbers.find(p => p.id === selectedPhoneId);
   
-  if (!selectedPhone && phoneNumbers.length > 0) {
-    // Auto-select primary or first active phone
-    const primaryPhone = phoneNumbers.find(p => p.isPrimary);
-    const firstActive = phoneNumbers.find(p => p.isActive);
-    const autoSelect = primaryPhone || firstActive || phoneNumbers[0];
-    if (autoSelect) {
-      onPhoneSelect(autoSelect.id);
+  useEffect(() => {
+    if (!selectedPhone && phoneNumbers.length > 0) {
+      // Auto-select primary or first active phone
+      const primaryPhone = phoneNumbers.find(p => p.isPrimary);
+      const firstActive = phoneNumbers.find(p => p.isActive);
+      const autoSelect = primaryPhone || firstActive || phoneNumbers[0];
+      if (autoSelect) {
+        onPhoneSelect(autoSelect.id);
+      }
     }
-  }
-
-  const formatPhoneNumber = (phone: string) => {
-    // Format phone number for display (e.g., +1 (256) 809-0055)
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 11 && cleaned.startsWith('1')) {
-      return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-    }
-    return phone;
-  };
+  }, [selectedPhone, phoneNumbers, onPhoneSelect]);
 
   return (
     <div className={cn("flex items-center gap-2", className)}>

@@ -2,6 +2,9 @@
  * Staff Management Models
  */
 
+// Staff role types
+export type StaffRole = 'owner' | 'admin' | 'staff';
+
 // Main staff member interface
 export interface StaffMember {
   id: string;
@@ -9,7 +12,7 @@ export interface StaffMember {
   name: string;
   email?: string;
   phone?: string;
-  role: 'owner' | 'admin' | 'staff';
+  role: StaffRole;
   status: 'active' | 'invited' | 'inactive';
   permissions: StaffPermissions;
   services?: string[]; // IDs of services this staff member can provide
@@ -30,8 +33,6 @@ export interface StaffPermissions {
   manage_services: boolean;
 }
 
-// Staff role types
-export type StaffRole = 'owner' | 'admin' | 'staff';
 
 // API request interfaces
 export interface StaffCreateRequest {
@@ -62,6 +63,7 @@ export interface StaffAvailability {
   day_of_week: number; // 0-6, 0 = Sunday
   start_time: string;   // HH:MM format
   end_time: string;     // HH:MM format
+  timezone?: string;    // IANA timezone identifier
   is_available: boolean;
   breaks?: StaffBreak[];
 }
@@ -102,19 +104,27 @@ export interface StaffInvitation {
   accepted_at?: string;
 }
 
+// Action-specific detail types
+export type ActivityDetails = 
+  | { action: 'booking_created'; booking_id: string; customer_id: string }
+  | { action: 'booking_updated'; booking_id: string; changes: string[] }
+  | { action: 'booking_cancelled'; booking_id: string; reason?: string }
+  | { action: 'settings_changed'; section: string; changes: string[] }
+  | { action: 'login' | 'logout' };
+
 // Staff activity/audit log
 export interface StaffActivity {
   id: string;
   staff_id: string;
   action: 'login' | 'logout' | 'booking_created' | 'booking_updated' | 'booking_cancelled' | 'settings_changed';
-  details?: Record<string, any>;
+  details?: ActivityDetails;
   ip_address?: string;
   user_agent?: string;
   created_at: string;
 }
 
 // Default permission matrices by role
-export const DEFAULT_PERMISSIONS: Record<StaffRole, StaffPermissions> = {
+export const DEFAULT_PERMISSIONS: Record<'owner' | 'admin' | 'staff', StaffPermissions> = {
   owner: {
     manage_bookings: true,
     manage_settings: true,

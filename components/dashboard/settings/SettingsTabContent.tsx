@@ -36,7 +36,7 @@ function TabLoadingFallback() {
 }
 
 export function SettingsTabContent() {
-  const { businessId, activeTab } = useSettings();
+  const { businessId } = useSettings();
 
   return (
     <>
@@ -54,7 +54,7 @@ export function SettingsTabContent() {
 
       <TabsContent value="hours">
         <Suspense fallback={<TabLoadingFallback />}>
-          <HoursEditor businessId={businessId} />
+          <HoursEditor />
         </Suspense>
       </TabsContent>
 

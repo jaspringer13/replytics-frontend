@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import { Phone, Calendar, DollarSign, Clock, AlertCircle, Star, TrendingDown } from 'lucide-react'
 import { Customer } from '@/app/models/dashboard'
-import { cn } from '@/lib/utils'
+import { cn, formatPhoneNumber } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 
 interface CustomerCardProps {
@@ -52,36 +52,10 @@ export function CustomerCard({ customer, onClick, delay = 0 }: CustomerCardProps
   const segmentStyle = getSegmentStyles()
   const fullName = [customer.firstName, customer.lastName].filter(Boolean).join(' ') || 'Unknown'
   
-  // Format phone number with international support
+  // Helper to format phone with fallback for empty values
   const formatPhone = (phone: string) => {
     if (!phone) return 'No phone'
-    
-    const cleaned = phone.replace(/\D/g, '')
-    
-    // Handle international numbers (starting with country code)
-    if (cleaned.length > 10) {
-      // International format: +X XXX XXX XXXX
-      if (cleaned.length === 11 && cleaned.startsWith('1')) {
-        // US number with country code
-        const match = cleaned.match(/^1(\d{3})(\d{3})(\d{4})$/)
-        if (match) {
-          return `+1 (${match[1]}) ${match[2]}-${match[3]}`
-        }
-      }
-      // Other international numbers
-      return `+${cleaned.slice(0, -10)} ${cleaned.slice(-10)}`
-    }
-    
-    // US domestic format
-    if (cleaned.length === 10) {
-      const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
-      if (match) {
-        return `(${match[1]}) ${match[2]}-${match[3]}`
-      }
-    }
-    
-    // Fallback: return as-is if format doesn't match
-    return phone
+    return formatPhoneNumber(phone)
   }
 
 

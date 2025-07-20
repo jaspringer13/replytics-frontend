@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/useToast';
 import { 
   Users, 
   Plus, 
@@ -28,11 +29,10 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { StaffMember, StaffCreateRequest, StaffRole, DEFAULT_PERMISSIONS } from '@/app/models/staff';
+import { StaffMember, StaffCreateRequest, StaffRole, StaffPermissions, DEFAULT_PERMISSIONS } from '@/app/models/staff';
 
-interface StaffManagementTabProps {}
-
-export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
+export const StaffManagementTab: React.FC = () => {
+  const { toast } = useToast();
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -51,10 +51,17 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
   const [editStaffPhone, setEditStaffPhone] = useState('');
   const [editStaffRole, setEditStaffRole] = useState<StaffRole>('staff');
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Security settings state
+  const [require2FA, setRequire2FA] = useState(false);
+  const [sessionTimeout, setSessionTimeout] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [isUpdatingSecuritySettings, setIsUpdatingSecuritySettings] = useState(false);
 
-  // Load staff members on component mount
+  // Load staff members and security settings on component mount
   useEffect(() => {
     loadStaffMembers();
+    loadSecuritySettings();
   }, []);
 
   const loadStaffMembers = async () => {
@@ -68,6 +75,20 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
       setError('Failed to load staff members. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadSecuritySettings = async () => {
+    try {
+      const settings = await apiClient.getBusinessSecuritySettings();
+      if (settings) {
+        setRequire2FA(settings.require_2fa || false);
+        setSessionTimeout(settings.session_timeout !== false);
+        setEmailNotifications(settings.email_notifications !== false);
+      }
+    } catch (err) {
+      console.error('Failed to load security settings:', err);
+      // Don't show error for security settings load failure to avoid UI clutter
     }
   };
 
@@ -144,6 +165,7 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
   };
 
   const handleRemoveStaff = async (staffId: string, staffName: string) => {
+    // TODO: Replace with custom confirmation dialog for better UX
     if (!window.confirm(`Are you sure you want to remove ${staffName} from your team?`)) {
       return;
     }
@@ -192,6 +214,22 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
       setError('Failed to update staff member. Please try again.');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleSecuritySettingChange = async (setting: string, value: boolean) => {
+    try {
+      setIsUpdatingSecuritySettings(true);
+      setError(null);
+      
+      await apiClient.updateBusinessSecuritySettings({ [setting]: value });
+      
+      toast.success('Security settings updated successfully');
+    } catch (err: any) {
+      console.error('Failed to update security settings:', err);
+      toast.error('Failed to update security settings. Please try again.');
+    } finally {
+      setIsUpdatingSecuritySettings(false);
     }
   };
 
@@ -492,36 +530,26 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-2">Permission</th>
-                  <th className="text-center py-2">Owner</th>
-                  <th className="text-center py-2">Admin</th>
-                  <th className="text-center py-2">Staff</th>
+                  {(['owner', 'admin', 'staff'] as StaffRole[]).map(role => (
+                    <th key={role} className="text-center py-2 capitalize">{role}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="space-y-2">
-                <tr className="border-b">
-                  <td className="py-3">Manage Bookings</td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3">View Analytics</td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge variant="secondary">–</Badge></td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3">Manage Settings</td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge variant="secondary">–</Badge></td>
-                </tr>
-                <tr className="border-b">
-                  <td className="py-3">Manage Staff</td>
-                  <td className="text-center"><Badge className="bg-green-100 text-green-800">✓</Badge></td>
-                  <td className="text-center"><Badge variant="secondary">–</Badge></td>
-                  <td className="text-center"><Badge variant="secondary">–</Badge></td>
-                </tr>
+                {(Object.keys(DEFAULT_PERMISSIONS.owner) as Array<keyof StaffPermissions>).map(permission => (
+                  <tr key={permission} className="border-b">
+                    <td className="py-3 capitalize">{permission.replace(/_/g, ' ')}</td>
+                    {(['owner', 'admin', 'staff'] as StaffRole[]).map(role => (
+                      <td key={role} className="text-center">
+                        {DEFAULT_PERMISSIONS[role][permission] ? (
+                          <Badge className="bg-green-100 text-green-800">✓</Badge>
+                        ) : (
+                          <Badge variant="secondary">–</Badge>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -548,7 +576,14 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
                 Require all team members to enable 2FA
               </p>
             </div>
-            <Switch />
+            <Switch 
+              checked={require2FA}
+              onCheckedChange={(checked) => {
+                setRequire2FA(checked);
+                handleSecuritySettingChange('require_2fa', checked);
+              }}
+              disabled={isUpdatingSecuritySettings}
+            />
           </div>
           
           <Separator />
@@ -560,7 +595,14 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
                 Automatically log out inactive users after 8 hours
               </p>
             </div>
-            <Switch defaultChecked />
+            <Switch 
+              checked={sessionTimeout}
+              onCheckedChange={(checked) => {
+                setSessionTimeout(checked);
+                handleSecuritySettingChange('session_timeout', checked);
+              }}
+              disabled={isUpdatingSecuritySettings}
+            />
           </div>
           
           <Separator />
@@ -572,7 +614,14 @@ export const StaffManagementTab: React.FC<StaffManagementTabProps> = () => {
                 Send email alerts for new staff invitations and role changes
               </p>
             </div>
-            <Switch defaultChecked />
+            <Switch 
+              checked={emailNotifications}
+              onCheckedChange={(checked) => {
+                setEmailNotifications(checked);
+                handleSecuritySettingChange('email_notifications', checked);
+              }}
+              disabled={isUpdatingSecuritySettings}
+            />
           </div>
         </CardContent>
       </Card>

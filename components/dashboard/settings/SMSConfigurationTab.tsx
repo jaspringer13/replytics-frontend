@@ -235,7 +235,7 @@ export function SMSConfigurationTab() {
                     );
                     setSmsTemplates(updatedTemplates);
                   }}
-                  onBlur={() => handleUpdateTemplate(template.id, template.template)}
+                  onBlur={(e) => handleUpdateTemplate(template.id, e.target.value)}
                   className="mt-1 bg-gray-700/50 border-gray-600 text-white"
                   rows={3}
                 />

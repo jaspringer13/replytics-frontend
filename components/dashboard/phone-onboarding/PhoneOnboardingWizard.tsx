@@ -13,6 +13,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
+import { VOICE_OPTIONS } from '@/config/voice-options';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
@@ -73,14 +74,6 @@ const STEPS = [
   { id: 'review', title: 'Review', icon: Check }
 ];
 
-const VOICE_OPTIONS: Record<string, string> = {
-  'kdmDKE6EkgrWrrykO9Qt': 'Rachel - Professional Female',
-  'pNInz6obpgDQGcFmaJgB': 'Adam - Friendly Male',
-  'Yko7PKHZNXotIFUBG7I9': 'Bella - Warm Female',
-  'VR6AewLTigWG4xSOukaG': 'Nicole - Clear Female',
-  'EXAVITQu4vr4xnSDxMaL': 'Chris - Conversational Male',
-  'ErXwobaYiN019PkySvjV': 'Jessica - Energetic Female'
-};
 
 const TIMEZONE_OPTIONS: ValidTimezone[] = [
   'America/New_York',
@@ -124,8 +117,8 @@ export function PhoneOnboardingWizard({
 
   // Step 1: Search for available numbers
   const searchNumbers = useCallback(async () => {
-    if (!data.areaCode || data.areaCode.length !== 3) {
-      setSearchError('Please enter a valid 3-digit area code');
+    if (!data.areaCode || !/^\d{3}$/.test(data.areaCode)) {
+      setSearchError('Please enter a valid 3-digit area code (numbers only)');
       return;
     }
     
@@ -202,6 +195,18 @@ export function PhoneOnboardingWizard({
     setCurrentStep(prev => Math.max(prev - 1, 0));
   }, []);
 
+  // Extract area code from phone number with validation
+  const extractAreaCode = (phoneNumber: string): string => {
+    const cleaned = phoneNumber.replace(/\D/g, '');
+    if (cleaned.length === 11 && cleaned.startsWith('1')) {
+      return cleaned.slice(1, 4);
+    } else if (cleaned.length === 10) {
+      return cleaned.slice(0, 3);
+    }
+    // Fallback to the search area code
+    return data.areaCode;
+  };
+
   // Provision the phone number
   const handleProvision = async () => {
     if (!data.selectedNumber) return;
@@ -212,7 +217,7 @@ export function PhoneOnboardingWizard({
       // Step 1: Provision the number
       const phone = await apiClient.provisionPhoneNumber({
         displayName: data.displayName,
-        areaCode: data.selectedNumber.phoneNumber.slice(2, 5), // Extract area code from +1AAANNNXXXX
+        areaCode: extractAreaCode(data.selectedNumber.phoneNumber),
         timezone: data.timezone,
         description: data.description
       });

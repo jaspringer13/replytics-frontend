@@ -32,7 +32,7 @@ export interface UseSettingsDataReturn {
   updateHours: (hours: DashboardOperatingHours[]) => Promise<void>;
 }
 
-export function useSettingsData(businessId: string): UseSettingsDataReturn {
+export function useSettingsData(businessId: string | null): UseSettingsDataReturn {
   const [data, setData] = useState<SettingsData>({
     profile: null,
     services: [],
@@ -47,6 +47,9 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
     try {
       setLoading(true);
       setError(null);
+
+      // Ensure API client is using the correct business context
+      apiClient.setBusinessId(businessId);
 
       const [profile, services, hours] = await Promise.all([
         apiClient.getBusinessProfile(),
@@ -73,7 +76,10 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
 
   const updateProfile = useCallback(
     async (updates: Partial<DashboardBusinessProfile>) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         const updatedProfile = await apiClient.updateBusinessProfile(updates);
         setData((prev) => ({
           ...prev,
@@ -84,12 +90,15 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   const createService = useCallback(
     async (service: Omit<DashboardService, 'id' | 'createdAt' | 'updatedAt'>) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         const newService = await apiClient.createService(service);
         setData((prev) => ({
           ...prev,
@@ -100,12 +109,15 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   const updateService = useCallback(
     async (id: string, updates: Partial<DashboardService>) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         const updatedService = await apiClient.updateService(id, updates);
         setData((prev) => ({
           ...prev,
@@ -118,12 +130,15 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   const deleteService = useCallback(
     async (id: string) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         await apiClient.deleteService(id);
         setData((prev) => ({
           ...prev,
@@ -134,12 +149,15 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   const reorderServices = useCallback(
     async (serviceIds: string[]) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         await apiClient.reorderServices(serviceIds);
         // Reorder local services to match
         setData((prev) => {
@@ -157,12 +175,15 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   const updateHours = useCallback(
     async (hours: DashboardOperatingHours[]) => {
+      if (!businessId) throw new Error('Business ID is required');
+      
       try {
+        apiClient.setBusinessId(businessId);
         await apiClient.updateBusinessHours(hours);
         setData((prev) => ({
           ...prev,
@@ -173,7 +194,7 @@ export function useSettingsData(businessId: string): UseSettingsDataReturn {
         throw err;
       }
     },
-    []
+    [businessId]
   );
 
   return {

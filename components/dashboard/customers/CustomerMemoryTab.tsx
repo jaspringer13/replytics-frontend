@@ -12,6 +12,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/currency';
+import { formatDate } from '@/lib/utils';
 
 interface CustomerMemoryTabProps {
   customer: CustomerMemory;
@@ -84,7 +85,7 @@ export function CustomerMemoryTab({ customer }: CustomerMemoryTabProps) {
               <span className="text-sm">First Visit</span>
             </div>
             <span className="text-white text-sm">
-              {new Date(customer.firstInteraction).toLocaleDateString()}
+              {formatDate(new Date(customer.firstInteraction))}
             </span>
           </div>
           
@@ -94,7 +95,7 @@ export function CustomerMemoryTab({ customer }: CustomerMemoryTabProps) {
               <span className="text-sm">Last Visit</span>
             </div>
             <span className="text-white text-sm">
-              {new Date(customer.lastInteraction).toLocaleDateString()}
+              {formatDate(new Date(customer.lastInteraction))}
             </span>
           </div>
           

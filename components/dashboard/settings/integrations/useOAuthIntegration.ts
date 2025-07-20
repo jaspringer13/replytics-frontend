@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface OAuthOptions {
   onSuccess?: () => void;
@@ -10,6 +10,15 @@ interface OAuthOptions {
 export function useOAuthIntegration() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
 
   const connectWithOAuth = async (
     authUrl: string, 
@@ -70,10 +79,13 @@ export function useOAuthIntegration() {
         }
       }, 500);
 
-      // Cleanup on unmount
-      return () => {
+      // Store cleanup function
+      cleanupRef.current = () => {
         clearInterval(pollTimer);
         window.removeEventListener('message', handleMessage);
+        if (popup && !popup.closed) {
+          popup.close();
+        }
       };
 
     } catch (err) {

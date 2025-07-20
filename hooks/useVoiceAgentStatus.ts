@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { getSupabaseClient } from '@/lib/supabase-client'
 import { useUserTenant } from '@/hooks/useUserTenant'
 import { useDashboardData } from '@/hooks/useDashboardData'
-import { isWithinBusinessHours, getBusinessTime } from '@/utils/businessHours'
+import { isWithinBusinessHours, getBusinessTime } from '@/lib/utils/businessHours'
 
 interface StatusUpdatePayload {
   isActive?: boolean

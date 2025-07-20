@@ -11,6 +11,7 @@ import { SettingsTabContent } from './SettingsTabContent';
 import { AddPhoneNumberDialog } from './AddPhoneNumberDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Phone } from 'lucide-react';
+import { formatPhoneNumber } from '@/lib/utils';
 
 interface SettingsProps {
   businessId: string;
@@ -32,6 +33,7 @@ function SettingsWithPhoneScope() {
     setSelectedPhoneId,
     loadingPhones,
     phoneSettings,
+    addPhoneNumber,
   } = usePhoneSettings();
   
   const [showAddDialog, setShowAddDialog] = React.useState(false);
@@ -93,7 +95,6 @@ function SettingsWithPhoneScope() {
         isOpen={showAddDialog}
         onClose={() => setShowAddDialog(false)}
         onAdd={async (phoneData) => {
-          const { addPhoneNumber } = usePhoneSettings();
           await addPhoneNumber(phoneData);
           setShowAddDialog(false);
         }}
@@ -102,11 +103,3 @@ function SettingsWithPhoneScope() {
   );
 }
 
-// Helper function
-function formatPhoneNumber(phone: string): string {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  return phone;
-}

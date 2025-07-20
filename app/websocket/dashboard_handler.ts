@@ -9,7 +9,7 @@ import { getSupabaseClient, RealtimeSubscription } from '@/lib/supabase-client';
 // Conditional logging for production environment
 const isDevelopment = process.env.NODE_ENV === 'development';
 
-const log = (...args: any[]) => {
+const log = (...args: unknown[]) => {
   if (isDevelopment) {
     console.log(...args);
   }

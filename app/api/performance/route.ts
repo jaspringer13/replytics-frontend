@@ -24,7 +24,7 @@ interface PerformanceMetric {
   name: string;
   value: number;
   rating?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function POST(request: NextRequest) {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
           timestamp: data.created_at,
         },
       });
-    } catch (supabaseError: any) {
+    } catch (supabaseError: unknown) {
       console.error('[PERFORMANCE METRIC SUPABASE ERROR]', supabaseError);
       // Return success anyway to not interrupt the user experience
       return NextResponse.json({ 
@@ -106,11 +106,11 @@ export async function POST(request: NextRequest) {
         warning: 'Metric received but database unavailable' 
       });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[PERFORMANCE API ERROR]', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Failed to process metric',
+      error: error instanceof Error ? error.message : 'Failed to process metric',
     }, { status: 500 });
   }
 }
@@ -169,11 +169,11 @@ export async function GET(request: NextRequest) {
       },
       timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[PERFORMANCE API ERROR]', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Failed to retrieve metrics',
+      error: error instanceof Error ? error.message : 'Failed to retrieve metrics',
     }, { status: 500 });
   }
 }

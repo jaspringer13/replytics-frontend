@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -45,6 +45,15 @@ export function EnhancedIntegrationCard({
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'failed' | null>(null);
   const { toast } = useToast();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const getStatusIcon = () => {
     switch (integration.status) {
@@ -102,7 +111,10 @@ export function EnhancedIntegrationCard({
       }
       
       // Clear test result after 5 seconds
-      setTimeout(() => setTestResult(null), 5000);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => setTestResult(null), 5000);
     } catch (error) {
       setTestResult('failed');
       toast.error('Failed to test connection');

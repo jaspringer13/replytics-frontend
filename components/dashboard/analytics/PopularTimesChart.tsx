@@ -11,6 +11,10 @@ interface PopularTimesChartProps {
 export function PopularTimesChart({ data, maxItems = 12 }: PopularTimesChartProps) {
   // Get top times and calculate percentages
   const processedData = useMemo(() => {
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
     const maxAppointments = Math.max(...data.map(t => t.appointmentCount))
     return data
       .slice(0, maxItems)

@@ -32,6 +32,7 @@ const validators = {
 };
 
 interface ValidationErrors {
+  name?: string;
   email?: string;
   website?: string;
   phone?: string;
@@ -86,6 +87,10 @@ export function BusinessProfileTab() {
   const validateForm = useCallback((): boolean => {
     const newErrors: ValidationErrors = {};
     
+    if (!formData.name?.trim()) {
+      newErrors.name = 'Business name is required';
+    }
+    
     if (formData.email && !validators.email(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
     }
@@ -118,12 +123,20 @@ export function BusinessProfileTab() {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
+        website: formData.website,
+        timezone: formData.timezone,
+        industry: formData.industry,
       };
       
       // Only include address if addressString has content
-      if (formData.addressString && formData.addressString.trim()) {
+      if (formData.addressString?.trim()) {
+        // Parse the address string more comprehensively
+        const addressParts = formData.addressString.trim().split(',').map(s => s.trim());
         profileUpdate.address = {
-          street: formData.addressString,
+          street: addressParts[0] || '',
+          city: addressParts[1] || '',
+          state: addressParts[2] || '',
+          zip: addressParts[3] || '',
         };
       }
       
@@ -163,9 +176,12 @@ export function BusinessProfileTab() {
               value={formData.name || ''}
               onChange={(e) => handleChange('name', e.target.value)}
               placeholder="Your Business Name"
-              className="bg-gray-700/50"
+              className={`bg-gray-700/50 ${errors.name ? 'border-red-500' : ''}`}
               required
             />
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name}</p>
+            )}
           </div>
 
           <div className="space-y-2">

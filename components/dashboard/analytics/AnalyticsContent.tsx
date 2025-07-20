@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { formatCurrency } from '@/lib/utils/currency';
 import { KPICard } from '@/components/dashboard/analytics/KPICard';
 import { ChartWrapper } from '@/components/dashboard/charts/ChartWrapper';
@@ -12,9 +12,45 @@ import { NoShowVisualization } from '@/components/dashboard/analytics/NoShowVisu
 import { AIInsights } from '@/components/dashboard/analytics/AIInsights';
 import { DollarSign, Users, Calendar, Star } from 'lucide-react';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
+import { CustomerSegmentData } from '@/app/models/dashboard';
 
 export function AnalyticsContent() {
   const { data: analytics, loading, error, refetch, calculateRetentionRate } = useAnalytics();
+
+  // Helper function to calculate no-show data
+  const calculateNoShowData = (dataPoints: any[], noShowRate: number) => {
+    return dataPoints?.map(point => ({
+      date: point.date,
+      bookings: point.value,
+      noShows: Math.round(point.value * (noShowRate || 0) / 100),
+      showRate: 100 - (noShowRate || 0)
+    })) || [];
+  };
+
+  // Memoized data transformations for performance
+  const revenueTrendData = useMemo(() => 
+    analytics?.trends?.revenue?.dataPoints?.map(d => ({ 
+      date: d.date, 
+      amount: d.value 
+    })) || [], 
+    [analytics?.trends?.revenue?.dataPoints]
+  );
+
+  const customerSegmentsData = useMemo((): CustomerSegmentData[] => [
+    { segment: 'vip' as const, count: analytics?.customerSegments?.vip || 0 },
+    { segment: 'regular' as const, count: analytics?.customerSegments?.regular || 0 },
+    { segment: 'at_risk' as const, count: analytics?.customerSegments?.at_risk || 0 },
+    { segment: 'new' as const, count: analytics?.customerSegments?.new || 0 },
+    { segment: 'dormant' as const, count: analytics?.customerSegments?.dormant || 0 }
+  ], [analytics?.customerSegments]);
+
+  const noShowData = useMemo(() => 
+    calculateNoShowData(
+      analytics?.trends?.appointments?.dataPoints || [],
+      analytics?.metrics?.noShowRate || 0
+    ), 
+    [analytics?.trends?.appointments?.dataPoints, analytics?.metrics?.noShowRate]
+  );
 
   return (
     <div className="space-y-6">
@@ -81,10 +117,7 @@ export function AnalyticsContent() {
         >
           {analytics && (
             <RevenueTrendChart 
-              data={analytics?.trends?.revenue?.dataPoints?.map(d => ({ 
-                date: d.date, 
-                amount: d.value 
-              })) || []} 
+              data={revenueTrendData}
               height={350} 
             />
           )}
@@ -113,13 +146,7 @@ export function AnalyticsContent() {
           error={error}
         >
           {analytics && (
-            <CustomerSegmentsChart data={[
-              { segment: 'vip', count: analytics?.customerSegments?.vip || 0 },
-              { segment: 'regular', count: analytics?.customerSegments?.regular || 0 },
-              { segment: 'at_risk', count: analytics?.customerSegments?.at_risk || 0 },
-              { segment: 'new', count: analytics?.customerSegments?.new || 0 },
-              { segment: 'dormant', count: analytics?.customerSegments?.dormant || 0 }
-            ]} />
+            <CustomerSegmentsChart data={customerSegmentsData} />
           )}
         </ChartWrapper>
         
@@ -146,14 +173,7 @@ export function AnalyticsContent() {
         >
           {analytics && (
             <NoShowVisualization 
-              data={
-                analytics?.trends?.appointments?.dataPoints?.map(point => ({
-                  date: point.date,
-                  bookings: point.value,
-                  noShows: Math.round(point.value * (analytics?.metrics?.noShowRate || 0) / 100),
-                  showRate: 100 - (analytics?.metrics?.noShowRate || 0)
-                })) || []
-              }
+              data={noShowData}
               dateRange={`${analytics?.dateRange?.start || 'Start'} - ${analytics?.dateRange?.end || 'End'}`}
             />
           )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
-import { PhoneNumberOption } from '@/app/models/phone-number';
+import { PhoneNumber, PhoneNumberOption } from '@/app/models/phone-number';
 
 export interface UsePhoneNumbersReturn {
   phoneNumbers: PhoneNumberOption[];
@@ -34,7 +34,7 @@ export function usePhoneNumbers(businessId: string): UsePhoneNumbersReturn {
         id: phone.id,
         phoneNumber: phone.phoneNumber,
         displayName: phone.displayName,
-        isPrimary: (phone as any).is_primary || phone.isPrimary || false,
+        isPrimary: (phone as PhoneNumber & { is_primary?: boolean }).is_primary ?? phone.isPrimary ?? false,
         isActive: phone.isActive !== false, // Default to true if not specified
       }));
 
@@ -64,7 +64,7 @@ export function usePhoneNumbers(businessId: string): UsePhoneNumbersReturn {
           id: newPhone.id,
           phoneNumber: newPhone.phoneNumber,
           displayName: newPhone.displayName,
-          isPrimary: (newPhone as any).is_primary || newPhone.isPrimary || false,
+          isPrimary: (newPhone as PhoneNumber & { is_primary?: boolean }).is_primary ?? newPhone.isPrimary ?? false,
           isActive: newPhone.isActive !== false,
         };
         
