@@ -78,7 +78,7 @@ export interface Service {
   duration: number; // in minutes
   price: number;
   description?: string;
-  active: boolean;
+  isActive: boolean;
   displayOrder: number;
   createdAt: Date;
   updatedAt: Date;
@@ -89,7 +89,7 @@ export interface ServiceCreate {
   duration: number;
   price: number;
   description?: string;
-  active?: boolean;
+  isActive?: boolean;
 }
 
 export interface ServiceUpdatePayload {
@@ -97,7 +97,7 @@ export interface ServiceUpdatePayload {
   duration?: number;
   price?: number;
   description?: string;
-  active?: boolean;
+  isActive?: boolean;
   displayOrder?: number;
 }
 
@@ -172,6 +172,37 @@ export interface Customer {
   flags?: string[];
 }
 
+// Extended Customer Memory Interface
+export interface CustomerMemory extends Customer {
+  // Interaction history
+  totalInteractions: number;
+  
+  // Booking history breakdown
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  noShows: number;
+  
+  // Enhanced preferences
+  preferences: {
+    preferredServices?: string[];
+    preferredStaff?: string[];
+    preferredTimes?: string[];
+    communicationPreference?: 'phone' | 'sms' | 'email';
+  };
+  
+  // Business-specific data
+  customFlags: string[];
+  notes?: string;
+  
+  // Behavior patterns
+  bookingPatterns?: {
+    typicalDayOfWeek?: string[];
+    typicalTimeOfDay?: string;
+    advanceBookingDays?: number;
+  };
+}
+
 export const CUSTOMER_SEGMENTS = ['vip', 'regular', 'at_risk', 'new', 'dormant'] as const;
 export type CustomerSegment = typeof CUSTOMER_SEGMENTS[number];
 export type CustomerSegmentFilter = CustomerSegment | 'all';
@@ -240,7 +271,7 @@ export interface ServicePerformance {
 export interface SegmentDistribution {
   vip: number;
   regular: number;
-  atRisk: number;
+  at_risk: number;
   new: number;
   dormant: number;
 }
@@ -302,7 +333,7 @@ export interface StaffMember {
   role: 'owner' | 'manager' | 'staff';
   services: string[]; // Service IDs this staff member can perform
   availability: StaffAvailability[];
-  active: boolean;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

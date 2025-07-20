@@ -24,7 +24,7 @@ const IntegrationsTab = lazy(() =>
   import('./IntegrationsTab').then(m => ({ default: m.IntegrationsTab }))
 );
 const StaffManagementTab = lazy(() => 
-  import('./StaffManagementTab').then(m => ({ default: m.StaffManagementTab }))
+  import('./staff/StaffManagementTab').then(m => ({ default: m.StaffManagementTab }))
 );
 
 function TabLoadingFallback() {

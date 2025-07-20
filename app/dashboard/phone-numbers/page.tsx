@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -10,8 +11,11 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/useToast';
 import { Phone, Plus, Settings, Trash2, Check, X } from 'lucide-react';
 import { PhoneNumber } from '@/app/models/phone-number';
+import { VoiceSettingsService } from '@/app/services/dashboard/voice_settings_service';
+import { formatPhoneNumber } from '@/lib/utils';
 
 export default function PhoneNumbersPage() {
+  const router = useRouter();
   const [phoneNumbers, setPhoneNumbers] = useState<PhoneNumber[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -106,13 +110,6 @@ export default function PhoneNumbersPage() {
     }
   };
 
-  const formatPhoneNumber = (phone: string) => {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 11 && cleaned.startsWith('1')) {
-      return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
-    }
-    return phone;
-  };
 
   return (
     <DashboardLayout>
@@ -252,7 +249,7 @@ export default function PhoneNumbersPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => window.location.href = `/dashboard/settings?phone=${phone.id}`}
+                      onClick={() => router.push(`/dashboard/settings?phone=${phone.id}`)}
                     >
                       <Settings className="w-4 h-4" />
                     </Button>
@@ -263,7 +260,9 @@ export default function PhoneNumbersPage() {
                   <div>
                     <p className="text-gray-500">Voice</p>
                     <p className="text-white">
-                      {phone.voiceSettings?.voiceId === 'kdmDKE6EkgrWrrykO9Qt' ? 'Rachel' : 'Custom'}
+                      {phone.voiceSettings?.voiceId && phone.voiceSettings.voiceId in VoiceSettingsService.VOICE_OPTIONS 
+                        ? (VoiceSettingsService.VOICE_OPTIONS as any)[phone.voiceSettings.voiceId] 
+                        : 'Custom'}
                     </p>
                   </div>
                   <div>

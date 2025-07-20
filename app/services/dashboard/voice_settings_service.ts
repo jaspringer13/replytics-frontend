@@ -13,6 +13,17 @@ import { env } from '@/lib/config';
 
 export class VoiceSettingsService {
   /**
+   * Validate business ID format for security
+   */
+  private validateBusinessId(businessId: string): { isValid: boolean; error?: string } {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(businessId)) {
+      return { isValid: false, error: 'Invalid business ID format' };
+    }
+    return { isValid: true };
+  }
+
+  /**
    * Update voice settings with real-time propagation
    * This is critical for voice agent hot-reload functionality
    */
@@ -21,6 +32,12 @@ export class VoiceSettingsService {
     settings: Partial<VoiceSettings>
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      // Validate businessId format
+      const businessIdValidation = this.validateBusinessId(businessId);
+      if (!businessIdValidation.isValid) {
+        return { success: false, error: businessIdValidation.error };
+      }
+
       // Validate settings
       const validation = this.validateVoiceSettings(settings);
       if (!validation.isValid) {
@@ -65,6 +82,12 @@ export class VoiceSettingsService {
     rules: Partial<ConversationRules>
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      // Validate businessId format
+      const businessIdValidation = this.validateBusinessId(businessId);
+      if (!businessIdValidation.isValid) {
+        return { success: false, error: businessIdValidation.error };
+      }
+
       // Validate rules
       const validation = this.validateConversationRules(rules);
       if (!validation.isValid) {
@@ -109,6 +132,13 @@ export class VoiceSettingsService {
     conversationRules: ConversationRules;
   } | null> {
     try {
+      // Validate businessId format
+      const businessIdValidation = this.validateBusinessId(businessId);
+      if (!businessIdValidation.isValid) {
+        console.error('Invalid business ID format:', businessId);
+        return null;
+      }
+
       const { data, error } = await getSupabaseServer()
         .from('businesses')
         .select('voice_settings, conversation_rules')
@@ -301,6 +331,12 @@ export class VoiceSettingsService {
     testMessage: string = 'Hello! This is a test of your voice settings.'
   ): Promise<{ success: boolean; audioUrl?: string; error?: string; duration?: number }> {
     try {
+      // Validate businessId format
+      const businessIdValidation = this.validateBusinessId(businessId);
+      if (!businessIdValidation.isValid) {
+        return { success: false, error: businessIdValidation.error };
+      }
+
       const config = await this.getVoiceConfiguration(businessId);
       if (!config) {
         return { success: false, error: 'Voice configuration not found' };

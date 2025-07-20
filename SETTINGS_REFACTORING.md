@@ -57,7 +57,6 @@ export interface BusinessProfile {
   phone: string;
   address?: string;
   timezone?: string;
-  [key: string]: any;
 }
 
 export interface Service {

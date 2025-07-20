@@ -46,7 +46,10 @@ CREATE TABLE phone_numbers (
     sms_settings JSONB,
     
     created_at TIMESTAMP,
-    updated_at TIMESTAMP
+    updated_at TIMESTAMP,
+    
+    -- Constraints
+    CONSTRAINT check_one_primary_per_business UNIQUE (business_id, is_primary) DEFERRABLE INITIALLY DEFERRED
 );
 
 -- Move operating_hours to be phone-specific
@@ -54,6 +57,12 @@ ALTER TABLE operating_hours ADD COLUMN phone_number_id UUID REFERENCES phone_num
 
 -- Services can be phone-specific or business-wide
 ALTER TABLE services ADD COLUMN phone_number_id UUID REFERENCES phone_numbers(id) NULL;
+
+-- Indexes for performance
+CREATE INDEX idx_phone_numbers_business_id ON phone_numbers(business_id);
+CREATE INDEX idx_phone_numbers_active ON phone_numbers(is_active) WHERE is_active = true;
+CREATE INDEX idx_operating_hours_phone_id ON operating_hours(phone_number_id);
+CREATE INDEX idx_services_phone_id ON services(phone_number_id);
 ```
 
 ### 2. API Route Structure
@@ -103,6 +112,8 @@ Each voice agent instance must:
 2. Implement phone numbers repository and service
 3. Update existing domains to be phone-aware
 4. Create migration scripts
+5. **Migrate existing phone numbers from businesses table**
+6. **Set default primary phone for existing businesses**
 
 ### Phase 2: API Updates
 1. Create phone-scoped API routes

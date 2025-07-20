@@ -86,7 +86,7 @@ export function DashboardOverview() {
     
     // Customer insights
     const totalCustomers = Object.values(analytics.customerSegments).reduce((sum, count) => sum + count, 0)
-    const atRiskCount = analytics.customerSegments.atRisk
+    const atRiskCount = analytics.customerSegments.at_risk
     const atRiskPercentage = totalCustomers > 0 ? (atRiskCount / totalCustomers) * 100 : 0
     if (atRiskPercentage > INSIGHT_THRESHOLDS.AT_RISK_CUSTOMERS_WARNING) {
       insights.push({

@@ -52,7 +52,7 @@ async function testPhoneSettings() {
     // Step 2: Get phone numbers for the business
     console.log('2️⃣ Fetching phone numbers...');
     const businessId = authResponse.user.id; // Assuming user ID is business ID
-    const phoneNumbers = await apiClient.getPhoneNumbers(businessId);
+    const phoneNumbers = await apiClient.getPhoneNumbers();
     
     const testPhone = phoneNumbers.find(p => p.phoneNumber === TEST_PHONE_NUMBER);
     if (!testPhone) {

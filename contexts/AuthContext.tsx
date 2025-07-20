@@ -12,6 +12,7 @@ interface User {
   tenantId?: string
   authToken?: string
   onboardingStep?: number
+  businessId?: string  // Add business ID from JWT metadata
 }
 
 interface AuthContextType {
@@ -23,10 +24,12 @@ interface AuthContextType {
   isAuthenticated: boolean
   token: string | null
   tenantId: string | null
+  businessId: string | null  // Add business context
   onboardingStep: number
   updateOnboardingStep: (step: number) => Promise<void>
   isTokenExpired: boolean
   tokenExpiresAt: string | null
+  switchBusiness: (businessId: string) => Promise<void>  // Add business switching
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -42,7 +45,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedUserStr = localStorage.getItem('user')
       if (storedUserStr) {
         try {
-          return JSON.parse(storedUserStr)
+          const user = JSON.parse(storedUserStr)
+          // Try to get businessId from localStorage if not in user object
+          if (!user.businessId) {
+            user.businessId = localStorage.getItem('current_business_id')
+          }
+          return user
         } catch (err) {
           console.error('Failed to parse stored user:', err)
         }
@@ -223,17 +231,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Calculate token expiration (24 hours from now if not provided)
         const expiresAt = response.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         
+        // Extract businessId from metadata if available
+        const businessId = response.metadata?.current_business_id || undefined
+        const userWithBusiness = {
+          ...response.user,
+          businessId
+        }
+        
         // Store user data and token
-        localStorage.setItem('user', JSON.stringify(response.user))
+        localStorage.setItem('user', JSON.stringify(userWithBusiness))
         localStorage.setItem('auth_token', response.token)
         localStorage.setItem('tenant_id', response.user.id) // Assuming user.id is tenant_id for email login
         localStorage.setItem('token_expires_at', expiresAt)
         
+        // Store business ID separately if available
+        if (businessId) {
+          localStorage.setItem('current_business_id', businessId)
+        }
+        
         // Set API client token with expiration
         apiClient.setToken(response.token, expiresAt)
         
-        // Update local user state
-        setLocalUser(response.user)
+        // Update local user state with business ID
+        setLocalUser(userWithBusiness)
         
         // CRITICAL: Set loading to false after successful login
         setIsLoading(false)
@@ -298,6 +318,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Switch business context
+  const switchBusiness = async (businessId: string) => {
+    try {
+      // Update localStorage
+      localStorage.setItem('current_business_id', businessId)
+      
+      // Update API client with new business context
+      apiClient.setBusinessId(businessId)
+      
+      // Update user object
+      if (localUser) {
+        const updatedUser = { ...localUser, businessId }
+        setLocalUser(updatedUser)
+        localStorage.setItem('user', JSON.stringify(updatedUser))
+      }
+      
+      // If using NextAuth session, update it
+      if (session?.user) {
+        await update({ businessId })
+      }
+      
+      // Refresh the page to reload with new business context
+      router.refresh()
+    } catch (error) {
+      console.error('Failed to switch business:', error)
+      throw error
+    }
+  }
+
   // Check localStorage for auth state
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
   const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
@@ -305,6 +354,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = !!user || (status === 'authenticated') || !!storedToken
   const token = session?.user?.authToken || storedToken
   const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
+  const businessId = user?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('current_business_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0
 
   // Debug logging
@@ -330,8 +380,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated, 
       token,
       tenantId,
+      businessId,
       onboardingStep,
       updateOnboardingStep,
+      switchBusiness,
       isTokenExpired: isTokenExpired(tokenExpiresAt),
       tokenExpiresAt
     }}>

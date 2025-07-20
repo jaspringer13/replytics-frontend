@@ -11,6 +11,12 @@ import {
   ValidTimezone 
 } from './dashboard';
 
+export interface PhoneSpecificSMSSettings {
+  enabled: boolean;
+  remindersEnabled: boolean;
+  reminderHours: number;
+}
+
 export interface PhoneNumber {
   id: string;
   businessId: string;
@@ -30,11 +36,7 @@ export interface PhoneNumber {
   // Phone-specific settings
   voiceSettings: VoiceSettings;
   conversationRules: ConversationRules;
-  smsSettings?: {
-    enabled: boolean;
-    remindersEnabled: boolean;
-    reminderHours: number;
-  };
+  smsSettings?: PhoneSpecificSMSSettings;
   
   // Phone-specific operating hours
   operatingHours?: OperatingHours[];

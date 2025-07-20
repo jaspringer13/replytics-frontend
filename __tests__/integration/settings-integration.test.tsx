@@ -69,7 +69,11 @@ describe('Settings Page Integration', () => {
     mockApiClient.getBusinessHours.mockResolvedValue([
       { dayOfWeek: 0, openTime: '10:00', closeTime: '18:00', isClosed: false },
       { dayOfWeek: 1, openTime: '09:00', closeTime: '20:00', isClosed: false },
-      // ... other days
+      { dayOfWeek: 2, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 3, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 4, openTime: '09:00', closeTime: '20:00', isClosed: false },
+      { dayOfWeek: 5, openTime: '10:00', closeTime: '16:00', isClosed: false },
+      { dayOfWeek: 6, openTime: '10:00', closeTime: '16:00', isClosed: false },
     ]);
 
     mockRealtimeConfig.initialize.mockResolvedValue(undefined);

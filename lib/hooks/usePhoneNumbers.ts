@@ -27,7 +27,7 @@ export function usePhoneNumbers(businessId: string): UsePhoneNumbersReturn {
       setLoading(true);
       setError(null);
 
-      const phones = await apiClient.getPhoneNumbers(businessId);
+      const phones = await apiClient.getPhoneNumbers();
       
       // Map to PhoneNumberOption format and handle backend field naming
       const phoneOptions: PhoneNumberOption[] = phones.map(phone => ({
@@ -54,7 +54,7 @@ export function usePhoneNumbers(businessId: string): UsePhoneNumbersReturn {
   const addPhoneNumber = useCallback(
     async (displayName: string, areaCode?: string): Promise<string> => {
       try {
-        const newPhone = await apiClient.provisionPhoneNumber(businessId, {
+        const newPhone = await apiClient.provisionPhoneNumber({
           displayName,
           areaCode,
         });
@@ -81,7 +81,7 @@ export function usePhoneNumbers(businessId: string): UsePhoneNumbersReturn {
   const setPrimaryPhone = useCallback(
     async (phoneId: string) => {
       try {
-        await apiClient.setPrimaryPhoneNumber(businessId, phoneId);
+        await apiClient.setPrimaryPhoneNumber(phoneId);
         
         // Update local state
         setPhoneNumbers(prev =>

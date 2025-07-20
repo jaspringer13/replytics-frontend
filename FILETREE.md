@@ -1,6 +1,6 @@
 # Replytics Website File Structure
 
-**Last Updated:** 2025-01-19 at 16:15 UTC
+**Last Updated:** 2025-07-20 at 14:30 UTC
 
 ## Maintenance & Automation
 

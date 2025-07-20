@@ -82,7 +82,7 @@ export function AIInsights({ analytics }: AIInsightsProps) {
     }
     
     // At-risk customers
-    const atRiskPercentage = totalCustomers > 0 ? (analytics.customerSegments.atRisk / totalCustomers) * 100 : 0
+    const atRiskPercentage = totalCustomers > 0 ? (analytics.customerSegments.at_risk / totalCustomers) * 100 : 0
     if (atRiskPercentage > 20) {
       insights.push({
         icon: <AlertCircle className="h-6 w-6" />,

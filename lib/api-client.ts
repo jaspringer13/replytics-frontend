@@ -1,5 +1,6 @@
 import { DashboardOverview, Customer, Service, OperatingHours, BusinessProfile, VoiceSettings, ConversationRules, SMSSettings } from '@/app/models/dashboard';
 import { PhoneNumber, PhoneNumberCreate, PhoneNumberUpdate } from '@/app/models/phone-number';
+import { StaffMember, StaffCreateRequest, StaffUpdateRequest, StaffAvailability, StaffSchedule, StaffInvitation, StaffActivity } from '@/app/models/staff';
 import { validateSMSPayload } from './message-validation';
 import { env, API_CONFIG } from '@/lib/config';
 
@@ -9,6 +10,9 @@ interface AuthResponse {
     id: string;
     email: string;
     name: string;
+  };
+  metadata?: {
+    current_business_id?: string;
   };
   expires_at?: string;
   expires_in?: number;
@@ -79,6 +83,7 @@ class APIClient {
   private baseURL: string;
   private token: string | null = null;
   private tenantId: string | null = null;
+  private businessId: string | null = null;
   private tokenExpiresAt: Date | null = null;
   private refreshPromise: Promise<AuthResponse> | null = null;
   private requestQueue: Array<() => void> = [];
@@ -96,6 +101,7 @@ class APIClient {
     if (typeof window !== 'undefined' && !this.token) {
       this.token = localStorage.getItem('auth_token');
       this.tenantId = localStorage.getItem('tenant_id');
+      this.businessId = localStorage.getItem('current_business_id');
       const expiresAt = localStorage.getItem('token_expires_at');
       if (expiresAt) {
         this.tokenExpiresAt = new Date(expiresAt);
@@ -174,6 +180,11 @@ class APIClient {
     // Add tenant ID to headers if available
     if (this.tenantId) {
       (headers as Record<string, string>)['X-Tenant-ID'] = this.tenantId;
+    }
+    
+    // Add business ID to headers if available
+    if (this.businessId) {
+      (headers as Record<string, string>)['X-Business-ID'] = this.businessId;
     }
 
     const controller = new AbortController();
@@ -274,6 +285,17 @@ class APIClient {
     }
   }
 
+  setBusinessId(businessId: string | null) {
+    this.businessId = businessId;
+    if (typeof window !== 'undefined') {
+      if (businessId) {
+        localStorage.setItem('current_business_id', businessId);
+      } else {
+        localStorage.removeItem('current_business_id');
+      }
+    }
+  }
+
   async login(email: string, password: string): Promise<AuthResponse> {
     console.log('Login attempt:', { email, baseURL: this.baseURL });
     try {
@@ -287,6 +309,10 @@ class APIClient {
       // Assuming the response includes tenant_id for email/password login
       if (response.user?.id) {
         this.setTenantId(response.user.id);
+      }
+      // Set business ID from metadata if available
+      if (response.metadata?.current_business_id) {
+        this.setBusinessId(response.metadata.current_business_id);
       }
       return response;
     } catch (error) {
@@ -310,6 +336,9 @@ class APIClient {
       name: string;
       avatar?: string;
     };
+    metadata?: {
+      current_business_id?: string;
+    };
     expires_at?: string;
     expires_in?: number;
   }> {
@@ -323,6 +352,9 @@ class APIClient {
         name: string;
         avatar?: string;
       };
+      metadata?: {
+        current_business_id?: string;
+      };
       expires_at?: string;
       expires_in?: number;
     }>('/api/dashboard/auth/google', {
@@ -332,6 +364,10 @@ class APIClient {
     
     this.setToken(response.token, response.expires_at, response.expires_in);
     this.setTenantId(response.tenant_id);
+    // Set business ID from metadata if available
+    if (response.metadata?.current_business_id) {
+      this.setBusinessId(response.metadata.current_business_id);
+    }
     return response;
   }
 
@@ -474,33 +510,33 @@ class APIClient {
 
   // Business Configuration
   async getBusinessProfile(): Promise<BusinessProfile> {
-    return this.request('/api/v2/dashboard/business/profile');
+    return this.request('/api/v2/dashboard/business');
   }
 
   async updateBusinessProfile(updates: Partial<BusinessProfile>): Promise<BusinessProfile> {
-    return this.request('/api/v2/dashboard/business/profile', {
+    return this.request('/api/v2/dashboard/business', {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
   }
 
   async getVoiceSettings(): Promise<VoiceSettings> {
-    return this.request('/api/v2/dashboard/business/voice-settings');
+    return this.request('/api/v2/dashboard/prompts');
   }
 
   async updateVoiceSettings(settings: Partial<VoiceSettings>): Promise<VoiceSettings> {
-    return this.request('/api/v2/dashboard/business/voice-settings', {
+    return this.request('/api/v2/dashboard/prompts', {
       method: 'PATCH',
       body: JSON.stringify(settings),
     });
   }
 
   async getConversationRules(): Promise<ConversationRules> {
-    return this.request('/api/v2/dashboard/business/conversation-rules');
+    return this.request('/api/v2/dashboard/business');
   }
 
   async updateConversationRules(rules: Partial<ConversationRules>): Promise<ConversationRules> {
-    return this.request('/api/v2/dashboard/business/conversation-rules', {
+    return this.request('/api/v2/dashboard/business', {
       method: 'PATCH',
       body: JSON.stringify(rules),
     });
@@ -509,7 +545,7 @@ class APIClient {
   // Services Management
   async getServices(includeInactive = false): Promise<Service[]> {
     const params = new URLSearchParams();
-    if (includeInactive) params.append('includeInactive', 'true');
+    if (includeInactive) params.append('include_inactive', 'true');
     return this.request(`/api/v2/dashboard/services?${params.toString()}`);
   }
 
@@ -536,7 +572,7 @@ class APIClient {
   async reorderServices(serviceIds: string[]) {
     return this.request('/api/v2/dashboard/services/reorder', {
       method: 'POST',
-      body: JSON.stringify({ serviceIds }),
+      body: JSON.stringify({ service_ids: serviceIds }),
     });
   }
 
@@ -547,7 +583,7 @@ class APIClient {
 
   async updateBusinessHours(hours: OperatingHours[]) {
     return this.request('/api/v2/dashboard/hours', {
-      method: 'PATCH',
+      method: 'PUT',
       body: JSON.stringify(hours),
     });
   }
@@ -696,28 +732,35 @@ class APIClient {
   }
 
   // Create WebSocket connection for real-time updates
-  createWebSocketConnection(businessId: string) {
+  createWebSocketConnection() {
     this.initializeFromStorage();
     const token = this.token;
+    const businessId = this.businessId;
+    
     if (!token) {
       throw new Error('No auth token available for WebSocket connection');
     }
+    
+    if (!businessId) {
+      throw new Error('No business context available for WebSocket connection');
+    }
 
     // Use secure WebSocket (wss) and remove token from URL for security
-    const baseURL = this.baseURL.replace(/^http/, 'wss');
-    const ws = new WebSocket(`${baseURL}/api/v2/config/businesses/${businessId}/ws`);
+    const baseURL = this.baseURL.replace(/^http/, 'ws');
+    const ws = new WebSocket(`${baseURL}/api/v2/dashboard/ws`);
     
     // Send authentication token as first message after connection opens
     ws.addEventListener('open', () => {
-      ws.send(JSON.stringify({ type: 'auth', token }));
+      ws.send(JSON.stringify({ type: 'auth', token, business_id: businessId }));
     });
     
     return ws;
   }
 
   // Phone Number Management
-  async getPhoneNumbers(businessId: string): Promise<PhoneNumber[]> {
-    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers`);
+  async getPhoneNumbers(): Promise<PhoneNumber[]> {
+    // Business ID comes from auth context headers
+    return this.request('/api/v2/dashboard/phone-numbers');
   }
 
   async getPhoneNumber(phoneId: string): Promise<PhoneNumber> {
@@ -738,29 +781,30 @@ class APIClient {
       sms: boolean;
       mms: boolean;
     };
+    monthlyPrice: number;
   }>> {
-    const params = new URLSearchParams();
-    if (filters?.areaCode) params.append('areaCode', filters.areaCode);
-    if (filters?.contains) params.append('contains', filters.contains);
-    
-    return this.request(`/api/v2/dashboard/phone-numbers/search?${params.toString()}`);
+    // TODO: Implement phone number search in backend
+    // For now, return empty array as the backend endpoint doesn't exist
+    console.warn('Phone number search not implemented in backend');
+    return Promise.resolve([]);
   }
 
-  async provisionPhoneNumber(businessId: string, data: {
+  async provisionPhoneNumber(data: {
     displayName: string;
     areaCode?: string;
     timezone?: string;
     description?: string;
   }): Promise<PhoneNumber> {
-    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers`, {
+    // Business ID comes from auth context headers
+    return this.request('/api/v2/dashboard/phone-numbers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   // Alias for compatibility
-  async createPhoneNumber(businessId: string, data: any): Promise<PhoneNumber> {
-    return this.provisionPhoneNumber(businessId, data);
+  async createPhoneNumber(data: any): Promise<PhoneNumber> {
+    return this.provisionPhoneNumber(data);
   }
 
   async updatePhoneNumber(phoneId: string, updates: Partial<PhoneNumber>): Promise<PhoneNumber> {
@@ -770,8 +814,9 @@ class APIClient {
     });
   }
 
-  async setPrimaryPhoneNumber(businessId: string, phoneId: string): Promise<PhoneNumber> {
-    return this.request(`/api/v2/dashboard/businesses/${businessId}/phone-numbers/${phoneId}/set-primary`, {
+  async setPrimaryPhoneNumber(phoneId: string): Promise<PhoneNumber> {
+    // Business ID comes from auth context headers
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/set-primary`, {
       method: 'POST',
     });
   }
@@ -791,6 +836,39 @@ class APIClient {
   // Alias for compatibility
   async deletePhoneNumber(phoneId: string): Promise<void> {
     return this.releasePhoneNumber(phoneId);
+  }
+
+  // Calendar Management for Phone Numbers
+  async assignPhoneCalendars(phoneId: string, calendars: Array<{
+    calendar_provider: string;
+    calendar_id: string;
+    priority: number;
+  }>): Promise<void> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/calendars`, {
+      method: 'POST',
+      body: JSON.stringify({ calendars }),
+    });
+  }
+
+  // Get effective settings (merged business + phone overrides)
+  async getPhoneEffectiveSettings(phoneId: string): Promise<{
+    voice_settings: VoiceSettings;
+    conversation_settings: ConversationRules;
+    sms_settings: SMSSettings;
+  }> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/settings`);
+  }
+
+  // Business Management
+  async getCurrentBusiness(): Promise<BusinessProfile> {
+    return this.request('/api/v2/dashboard/business');
+  }
+
+  async updateBusiness(updates: Partial<BusinessProfile>): Promise<BusinessProfile> {
+    return this.request('/api/v2/dashboard/business', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
   }
 
   // Phone-specific settings methods
@@ -820,10 +898,30 @@ class APIClient {
     return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/operating-hours`);
   }
 
-  async updatePhoneOperatingHours(phoneId: string, hours: OperatingHours[]): Promise<OperatingHours[]> {
+  async updatePhoneOperatingHours(phoneId: string, data: {
+    operatingHours?: Array<{
+      day: string;
+      enabled: boolean;
+      hours?: Array<{
+        open: string;
+        close: string;
+      }>;
+    }>;
+    timezone?: string;
+  }): Promise<any> {
     return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/operating-hours`, {
       method: 'PATCH',
-      body: JSON.stringify({ hours }),
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePhoneSmsSettings(phoneId: string, settings: {
+    enabled?: boolean;
+    reminderHours?: number;
+  }): Promise<any> {
+    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/sms-settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
     });
   }
 
@@ -896,11 +994,11 @@ class APIClient {
       throw new Error('No auth token available for WebSocket connection');
     }
 
-    const baseURL = this.baseURL.replace(/^http/, 'wss');
-    const ws = new WebSocket(`${baseURL}/api/v2/dashboard/phone-numbers/${phoneId}/ws`);
+    const baseURL = this.baseURL.replace(/^http/, 'ws');
+    const ws = new WebSocket(`${baseURL}/api/v2/dashboard/ws`);
     
     ws.addEventListener('open', () => {
-      ws.send(JSON.stringify({ type: 'auth', token }));
+      ws.send(JSON.stringify({ type: 'auth', token, phone_id: phoneId }));
     });
     
     return ws;
@@ -918,9 +1016,129 @@ class APIClient {
     });
   }
 
+  // Staff Management
+  async getStaffMembers(filters?: {
+    role?: string;
+    status?: string;
+    search?: string;
+  }): Promise<StaffMember[]> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    
+    return this.request(`/api/v2/dashboard/staff?${params.toString()}`);
+  }
+
+  async getStaffMember(staffId: string): Promise<StaffMember> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}`);
+  }
+
+  async createStaffMember(data: StaffCreateRequest): Promise<StaffMember> {
+    return this.request('/api/v2/dashboard/staff', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStaffMember(staffId: string, data: StaffUpdateRequest): Promise<StaffMember> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStaffMember(staffId: string): Promise<void> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Staff Availability
+  async getStaffAvailability(staffId: string): Promise<StaffAvailability[]> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}/availability`);
+  }
+
+  async updateStaffAvailability(staffId: string, availability: StaffAvailability[]): Promise<StaffAvailability[]> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}/availability`, {
+      method: 'PUT',
+      body: JSON.stringify({ availability }),
+    });
+  }
+
+  // Staff Schedule
+  async getStaffSchedule(staffId: string, startDate: string, endDate: string): Promise<StaffSchedule[]> {
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+    });
+    
+    return this.request(`/api/v2/dashboard/staff/${staffId}/schedule?${params.toString()}`);
+  }
+
+  async updateStaffSchedule(staffId: string, date: string, schedule: StaffSchedule): Promise<StaffSchedule> {
+    return this.request(`/api/v2/dashboard/staff/${staffId}/schedule/${date}`, {
+      method: 'PUT',
+      body: JSON.stringify(schedule),
+    });
+  }
+
+  // Staff Invitations
+  async createStaffInvitation(data: {
+    email: string;
+    role: string;
+    permissions?: Record<string, boolean>;
+  }): Promise<StaffInvitation> {
+    return this.request('/api/v2/dashboard/staff/invitations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getStaffInvitations(): Promise<StaffInvitation[]> {
+    return this.request('/api/v2/dashboard/staff/invitations');
+  }
+
+  async revokeStaffInvitation(invitationId: string): Promise<void> {
+    return this.request(`/api/v2/dashboard/staff/invitations/${invitationId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async resendStaffInvitation(invitationId: string): Promise<StaffInvitation> {
+    return this.request(`/api/v2/dashboard/staff/invitations/${invitationId}/resend`, {
+      method: 'POST',
+    });
+  }
+
+  // Staff Activity
+  async getStaffActivity(staffId: string, filters?: {
+    startDate?: string;
+    endDate?: string;
+    action?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ activities: StaffActivity[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) {
+          params.append(key, String(value));
+        }
+      });
+    }
+    
+    return this.request(`/api/v2/dashboard/staff/${staffId}/activity?${params.toString()}`);
+  }
+
   // Backward compatibility methods for tests
   async setPrimaryPhone(businessId: string, phoneId: string): Promise<PhoneNumber> {
-    return this.setPrimaryPhoneNumber(businessId, phoneId);
+    // Note: businessId parameter is ignored as it comes from auth context
+    return this.setPrimaryPhoneNumber(phoneId);
   }
 
   async testPhoneVoice(

@@ -7,6 +7,13 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatPhoneNumber(phone: string): string {
   const cleaned = phone.replace(/\D/g, "")
+  
+  // Handle 11-digit numbers (US with country code)
+  if (cleaned.length === 11 && cleaned.startsWith('1')) {
+    return `+1 (${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`
+  }
+  
+  // Handle 10-digit numbers (US without country code)
   const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
   if (match) {
     return `(${match[1]}) ${match[2]}-${match[3]}`

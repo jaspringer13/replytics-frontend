@@ -8,6 +8,7 @@ import { RevenueTrendChart } from '@/components/dashboard/analytics/RevenueTrend
 import { ServicePerformanceChart } from '@/components/dashboard/analytics/ServicePerformanceChart';
 import { CustomerSegmentsChart } from '@/components/dashboard/analytics/CustomerSegmentsChart';
 import { PopularTimesChart } from '@/components/dashboard/analytics/PopularTimesChart';
+import { NoShowVisualization } from '@/components/dashboard/analytics/NoShowVisualization';
 import { AIInsights } from '@/components/dashboard/analytics/AIInsights';
 import { DollarSign, Users, Calendar, Star } from 'lucide-react';
 import { useAnalytics } from '@/contexts/AnalyticsContext';
@@ -115,7 +116,7 @@ export function AnalyticsContent() {
             <CustomerSegmentsChart data={[
               { segment: 'vip', count: analytics?.customerSegments?.vip || 0 },
               { segment: 'regular', count: analytics?.customerSegments?.regular || 0 },
-              { segment: 'at_risk', count: analytics?.customerSegments?.atRisk || 0 },
+              { segment: 'at_risk', count: analytics?.customerSegments?.at_risk || 0 },
               { segment: 'new', count: analytics?.customerSegments?.new || 0 },
               { segment: 'dormant', count: analytics?.customerSegments?.dormant || 0 }
             ]} />
@@ -132,6 +133,29 @@ export function AnalyticsContent() {
         >
           {analytics && (
             <PopularTimesChart data={analytics?.popularTimes || []} />
+          )}
+        </ChartWrapper>
+        
+        {/* No-Show Visualization */}
+        <ChartWrapper
+          title="Bookings vs No-Shows"
+          subtitle="Track attendance patterns over time"
+          loading={loading}
+          error={error}
+          className="lg:col-span-2"
+        >
+          {analytics && (
+            <NoShowVisualization 
+              data={
+                analytics?.trends?.appointments?.dataPoints?.map(point => ({
+                  date: point.date,
+                  bookings: point.value,
+                  noShows: Math.round(point.value * (analytics?.metrics?.noShowRate || 0) / 100),
+                  showRate: 100 - (analytics?.metrics?.noShowRate || 0)
+                })) || []
+              }
+              dateRange={`${analytics?.dateRange?.start || 'Start'} - ${analytics?.dateRange?.end || 'End'}`}
+            />
           )}
         </ChartWrapper>
       </div>

@@ -54,7 +54,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   const loadPhoneNumbers = async () => {
     try {
       setLoadingPhones(true);
-      const phones = await apiClient.getPhoneNumbers(businessId);
+      const phones = await apiClient.getPhoneNumbers();
       
       const phoneOptions: PhoneNumberOption[] = phones.map(p => ({
         id: p.id,
@@ -109,7 +109,7 @@ export function PhoneSettingsProvider({ businessId, children }: PhoneSettingsPro
   // Actions
   const addPhoneNumber = async (phoneData: any) => {
     try {
-      const newPhone = await apiClient.createPhoneNumber(businessId, phoneData);
+      const newPhone = await apiClient.createPhoneNumber(phoneData);
       await loadPhoneNumbers();
       setSelectedPhoneId(newPhone.id);
       toast.success('Phone number added successfully');

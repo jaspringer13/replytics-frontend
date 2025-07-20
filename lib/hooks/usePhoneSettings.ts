@@ -111,10 +111,17 @@ export function usePhoneSettings(phoneId: string | null): UsePhoneSettingsReturn
       if (!phoneId) throw new Error('No phone selected');
       
       try {
-        const updated = await apiClient.updatePhoneOperatingHours(phoneId, hours);
+        const response = await apiClient.updatePhoneOperatingHours(phoneId, {
+          operatingHours: hours.map(h => ({
+            day: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][h.dayOfWeek],
+            enabled: !h.isClosed,
+            hours: h.isClosed ? [] : [{ open: h.openTime, close: h.closeTime }]
+          }))
+        });
+        // Keep the existing format for the state
         setData(prev => ({
           ...prev,
-          operatingHours: updated,
+          operatingHours: hours,
         }));
       } catch (err) {
         console.error('Failed to update operating hours:', err);

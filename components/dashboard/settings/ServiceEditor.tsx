@@ -27,13 +27,10 @@ export function ServiceEditor() {
     duration: 30,
     price: 0,
     description: '',
-    active: true
+    isActive: true
   });
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; serviceId: string | null }>({ isOpen: false, serviceId: null });
   const { toast } = useToast();
-
-  // Services are already loaded and managed by the SettingsContext
-  // No need for separate loading logic here
 
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
@@ -58,7 +55,7 @@ export function ServiceEditor() {
       duration: 30,
       price: 0,
       description: '',
-      active: true
+      isActive: true
     });
     setIsDialogOpen(true);
   };
@@ -70,7 +67,7 @@ export function ServiceEditor() {
       duration: service.duration,
       price: service.price,
       description: service.description || '',
-      active: service.active
+      isActive: service.isActive
     });
     setIsDialogOpen(true);
   };
@@ -168,7 +165,7 @@ export function ServiceEditor() {
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="font-medium text-white">{service.name}</h3>
-                                {!service.active && (
+                                {!service.isActive && (
                                   <span className="text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded">
                                     Inactive
                                   </span>
@@ -284,8 +281,8 @@ export function ServiceEditor() {
               <Label htmlFor="service-active" className="text-gray-300">Active</Label>
               <Switch
                 id="service-active"
-                checked={formData.active}
-                onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
               />
             </div>
           </div>
@@ -305,7 +302,6 @@ export function ServiceEditor() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, serviceId: null })}>
         <DialogContent>
           <DialogHeader>

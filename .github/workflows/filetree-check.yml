@@ -43,9 +43,9 @@ jobs:
         NEW_PAGES=0
         NEW_LIBS=0
         NEW_BACKEND=0
-        CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
+        readarray -t CHANGED_FILES_ARRAY <<< "${{ steps.changed-files.outputs.all_changed_files }}"
         
-        for file in $CHANGED_FILES; do
+        for file in "${CHANGED_FILES_ARRAY[@]}"; do
           if [[ "$file" == components/* && "$file" == *.tsx ]]; then
             NEW_COMPONENTS=$((NEW_COMPONENTS + 1))
           elif [[ "$file" == app/* && "$file" == *page.tsx ]]; then

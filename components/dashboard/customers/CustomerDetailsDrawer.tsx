@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Phone, Mail, Calendar, DollarSign, Clock, MessageSquare, Star, Flag } from 'lucide-react'
-import { Customer } from '@/app/models/dashboard'
+import { Customer, CustomerMemory } from '@/app/models/dashboard'
 import { cn } from '@/lib/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { useToast } from '@/hooks/useToast'
+import { CustomerMemoryTab } from './CustomerMemoryTab'
 
 interface CustomerDetailsDrawerProps {
   customer: Customer | null
@@ -15,7 +16,7 @@ interface CustomerDetailsDrawerProps {
 }
 
 export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDetailsDrawerProps) {
-  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'notes'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'memory' | 'notes'>('info')
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -132,7 +133,7 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
 
               {/* Tabs */}
               <div className="flex border-b border-gray-700">
-                {(['info', 'history', 'notes'] as const).map((tab) => (
+                {(['info', 'history', 'memory', 'notes'] as const).map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -253,6 +254,20 @@ export function CustomerDetailsDrawer({ customer, isOpen, onClose }: CustomerDet
                       Appointment history will be displayed here
                     </p>
                   </div>
+                )}
+
+                {activeTab === 'memory' && (
+                  <CustomerMemoryTab 
+                    customer={{
+                      ...customer,
+                      totalInteractions: customer.totalAppointments + 10, // Estimate based on appointments + calls/messages
+                      totalBookings: customer.totalAppointments,
+                      completedBookings: customer.totalAppointments - customer.noShowCount,
+                      cancelledBookings: 0, // This would come from actual data
+                      noShows: customer.noShowCount,
+                      customFlags: customer.flags || [],
+                    } as CustomerMemory}
+                  />
                 )}
 
                 {activeTab === 'notes' && (

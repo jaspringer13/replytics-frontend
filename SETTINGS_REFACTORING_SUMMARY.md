@@ -10,7 +10,7 @@
 - **Configuration**: Tab config extracted to `settingsTabConfig.ts`
 
 ### 2. Clean Architecture ✅
-```
+```text
 Before: Settings.tsx (300+ lines doing everything)
 After:
 - Settings.tsx (50 lines - orchestration only)

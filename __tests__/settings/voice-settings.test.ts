@@ -8,11 +8,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { VoiceSettingsService } from '@/app/services/dashboard/voice_settings_service';
 import { apiClient } from '@/lib/api-client';
 import { VoiceSettings, ConversationRules } from '@/app/models/dashboard';
+import * as voiceSynthesis from '@/lib/voice-synthesis';
 
 // Mock dependencies
 jest.mock('@/lib/api-client');
 jest.mock('@/lib/supabase-server');
 jest.mock('@/lib/voice-synthesis');
+
+import { getSupabaseServer } from '@/lib/supabase-server';
 
 describe('Voice Settings Transmission Tests', () => {
   let voiceSettingsService: VoiceSettingsService;
@@ -39,14 +42,27 @@ describe('Voice Settings Transmission Tests', () => {
         voiceId: 'kdmDKE6EkgrWrrykO9Qt',
       };
 
-      const mockSupabaseUpdate = jest.fn().mockReturnValue({
-        error: null
+      // Mock the Supabase chain
+      const mockUpdate = jest.fn().mockReturnValue({ error: null });
+      const mockEq = jest.fn().mockReturnValue({ error: null });
+      const mockFrom = jest.fn().mockReturnValue({
+        update: mockUpdate.mockReturnValue({
+          eq: mockEq
+        })
       });
+      
+      jest.mocked(getSupabaseServer).mockReturnValue({
+        from: mockFrom
+      } as any);
       
       const result = await voiceSettingsService.updateVoiceSettings('test-business-id', validSettings);
       
       expect(result.success).toBe(true);
       expect(result.error).toBeUndefined();
+      expect(mockUpdate).toHaveBeenCalledWith({
+        voice_settings: validSettings,
+        updated_at: expect.any(String)
+      });
     });
 
     it('should broadcast real-time updates after successful save', async () => {
@@ -54,17 +70,33 @@ describe('Voice Settings Transmission Tests', () => {
         voiceId: 'kdmDKE6EkgrWrrykO9Qt',
       };
 
-      // Mock successful database update
+      // Mock the Supabase channel
+      const mockSend = jest.fn().mockResolvedValue(undefined);
       const mockChannel = {
         subscribe: jest.fn().mockResolvedValue(undefined),
-        send: jest.fn().mockResolvedValue(undefined),
+        send: mockSend,
       };
+      
+      // Mock Supabase to return our channel and database operations
+      const mockUpdate = jest.fn().mockReturnValue({ error: null });
+      const mockEq = jest.fn().mockReturnValue({ error: null });
+      const mockFrom = jest.fn().mockReturnValue({
+        update: mockUpdate.mockReturnValue({
+          eq: mockEq
+        })
+      });
+      
+      jest.mocked(getSupabaseServer).mockReturnValue({
+        channel: jest.fn().mockReturnValue(mockChannel),
+        removeChannel: jest.fn().mockResolvedValue(undefined),
+        from: mockFrom
+      } as any);
 
       const result = await voiceSettingsService.updateVoiceSettings('test-business-id', settings);
       
       expect(result.success).toBe(true);
       // Verify real-time broadcast was attempted
-      expect(mockChannel.send).toHaveBeenCalledWith(
+      expect(mockSend).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'broadcast',
           event: 'voice_settings_updated',
@@ -99,6 +131,15 @@ describe('Voice Settings Transmission Tests', () => {
         noShowThreshold: 3,
       };
 
+      // Mock the Supabase chain
+      const mockEq = jest.fn().mockReturnValue({ error: null });
+      const mockUpdate = jest.fn().mockReturnValue({ eq: mockEq });
+      const mockFrom = jest.fn().mockReturnValue({ update: mockUpdate });
+      
+      jest.mocked(getSupabaseServer).mockReturnValue({
+        from: mockFrom
+      } as any);
+
       const result = await voiceSettingsService.updateConversationRules('test-business-id', validRules);
       
       expect(result.success).toBe(true);
@@ -108,21 +149,41 @@ describe('Voice Settings Transmission Tests', () => {
 
   describe('Voice Configuration Retrieval', () => {
     it('should return default settings when no configuration exists', async () => {
-      // Mock database returning null
-      const mockSupabaseSelect = jest.fn().mockReturnValue({
+      // Mock the Supabase chain
+      const mockSingle = jest.fn().mockReturnValue({
         data: null,
         error: null
       });
+      const mockEq = jest.fn().mockReturnValue({
+        single: mockSingle
+      });
+      const mockSelect = jest.fn().mockReturnValue({
+        eq: mockEq
+      });
+      const mockFrom = jest.fn().mockReturnValue({
+        select: mockSelect
+      });
+      
+      jest.mocked(getSupabaseServer).mockReturnValue({
+        from: mockFrom
+      } as any);
 
       const config = await voiceSettingsService.getVoiceConfiguration('test-business-id');
       
       expect(config).not.toBeNull();
       expect(config?.voiceSettings.voiceId).toBe('kdmDKE6EkgrWrrykO9Qt'); // Default voice
+      expect(config?.conversationRules).toEqual({
+        allowMultipleServices: true,
+        allowCancellations: true,
+        allowRescheduling: true,
+        noShowBlockEnabled: false,
+        noShowThreshold: 3
+      });
     });
 
     it('should merge partial settings with defaults', async () => {
-      // Mock database returning partial settings
-      const mockSupabaseSelect = jest.fn().mockReturnValue({
+      // Mock the Supabase chain
+      const mockSingle = jest.fn().mockReturnValue({
         data: {
           voice_settings: {
             voiceId: 'custom-voice-id',
@@ -131,10 +192,30 @@ describe('Voice Settings Transmission Tests', () => {
         },
         error: null
       });
+      const mockEq = jest.fn().mockReturnValue({
+        single: mockSingle
+      });
+      const mockSelect = jest.fn().mockReturnValue({
+        eq: mockEq
+      });
+      const mockFrom = jest.fn().mockReturnValue({
+        select: mockSelect
+      });
+      
+      jest.mocked(getSupabaseServer).mockReturnValue({
+        from: mockFrom
+      } as any);
 
       const config = await voiceSettingsService.getVoiceConfiguration('test-business-id');
       
       expect(config?.voiceSettings.voiceId).toBe('custom-voice-id');
+      expect(config?.conversationRules).toEqual({
+        allowMultipleServices: true,
+        allowCancellations: true,
+        allowRescheduling: true,
+        noShowBlockEnabled: false,
+        noShowThreshold: 3
+      });
     });
   });
 
@@ -149,6 +230,8 @@ describe('Voice Settings Transmission Tests', () => {
         audioUrl: mockAudioUrl,
         duration: mockDuration,
       });
+      
+      jest.mocked(voiceSynthesis.synthesizeVoice).mockImplementation(mockSynthesize);
 
       const result = await voiceSettingsService.testVoiceConfiguration(
         'test-business-id',
@@ -165,6 +248,16 @@ describe('Voice Settings Transmission Tests', () => {
       const testMessage = 'Test message';
       const businessId = 'test-business-id';
 
+      // Mock the voice synthesis service
+      const mockSynthesize = jest.fn()
+        .mockResolvedValueOnce({
+          success: true,
+          audioUrl: 'https://example.com/test.mp3',
+          duration: 2.5
+        });
+      
+      jest.mocked(voiceSynthesis.synthesizeVoice).mockImplementation(mockSynthesize);
+
       // First call
       const result1 = await voiceSettingsService.testVoiceConfiguration(businessId, testMessage);
       expect(result1.success).toBe(true);
@@ -175,7 +268,7 @@ describe('Voice Settings Transmission Tests', () => {
       // Should return cached result
       expect(result2.audioUrl).toBe(result1.audioUrl);
       // Verify synthesis was only called once
-      // expect(mockSynthesize).toHaveBeenCalledTimes(1);
+      expect(mockSynthesize).toHaveBeenCalledTimes(1);
     });
 
     it('should handle voice synthesis errors gracefully', async () => {
@@ -184,8 +277,10 @@ describe('Voice Settings Transmission Tests', () => {
         success: false,
         error: 'API quota exceeded',
       });
+      
+      jest.mocked(voiceSynthesis.synthesizeVoice).mockImplementation(mockSynthesize);
 
-      const result = await voiceSettingsService.testVoiceConfiguration('test-business-id');
+      const result = await voiceSettingsService.testVoiceConfiguration('test-business-id', 'Test message');
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('quota exceeded');

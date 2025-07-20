@@ -104,14 +104,14 @@ export interface ActionRequest<TParameters = Record<string, unknown>> {
   businessId: string;
 }
 
-export interface ActionResult {
+export interface ActionResult<TDetail = unknown> {
   actionId: string;
   status: 'success' | 'failed' | 'partial';
   executedAt: Date;
   results: {
     successful: number;
     failed: number;
-    details: ActionDetail[];
+    details: ActionDetail<TDetail>[];
   };
   rollbackAvailable: boolean;
   rollbackId?: string;
@@ -192,11 +192,11 @@ export interface AINotification<T = unknown> {
 }
 
 // Conversation Types
-export interface AIConversation {
+export interface AIConversation<TMessageData = unknown> {
   id: string;
   businessId: string;
   userId: string;
-  messages: AIMessage[];
+  messages: AIMessage<TMessageData>[];
   context: ConversationContext;
   createdAt: Date;
   updatedAt: Date;
