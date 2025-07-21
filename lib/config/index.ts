@@ -26,11 +26,18 @@ export type { EnvironmentType } from './types';
 
 /**
  * Main configuration object for convenient access
+ * Note: Using dynamic imports to avoid initialization at build time
  */
+import { env } from './environment';
+import * as apiConfig from './api';
+import { features } from './features';
+import { LIMITS } from './limits';
+import { UI_CONFIG } from './ui';
+
 export const config = {
-  env: require('./environment').env,
-  api: require('./api'),
-  features: require('./features').features,
-  limits: require('./limits').LIMITS,
-  ui: require('./ui').UI_CONFIG,
+  env,
+  api: apiConfig,
+  features,
+  limits: LIMITS,
+  ui: UI_CONFIG,
 } as const;

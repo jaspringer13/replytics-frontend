@@ -38,11 +38,10 @@ export interface EnvironmentConfig {
 
 class Environment {
   private static instance: Environment;
-  private config: EnvironmentConfig;
+  private config: EnvironmentConfig | null = null;
 
   private constructor() {
-    this.config = this.loadConfig();
-    this.validateConfig();
+    // Delay initialization until first access
   }
 
   static getInstance(): Environment {
@@ -50,6 +49,13 @@ class Environment {
       Environment.instance = new Environment();
     }
     return Environment.instance;
+  }
+
+  private ensureInitialized() {
+    if (!this.config) {
+      this.config = this.loadConfig();
+      this.validateConfig();
+    }
   }
 
   private loadConfig(): EnvironmentConfig {
@@ -88,13 +94,15 @@ class Environment {
   }
 
   private validateConfig() {
+    if (!this.config) return;
+    
     const required = [
       'SUPABASE_URL',
       'SUPABASE_ANON_KEY',
       'BACKEND_API_URL',
     ];
 
-    const missing = required.filter(key => !this.config[key as keyof EnvironmentConfig]);
+    const missing = required.filter(key => !this.config![key as keyof EnvironmentConfig]);
     
     // Skip validation during build process
     const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI;
@@ -109,11 +117,13 @@ class Environment {
   }
 
   get<K extends keyof EnvironmentConfig>(key: K): EnvironmentConfig[K] {
-    return this.config[key];
+    this.ensureInitialized();
+    return this.config![key];
   }
 
   getAll(): EnvironmentConfig {
-    return { ...this.config };
+    this.ensureInitialized();
+    return { ...this.config! };
   }
 }
 

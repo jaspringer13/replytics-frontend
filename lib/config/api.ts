@@ -5,8 +5,6 @@
 
 import { env } from './environment';
 
-const BACKEND_URL = env.get('BACKEND_API_URL');
-
 export const API_ROUTES = {
   // Authentication
   AUTH: {
@@ -111,12 +109,14 @@ export const API_CONFIG = {
  * Get the full backend API URL for a given path
  */
 export function getBackendUrl(path: string): string {
-  return `${BACKEND_URL}${path}`;
+  const backendUrl = env.get('BACKEND_API_URL');
+  return `${backendUrl}${path}`;
 }
 
 /**
  * Check if a URL is an external API
  */
 export function isExternalApi(url: string): boolean {
-  return !url.startsWith('/api/') && !url.startsWith(BACKEND_URL);
+  const backendUrl = env.get('BACKEND_API_URL');
+  return !url.startsWith('/api/') && !url.startsWith(backendUrl);
 }
