@@ -4,7 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview"
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSupabaseAuth as useAuth } from "@/contexts/SupabaseAuthContext"
 
 export default function DashboardPage() {
   const router = useRouter()

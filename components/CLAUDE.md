@@ -26,11 +26,11 @@ React components ensuring beautiful, consistent design across the entire applica
 
 ## 🧪 Testing Protocol
 
-1. Component tests: `npm run test -- components`
-2. Visual regression: Check all states/variants
-3. Accessibility: Test with screen readers
-4. TypeScript: All props fully typed
-5. Hydration safety: No browser APIs in initial render
+1. TypeScript verification: `npm run typecheck` - zero errors tolerated
+2. Hydration safety: No browser APIs in initial render
+3. Component tests: `npm run test -- components`
+4. Visual regression: Check all states/variants
+5. Accessibility: Test with screen readers
 
 ### ⚠️ Hydration Error Prevention
 

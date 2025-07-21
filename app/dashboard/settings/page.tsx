@@ -3,7 +3,7 @@
 import { Suspense } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { Settings } from '@/components/dashboard/settings/Settings'
-import { useAuth } from '@/contexts/AuthContext'
+import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
 
 function SettingsContent() {
   const { user } = useAuth()

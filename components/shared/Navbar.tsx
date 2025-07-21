@@ -8,7 +8,7 @@ import { Logo } from "@/components/shared/Logo"
 import { Menu, X, Phone, ChevronRight, Sparkles, ChevronDown, LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { useAuth } from "@/contexts/AuthContext"
+import { useSupabaseAuth as useAuth } from "@/contexts/SupabaseAuthContext"
 
 const businessTypes = [
   { name: 'Barbers', href: '/businesses/barbers' },

@@ -73,7 +73,7 @@ class Environment {
       SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
       
       // Backend API
-      BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:8000',
+      BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:10000',
       
       // Authentication
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',

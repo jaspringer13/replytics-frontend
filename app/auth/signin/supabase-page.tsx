@@ -4,22 +4,29 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { signIn } from "next-auth/react"
 import { Loader2 } from "lucide-react"
 import { Navbar } from "@/components/shared/Navbar"
 import { Footer } from "@/components/shared/Footer"
-import { Logo } from "@/components/shared/Logo"
-import { useSupabaseAuth as useAuth } from "@/contexts/SupabaseAuthContext"
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext"
 
 export default function SignInPage() {
   const router = useRouter()
-  const { login, isAuthenticated } = useAuth()
+  const { login, signInWithGoogle, isAuthenticated } = useSupabaseAuth()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
+
+  // Check for OAuth error in URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const errorParam = urlParams.get('error')
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam))
+    }
+  }, [])
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -30,7 +37,6 @@ export default function SignInPage() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    
     
     if (!email || !password) {
       setError("Please enter email and password")
@@ -47,19 +53,24 @@ export default function SignInPage() {
         setError("Invalid email or password")
         setIsLoading(false)
       }
-      // If success, AuthContext will handle the navigation
+      // If success, SupabaseAuthContext will handle the navigation
     } catch (err) {
       setError("An error occurred. Please try again.")
       setIsLoading(false)
     }
   }
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true)
-    // Temporary redirect while OAuth is being set up
-    setTimeout(() => {
-      window.location.href = '/dashboard'
-    }, 1500)
+    setError("")
+    
+    try {
+      await signInWithGoogle()
+      // OAuth will redirect to callback page
+    } catch (err) {
+      setError("Failed to sign in with Google")
+      setIsGoogleLoading(false)
+    }
   }
 
   return (
@@ -100,14 +111,6 @@ export default function SignInPage() {
               </motion.div>
             )}
 
-            {/* OAuth Approval Notice */}
-            <div className="bg-blue-500/10 border border-blue-500/50 text-blue-400 rounded-lg p-3 mb-6">
-              <p className="text-sm text-center">
-                🚧 OAuth approval pending. You can use jaspringer13@gmail.com / admin for testing.
-              </p>
-            </div>
-
-
             {/* Sign In Form */}
             <form 
               onSubmit={handleSubmit} 
@@ -127,6 +130,7 @@ export default function SignInPage() {
                   placeholder="you@example.com"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
+                  autoComplete="email"
                 />
               </div>
 
@@ -143,6 +147,7 @@ export default function SignInPage() {
                   placeholder="Enter your password"
                   className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all duration-200"
                   required
+                  autoComplete="current-password"
                 />
               </div>
 
@@ -229,7 +234,7 @@ export default function SignInPage() {
             <p className="text-center text-sm text-gray-400 mt-6">
               Don't have an account?{" "}
               <Link
-                href="#"
+                href="/auth/signup"
                 className="text-brand-400 hover:text-brand-300 transition-colors"
               >
                 Sign up for free

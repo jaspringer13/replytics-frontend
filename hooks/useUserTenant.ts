@@ -1,4 +1,4 @@
-import { useAuth } from '@/contexts/AuthContext'
+import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
 
 export function useUserTenant() {
   const { tenantId, isLoading, isTokenExpired } = useAuth()

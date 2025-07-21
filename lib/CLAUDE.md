@@ -26,11 +26,12 @@ Shared utilities, hooks, API clients, and configurations powering the entire app
 
 ## 🧪 Testing Protocol
 
-1. Unit tests: Test all utils and helpers
-2. Hook tests: Use @testing-library/react-hooks
-3. Type tests: `npm run typecheck` catches issues
-4. API mocks: Test error scenarios
-5. Singleton safety: No browser API access during module initialization
+1. Type verification: `npm run typecheck` - zero errors tolerated
+2. Hydration safety: No browser APIs in initial state
+3. Unit tests: Test all utils and helpers
+4. Hook tests: Use @testing-library/react-hooks
+5. API mocks: Test error scenarios
+6. Singleton safety: No browser API access during module initialization
 
 ### ⚠️ Hydration Error Prevention
 

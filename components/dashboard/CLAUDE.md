@@ -26,10 +26,12 @@ Critical components for business operations. Settings MUST work perfectly for vo
 
 ## 🧪 Testing Protocol
 
-1. Settings test: Every field saves correctly to voice agent
-2. Analytics test: Charts render with real data
-3. Phone selector: Multi-location switching works
-4. Integration: `npm run test -- settings`
+1. TypeScript verification: `npm run typecheck` - zero errors tolerated
+2. Hydration safety: No browser APIs in initial render (critical for voice settings)
+3. Settings test: Every field saves correctly to voice agent
+4. Analytics test: Charts render with real data
+5. Phone selector: Multi-location switching works
+6. Integration: `npm run test -- settings`
 
 ---
 

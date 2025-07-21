@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Globe, Loader2, Check, ChevronRight, Upload, Phone, Clock, Mic, Building } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
 import { apiClient } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 

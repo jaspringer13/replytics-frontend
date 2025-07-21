@@ -10,7 +10,7 @@ import {
   X, Search, ChevronDown, LogOut, HelpCircle, User,
   CreditCard, ExternalLink, ChevronRight
 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
 import { cn } from '@/lib/utils'
 import { LiveCallIndicator } from './LiveCallIndicator'
 import { ConnectionStatus } from './ConnectionStatus'

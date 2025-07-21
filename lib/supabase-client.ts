@@ -19,7 +19,11 @@ export function getSupabaseClient() {
 
     supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession: false,
+        persistSession: true,
+        storageKey: 'replytics-auth',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
       },
       realtime: {
         params: {
