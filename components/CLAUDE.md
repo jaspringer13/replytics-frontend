@@ -30,6 +30,17 @@ React components ensuring beautiful, consistent design across the entire applica
 2. Visual regression: Check all states/variants
 3. Accessibility: Test with screen readers
 4. TypeScript: All props fully typed
+5. Hydration safety: No browser APIs in initial render
+
+### ⚠️ Hydration Error Prevention
+
+**Critical for "use client" components**:
+- Never access `window`, `document`, `localStorage` during initial render
+- Use `useState(null)` instead of `useState(() => localStorage.getItem(...))`
+- Move browser API calls to `useEffect`
+- Avoid `Date.now()`, `Math.random()` in render - use in useEffect
+
+**Provider components are especially critical** - hydration errors here break the entire app!
 
 ---
 

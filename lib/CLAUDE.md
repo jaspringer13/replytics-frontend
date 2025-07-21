@@ -30,6 +30,15 @@ Shared utilities, hooks, API clients, and configurations powering the entire app
 2. Hook tests: Use @testing-library/react-hooks
 3. Type tests: `npm run typecheck` catches issues
 4. API mocks: Test error scenarios
+5. Singleton safety: No browser API access during module initialization
+
+### ⚠️ Hydration Error Prevention
+
+**Critical for singleton instances (api-client, config)**:
+- Don't access `localStorage` in constructors or module-level code
+- Use lazy initialization for browser-dependent values
+- Environment variables must work on both server and client
+- Avoid `console.log` in constructors if values differ between server/client
 
 ---
 

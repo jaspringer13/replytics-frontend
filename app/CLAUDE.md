@@ -28,8 +28,18 @@ Main application directory using Next.js 14 App Router for pages, API routes, an
 
 1. TypeScript: `npm run typecheck` after every change
 2. Build test: `npm run build` before deployment
-3. Route testing: Check all API routes return correct status
-4. Error boundaries: Test with React Testing Library
+3. Hydration check: No `window`, `localStorage`, or browser APIs in initial render
+4. Route testing: Check all API routes return correct status
+5. Error boundaries: Test with React Testing Library
+
+### ⚠️ Hydration Error Prevention
+
+**Critical**: Next.js SSR requires identical server/client renders. Common causes:
+- Using `localStorage` or `window` in initial state
+- Conditional rendering based on `typeof window !== 'undefined'`
+- Dynamic values (timestamps, Math.random()) without useEffect
+
+**Always use `useEffect` for client-side initialization!**
 
 ---
 
