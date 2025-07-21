@@ -8,6 +8,7 @@ AI-powered phone receptionist service for small businesses built with Next.js 14
 ### 1. Code Verification Protocol
 After EVERY code change, verify:
 - **TypeScript**: `npm run typecheck` - zero errors tolerated
+- **Hydration**: No browser APIs (`window`, `localStorage`) in initial render
 - **Imports**: All imports exist and are correctly referenced
 - **Dependencies**: Check package.json before using any library
 - **Exports**: Ensure all used exports are properly defined
@@ -38,6 +39,7 @@ npm run lint         # Should pass - fix any issues
 
 ### Code Quality Checklist
 - [ ] TypeScript compiles without errors
+- [ ] No hydration errors (browser APIs in useEffect only)
 - [ ] All imports resolve correctly
 - [ ] No unused imports or variables
 - [ ] Consistent with existing patterns

@@ -161,8 +161,7 @@ const integrations: Integration[] = [
     description: 'Sync appointments with Google Calendar',
     icon: <Calendar className="w-6 h-6" />,
     status: 'available',
-    category: 'Calendar',
-    oauthUrl: '/api/auth/google-calendar'
+    category: 'Calendar'
   },
   {
     id: 'zapier',
@@ -194,23 +193,36 @@ export function IntegrationsTab() {
   useEffect(() => {
     const loadIntegrationConfigs = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/v2/dashboard/business/integrations?businessId=${businessId}`, {
-        //   headers: { 'X-Tenant-ID': businessId }
-        // });
-        // const data = await response.json();
+        const response = await fetch('/api/v2/dashboard/integrations', {
+          headers: { 'X-Tenant-ID': businessId }
+        });
         
-        // Mock data for now - in a real app this would come from the API
-        setIntegrationConfigs({
-          twilio: {
-            connected: true,
-            settings: {
-              accountSid: 'AC***************',
-              phoneNumber: '+1234567890'
-            },
-            lastSync: new Date().toISOString()
+        if (!response.ok) {
+          throw new Error('Failed to load integrations');
+        }
+        
+        const data = await response.json();
+        
+        // Transform the API response to our internal format
+        const configs: IntegrationConfig = {};
+        
+        data.integrations?.forEach((integration: any) => {
+          if (integration.type === 'calendar' && integration.status === 'connected') {
+            configs['google-calendar'] = {
+              connected: true,
+              settings: {},
+              lastSync: integration.last_sync || new Date().toISOString()
+            };
+          } else if (integration.type === 'sms' && integration.status === 'connected') {
+            configs['twilio'] = {
+              connected: true,
+              settings: {},
+              lastSync: integration.last_sync || new Date().toISOString()
+            };
           }
         });
+        
+        setIntegrationConfigs(configs);
       } catch (error) {
         console.error('Failed to load integration configs:', error);
         toast.error('Failed to load integration settings');
@@ -232,9 +244,32 @@ export function IntegrationsTab() {
     }
 
     // Handle OAuth integrations (like Google Calendar)
-    if (integration.oauthUrl) {
-      const authUrl = `${integration.oauthUrl}?businessId=${businessId}&redirect_uri=${encodeURIComponent(window.location.origin + '/dashboard/settings?tab=integrations')}`;
-      window.location.href = authUrl;
+    if (integration.id === 'google-calendar') {
+      setLoading(true);
+      try {
+        // Get OAuth authorization URL from backend
+        const redirectUri = `${window.location.origin}/dashboard/oauth/google/callback`;
+        const response = await fetch('/api/v2/dashboard/oauth/google/authorize?' + new URLSearchParams({
+          redirect_uri: redirectUri
+        }), {
+          headers: {
+            'X-Tenant-ID': businessId
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to get authorization URL');
+        }
+        
+        const { auth_url } = await response.json();
+        
+        // Redirect to Google OAuth
+        window.location.href = auth_url;
+      } catch (error) {
+        console.error('Failed to start OAuth flow:', error);
+        toast.error('Failed to connect to Google Calendar');
+        setLoading(false);
+      }
       return;
     }
 
@@ -286,15 +321,25 @@ export function IntegrationsTab() {
 
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/v2/dashboard/business/integrations/${integrationId}`, {
-      //   method: 'DELETE',
-      //   headers: { 'X-Tenant-ID': businessId }
-      // });
-      // 
-      // if (!response.ok) {
-      //   throw new Error('Failed to disconnect integration');
-      // }
+      // For Google Calendar, we need to clear the stored credentials
+      if (integrationId === 'google-calendar') {
+        const response = await fetch('/api/v2/dashboard/integrations/calendar', {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-Tenant-ID': businessId 
+          },
+          body: JSON.stringify({
+            provider: 'google',
+            credentials: null, // Clear credentials
+            sync_enabled: false
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to disconnect Google Calendar');
+        }
+      }
 
       setIntegrationConfigs(prev => {
         const updated = { ...prev };
