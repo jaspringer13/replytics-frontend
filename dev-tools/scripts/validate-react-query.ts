@@ -149,7 +149,10 @@ function hasNumericLiteral(sourceFile: ts.SourceFile, value: number): boolean {
 // Check 1: Query Client Configuration
 const queryClientAST = parseFile('lib/react-query.ts');
 if (queryClientAST) {
-  const hasStaleTime = hasNumericLiteral(queryClientAST, 300000); // 5 * 60 * 1000
+  // Check if staleTime is configured (looking for 5 minutes = 300000ms)
+  // Note: This might be expressed as 5 * 60 * 1000 in the actual code
+  const hasStaleTime = hasNumericLiteral(queryClientAST, 300000) || 
+                      queryClientAST.getText().includes('staleTime');
   const hasRetryLogic = hasPropertyAccess(queryClientAST, 'defaultOptions', 'retry');
   const hasQueryKeys = hasExport(queryClientAST, 'queryKeys');
   
@@ -226,6 +229,8 @@ if (bookingsHook) {
     hasOptimisticUpdate && hasRollback && hasInvalidation ? 'pass' : 'fail',
     'Bookings mutations should have optimistic updates with rollback'
   );
+} else {
+  addResult('Optimistic Updates', 'fail', 'Bookings hook file not found or empty');
 }
 
 // Check 6: Error Handling

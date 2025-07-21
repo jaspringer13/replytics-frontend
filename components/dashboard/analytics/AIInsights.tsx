@@ -23,20 +23,21 @@ export function AIInsights({ analytics }: AIInsightsProps) {
     const insights: Insight[] = []
     
     // Revenue insights
-    if (analytics.trends.revenue.percentChange < -10) {
+    const revenueChange = analytics.trends?.revenue?.percentChange;
+    if (typeof revenueChange === 'number' && revenueChange < -10) {
       insights.push({
         icon: <DollarSign className="h-6 w-6" />,
         iconColor: 'text-red-300',
         title: 'Revenue Alert',
-        description: `Revenue is down ${Math.abs(analytics.trends.revenue.percentChange).toFixed(0)}% compared to last period. Consider promotional offers or reaching out to dormant customers.`,
+        description: `Revenue is down ${Math.abs(revenueChange).toFixed(0)}% compared to last period. Consider promotional offers or reaching out to dormant customers.`,
         priority: 'high'
       })
-    } else if (analytics.trends.revenue.percentChange > 20) {
+    } else if (typeof revenueChange === 'number' && revenueChange > 20) {
       insights.push({
         icon: <TrendingUp className="h-6 w-6" />,
         iconColor: 'text-green-300',
         title: 'Revenue Growth',
-        description: `Excellent! Revenue is up ${analytics.trends.revenue.percentChange.toFixed(0)}%. Capitalize on this momentum by increasing capacity or introducing premium services.`,
+        description: `Excellent! Revenue is up ${revenueChange.toFixed(0)}%. Capitalize on this momentum by increasing capacity or introducing premium services.`,
         priority: 'medium'
       })
     }

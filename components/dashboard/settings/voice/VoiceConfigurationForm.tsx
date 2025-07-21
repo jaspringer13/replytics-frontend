@@ -68,7 +68,7 @@ export const VoiceConfigurationForm: React.FC<VoiceConfigurationFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   
-  const { isPlaying, playPreview, stopPreview } = useVoicePreview();
+  const { isPlaying, isLoading: isPreviewLoading, playPreview, stopPreview } = useVoicePreview();
 
   // Sample text for voice preview
   const [previewText, setPreviewText] = useState("Hi there! Welcome to our business. I'm your AI assistant. How can I help you today?");
@@ -101,7 +101,10 @@ export const VoiceConfigurationForm: React.FC<VoiceConfigurationFormProps> = ({
       setHasChanges(false);
     } catch (err) {
       console.error('Failed to save voice settings:', err);
-      setError('Failed to save voice settings. Please try again.');
+      const errorMessage = err instanceof Error 
+        ? `Failed to save voice settings: ${err.message}`
+        : 'Failed to save voice settings. Please try again.';
+      setError(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -143,7 +146,7 @@ export const VoiceConfigurationForm: React.FC<VoiceConfigurationFormProps> = ({
           onTextChange={(text) => setPreviewText(text)}
           voiceName={selectedVoice?.name || 'No voice selected'}
           isPlaying={isPlaying}
-          isLoading={saving}
+          isLoading={isPreviewLoading}
           onPlay={handlePreview}
           onStop={stopPreview}
         />

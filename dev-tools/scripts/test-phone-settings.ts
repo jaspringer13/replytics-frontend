@@ -2,16 +2,26 @@
 
 /**
  * Test script to verify phone-specific settings transmission to backend
- * Tests the (256) 809-0055 phone number assigned to jaspringer13@gmail.com
+ * Configure test credentials via environment variables:
+ * - TEST_EMAIL: Email address for test account
+ * - TEST_PASSWORD: Password for test account (required)
+ * - TEST_PHONE_NUMBER: Phone number to test (optional, defaults to +15555550000)
+ * - TEST_PHONE_ID: Phone ID for testing (optional)
  */
 
 import { apiClient } from '../../lib/api-client';
 
 // Test configuration
-const TEST_EMAIL = 'jaspringer13@gmail.com';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'test123';
-const TEST_PHONE_NUMBER = '+12568090055';
-const TEST_PHONE_ID = 'test-phone-001';
+const TEST_EMAIL = process.env.TEST_EMAIL || 'test@example.com';
+const TEST_PASSWORD = process.env.TEST_PASSWORD;
+const TEST_PHONE_NUMBER = process.env.TEST_PHONE_NUMBER || '+15555550000';
+const TEST_PHONE_ID = process.env.TEST_PHONE_ID || 'test-phone-001';
+
+// Validate required environment variables
+if (!TEST_PASSWORD) {
+  console.error('❌ TEST_PASSWORD environment variable is required');
+  process.exit(1);
+}
 
 interface TestResult {
   step: string;
@@ -110,7 +120,7 @@ async function testPhoneSettings() {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('WebSocket connection timeout'));
+        reject(new Error('WebSocket connection timeout after 5 seconds'));
       }, 5000);
 
       ws.addEventListener('open', () => {
@@ -122,6 +132,8 @@ async function testPhoneSettings() {
 
       ws.addEventListener('error', (error) => {
         clearTimeout(timeout);
+        ws.close();
+        console.error('WebSocket error details:', error);
         reject(error);
       });
     });

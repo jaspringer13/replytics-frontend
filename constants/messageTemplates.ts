@@ -5,12 +5,18 @@ import { MessageTemplate } from '@/components/dashboard/messages/MessageTemplate
  * Ensures that the variables array matches the placeholders found in the content string
  */
 export function validateTemplate(template: MessageTemplate): boolean {
-  if (!template.variables) return true;
+  if (!template.variables || template.variables.length === 0) {
+    // If no variables declared, content should have no placeholders
+    const placeholders = template.content.match(/\{(\w+)\}/g) || [];
+    return placeholders.length === 0;
+  }
   
   const placeholders = template.content.match(/\{(\w+)\}/g) || [];
   const foundVariables = placeholders.map(p => p.slice(1, -1));
   
-  return template.variables.every(v => foundVariables.includes(v)) &&
+  // Check exact match: same variables in both sets
+  return template.variables.length === foundVariables.length &&
+         template.variables.every(v => foundVariables.includes(v)) &&
          foundVariables.every(v => template.variables!.includes(v));
 }
 

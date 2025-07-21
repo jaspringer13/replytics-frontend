@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 
-import { mockDataGenerator } from '../lib/testing/mock-data-generator.ts';
+import { mockDataGenerator } from '../../lib/testing/mock-data-generator.js';
 
 console.log('🧪 Testing Mock Data Generator');
 console.log('==============================\n');

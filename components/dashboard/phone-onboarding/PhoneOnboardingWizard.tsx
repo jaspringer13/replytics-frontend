@@ -223,7 +223,7 @@ export function PhoneOnboardingWizard({
       });
       
       // Step 2: Configure initial settings
-      await Promise.all([
+      const configResults = await Promise.allSettled([
         // Voice settings
         apiClient.updatePhoneVoiceSettings(phone.id, {
           voiceId: data.voiceId
@@ -249,6 +249,13 @@ export function PhoneOnboardingWizard({
           timezone: data.timezone
         })
       ]);
+      
+      // Check for any failed configurations
+      const failedConfigs = configResults.filter(result => result.status === 'rejected');
+      if (failedConfigs.length > 0) {
+        console.error('Some configurations failed:', failedConfigs);
+        toast.warning('Phone provisioned but some settings could not be applied. Please check the phone settings.');
+      }
       
       toast.success('Phone number provisioned successfully!');
       onComplete(phone);

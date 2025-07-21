@@ -19,11 +19,11 @@ cat > test-settings-imports.tsx << 'EOF'
 "use client"
 
 import React from 'react';
-import { Settings } from './components/dashboard/settings/Settings';
-import { SettingsProvider } from './contexts/SettingsContext';
-import { BusinessProfileTab } from './components/dashboard/settings/BusinessProfileTab';
-import { useSettingsData } from './lib/hooks/useSettingsData';
-import { useRealtimeConfig } from './lib/hooks/useRealtimeConfig';
+import { Settings } from '@/components/dashboard/settings/Settings';
+import { SettingsProvider } from '@/contexts/SettingsContext';
+import { BusinessProfileTab } from '@/components/dashboard/settings/BusinessProfileTab';
+import { useSettingsData } from '@/lib/hooks/useSettingsData';
+import { useRealtimeConfig } from '@/lib/hooks/useRealtimeConfig';
 
 const TestComponent = () => {
   // Test that hooks can be called

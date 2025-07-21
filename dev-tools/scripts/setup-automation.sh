@@ -31,6 +31,13 @@ pre-commit install || {
 
 # Test the filetree generation script
 echo -e "${YELLOW}Testing filetree generation script...${NC}"
+
+# Check if Node.js is available
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js is not installed. Please install Node.js to use the filetree generation script.${NC}"
+    exit 1
+fi
+
 if [ -f "scripts/generate-filetree.js" ]; then
     node scripts/generate-filetree.js --dry-run 2>/dev/null || echo "Script is ready (dry-run not implemented)"
     echo -e "${GREEN}✅ Filetree generation script is ready${NC}"
@@ -50,8 +57,16 @@ echo ""
 echo -e "${GREEN}🎉 Setup complete!${NC}"
 echo ""
 echo "📋 Available commands:"
-echo "  npm run generate-filetree  - Generate/update FILETREE.md"
-echo "  npm run setup-hooks        - Re-install pre-commit hooks"
+if [ -f "package.json" ] && grep -q '"generate-filetree"' package.json; then
+  echo "  npm run generate-filetree  - Generate/update FILETREE.md"
+else
+  echo "  node scripts/generate-filetree.js  - Generate/update FILETREE.md"
+fi
+if [ -f "package.json" ] && grep -q '"setup-hooks"' package.json; then
+  echo "  npm run setup-hooks        - Re-install pre-commit hooks"
+else
+  echo "  ./dev-tools/scripts/setup-automation.sh  - Re-run this setup"
+fi
 echo "  pre-commit run --all-files - Test all pre-commit hooks"
 echo ""
 echo "🔄 The automation tools will now:"

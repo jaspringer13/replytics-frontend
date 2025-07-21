@@ -39,18 +39,22 @@ export function AnalyticsHeader() {
         <div className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2 border border-gray-700">
           <Calendar className="w-4 h-4 text-gray-400" />
           <input
+            aria-label="Start date"
             type="date"
+            max={dateRange.end}
             value={dateRange.start}
             onChange={(e) => handleStartDateChange(e.target.value)}
             className="bg-transparent text-white text-sm outline-none"
           />
           <span className="text-gray-400">to</span>
           <input
+            aria-label="End date"
             type="date"
+            min={dateRange.start}
             value={dateRange.end}
             onChange={(e) => handleEndDateChange(e.target.value)}
             className="bg-transparent text-white text-sm outline-none"
-            max={new Date().toISOString().split('T')[0]}
+            max={new Date().toLocaleDateString('en-CA')}
           />
         </div>
       </div>

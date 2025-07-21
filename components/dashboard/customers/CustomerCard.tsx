@@ -74,10 +74,19 @@ export function CustomerCard({ customer, onClick, delay = 0 }: CustomerCardProps
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
       onClick={() => onClick?.(customer)}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && onClick) {
+          e.preventDefault();
+          onClick(customer);
+        }
+      }}
+      tabIndex={onClick ? 0 : -1}
+      role={onClick ? "button" : undefined}
+      aria-label={onClick ? `View details for ${fullName}` : undefined}
       className={cn(
         "bg-gray-800 rounded-xl p-5 border border-gray-700",
         "hover:border-gray-600 hover:bg-gray-750 transition-all duration-200",
-        "cursor-pointer group"
+        onClick ? "cursor-pointer group focus:outline-none focus:ring-2 focus:ring-brand-500" : "group"
       )}
     >
       {/* Header */}

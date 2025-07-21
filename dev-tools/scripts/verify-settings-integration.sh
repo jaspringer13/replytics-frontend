@@ -28,17 +28,25 @@ done
 
 echo
 echo "2. Checking imports in Settings.tsx..."
-grep -q "SettingsProvider" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsProvider" || echo "✗ Missing SettingsProvider"
-grep -q "SettingsLoadingWrapper" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsLoadingWrapper" || echo "✗ Missing SettingsLoadingWrapper"
-grep -q "SettingsHeader" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsHeader" || echo "✗ Missing SettingsHeader"
+if [ -f "components/dashboard/settings/Settings.tsx" ]; then
+  grep -q "SettingsProvider" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsProvider" || echo "✗ Missing SettingsProvider"
+  grep -q "SettingsLoadingWrapper" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsLoadingWrapper" || echo "✗ Missing SettingsLoadingWrapper"
+  grep -q "SettingsHeader" components/dashboard/settings/Settings.tsx && echo "✓ Uses SettingsHeader" || echo "✗ Missing SettingsHeader"
+else
+  echo "✗ Settings.tsx file not found"
+fi
 
 echo
 echo "3. Checking BusinessProfileTab uses context..."
-grep -q "useSettings" components/dashboard/settings/BusinessProfileTab.tsx && echo "✓ BusinessProfileTab uses useSettings hook" || echo "✗ BusinessProfileTab doesn't use context"
+if [ -f "components/dashboard/settings/BusinessProfileTab.tsx" ]; then
+  grep -q "useSettings" components/dashboard/settings/BusinessProfileTab.tsx && echo "✓ BusinessProfileTab uses useSettings hook" || echo "✗ BusinessProfileTab doesn't use context"
+else
+  echo "✗ BusinessProfileTab.tsx file not found"
+fi
 
 echo
 echo "4. Running TypeScript check on Settings files..."
-npx tsc --noEmit components/dashboard/settings/Settings.tsx 2>&1 | grep -E "error TS" | wc -l | read errors
+errors=$(npx tsc --noEmit components/dashboard/settings/Settings.tsx 2>&1 | grep -c "error TS" || echo "0")
 if [ "$errors" = "0" ]; then
   echo "✓ No TypeScript errors in Settings.tsx"
 else
@@ -47,18 +55,22 @@ fi
 
 echo
 echo "5. Checking for removed code patterns..."
-# Should not have useState for loading/error in Settings.tsx
-if grep -q "useState.*loading\|useState.*error" components/dashboard/settings/Settings.tsx; then
-  echo "✗ Settings.tsx still has local loading/error state"
-else
-  echo "✓ Loading/error state properly extracted"
-fi
+if [ -f "components/dashboard/settings/Settings.tsx" ]; then
+  # Should not have useState for loading/error in Settings.tsx
+  if grep -q "useState.*loading\|useState.*error" components/dashboard/settings/Settings.tsx; then
+    echo "✗ Settings.tsx still has local loading/error state"
+  else
+    echo "✓ Loading/error state properly extracted"
+  fi
 
-# Should not have useEffect for data fetching in Settings.tsx
-if grep -q "apiClient\." components/dashboard/settings/Settings.tsx; then
-  echo "✗ Settings.tsx still has direct API calls"
+  # Should not have useEffect for data fetching in Settings.tsx
+  if grep -q "apiClient\." components/dashboard/settings/Settings.tsx; then
+    echo "✗ Settings.tsx still has direct API calls"
+  else
+    echo "✓ API calls properly extracted"
+  fi
 else
-  echo "✓ API calls properly extracted"
+  echo "✗ Cannot check code patterns - Settings.tsx file not found"
 fi
 
 echo

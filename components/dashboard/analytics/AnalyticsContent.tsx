@@ -19,6 +19,9 @@ export function AnalyticsContent() {
 
   // Helper function to calculate no-show data
   const calculateNoShowData = (dataPoints: any[], noShowRate: number) => {
+    if (!Array.isArray(dataPoints) || typeof noShowRate !== 'number') {
+      return [];
+    }
     return dataPoints?.map(point => ({
       date: point.date,
       bookings: point.value,

@@ -43,15 +43,36 @@ run_test_suite() {
 
 # 1. Unit Tests for Voice Settings Service
 echo "1. Voice Settings Service Tests"
-run_test_suite "Voice Settings Unit Tests" "__tests__/settings/voice-settings.test.ts"
+# Check if test file exists
+if [ ! -f "__tests__/settings/voice-settings.test.ts" ]; then
+  echo -e "${RED}❌ Test file not found: __tests__/settings/voice-settings.test.ts${NC}"
+  ((TOTAL_TESTS++))
+  ((FAILED_TESTS++))
+else
+  run_test_suite "Voice Settings Unit Tests" "__tests__/settings/voice-settings.test.ts"
+fi
 
 # 2. Integration Tests for Settings Page
 echo "2. Settings Page Integration Tests"
-run_test_suite "Settings Integration Tests" "__tests__/integration/settings-integration.test.tsx"
+# Check if test file exists
+if [ ! -f "__tests__/integration/settings-integration.test.tsx" ]; then
+  echo -e "${RED}❌ Test file not found: __tests__/integration/settings-integration.test.tsx${NC}"
+  ((TOTAL_TESTS++))
+  ((FAILED_TESTS++))
+else
+  run_test_suite "Settings Integration Tests" "__tests__/integration/settings-integration.test.tsx"
+fi
 
 # 3. Backend Transmission Validation
 echo "3. Backend Voice Agent Transmission Tests"
-run_test_suite "Backend Validation Tests" "__tests__/integration/settings-backend-validation.test.ts"
+# Check if test file exists
+if [ ! -f "__tests__/integration/settings-backend-validation.test.ts" ]; then
+  echo -e "${RED}❌ Test file not found: __tests__/integration/settings-backend-validation.test.ts${NC}"
+  ((TOTAL_TESTS++))
+  ((FAILED_TESTS++))
+else
+  run_test_suite "Backend Validation Tests" "__tests__/integration/settings-backend-validation.test.ts"
+fi
 
 # 4. Type Safety Validation
 echo "4. Type Safety Checks"
@@ -80,7 +101,7 @@ echo -e "${YELLOW}Validating API contracts...${NC}"
 ((TOTAL_TESTS++))
 
 # Check if voice settings API matches expected format
-cat > validate-api-contract.js << 'EOF'
+if ! cat > validate-api-contract.js << 'EOF'
 const fs = require('fs');
 const path = require('path');
 
@@ -122,6 +143,12 @@ if (fs.existsSync(apiClientPath)) {
 
 console.log('✅ API contract validation passed');
 EOF
+then
+  echo -e "${RED}❌ Failed to create API validation script${NC}"
+  ((TOTAL_TESTS++))
+  ((FAILED_TESTS++))
+  exit 1
+fi
 
 if node validate-api-contract.js; then
     echo -e "${GREEN}✅ API contracts valid${NC}"
@@ -130,7 +157,7 @@ else
     echo -e "${RED}❌ API contract validation failed${NC}"
     ((FAILED_TESTS++))
 fi
-rm -f validate-api-contract.js
+rm -f validate-api-contract.js || echo "Warning: Failed to cleanup validate-api-contract.js"
 echo
 
 # 6. Real-time Update Testing

@@ -15,8 +15,14 @@ console.log(`Attempting to connect to WebSocket at: ${wsUrl}`);
 
 const ws = new WebSocket(wsUrl);
 
+const timeout = setTimeout(() => {
+  console.error('❌ Connection timed out');
+  process.exit(1);
+}, 5000);
+
 ws.on('open', () => {
   console.log('✅ WebSocket connection established');
+  clearTimeout(timeout);
   
   // Send a test message
   ws.send(JSON.stringify({

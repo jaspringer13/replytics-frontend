@@ -78,8 +78,16 @@ echo
 echo -e "${BLUE}3. Validating Data Format Transformation${NC}"
 echo "Checking frontend to backend format conversion..."
 
-# Create a test script to validate format transformation
-cat > validate-format.js << 'EOF'
+# Check if we can create temporary files
+if ! touch validate-format.js.test 2>/dev/null; then
+    echo -e "${RED}❌ Cannot create temporary files for validation${NC}"
+    VALIDATION_PASSED=false
+    echo
+else
+    rm -f validate-format.js.test
+
+    # Create a test script to validate format transformation
+    cat > validate-format.js << 'EOF'
 // Test format transformation
 const frontendFormat = {
   voiceSettings: {
@@ -114,13 +122,14 @@ console.log('Frontend format validated');
 console.log('Backend format transformation ready');
 EOF
 
-if node validate-format.js > /dev/null 2>&1; then
-    echo -e "${GREEN}✅ Format transformation validated${NC}"
-else
-    echo -e "${RED}❌ Format transformation validation failed${NC}"
-    VALIDATION_PASSED=false
+    if node validate-format.js > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Format transformation validated${NC}"
+    else
+        echo -e "${RED}❌ Format transformation validation failed${NC}"
+        VALIDATION_PASSED=false
+    fi
+    rm -f validate-format.js
 fi
-rm -f validate-format.js
 
 echo
 

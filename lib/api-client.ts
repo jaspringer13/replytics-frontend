@@ -901,10 +901,44 @@ class APIClient {
   }
 
   async updatePhoneVoiceSettings(phoneId: string, settings: Partial<VoiceSettings>): Promise<VoiceSettings> {
-    return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/voice-settings`, {
-      method: 'PATCH',
-      body: JSON.stringify(settings),
-    });
+    // Import voice validation at call site to avoid circular dependencies
+    const { isValidVoiceId, getVoiceMetadata } = await import('@/config/voice-options');
+    
+    // Validate voice ID if provided
+    if (settings.voiceId && !isValidVoiceId(settings.voiceId)) {
+      const error = new Error(`Invalid voice ID: ${settings.voiceId}. Voice ID not found in configuration.`) as Error & {
+        response: { status: number; data: unknown };
+      };
+      error.response = { status: 400, data: { message: error.message, type: 'INVALID_VOICE_ID' } };
+      throw error;
+    }
+    
+    try {
+      return this.request(`/api/v2/dashboard/phone-numbers/${phoneId}/voice-settings`, {
+        method: 'PATCH',
+        body: JSON.stringify(settings),
+      });
+    } catch (error) {
+      // Enhanced error handling for voice-specific failures
+      if (error instanceof Error) {
+        console.error('Voice settings update failed:', {
+          phoneId,
+          settings,
+          voiceMetadata: settings.voiceId ? getVoiceMetadata(settings.voiceId) : null,
+          error: error.message
+        });
+        
+        // Check if error is related to invalid voice ID from the API
+        if (error.message.includes('voice') && error.message.includes('not found')) {
+          const enhancedError = new Error(`Voice service error: The voice ID may have been deleted or is no longer available. Please select a different voice.`) as Error & {
+            response: { status: number; data: unknown };
+          };
+          enhancedError.response = { status: 422, data: { message: enhancedError.message, type: 'VOICE_SERVICE_ERROR' } };
+          throw enhancedError;
+        }
+      }
+      throw error;
+    }
   }
 
   async getPhoneConversationRules(phoneId: string): Promise<ConversationRules> {

@@ -34,12 +34,16 @@ export default function PhoneNumbersPage() {
   const fetchPhoneNumbers = async () => {
     try {
       const response = await fetch('/api/v2/dashboard/phone-numbers');
-      if (!response.ok) throw new Error('Failed to fetch phone numbers');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch phone numbers: ${response.status} ${errorText}`);
+      }
       const data = await response.json();
       setPhoneNumbers(data);
     } catch (error) {
       console.error('Error fetching phone numbers:', error);
-      toast.error('Failed to load phone numbers');
+      toast.error('Failed to load phone numbers', 
+        error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }

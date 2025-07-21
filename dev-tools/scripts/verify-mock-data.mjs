@@ -17,7 +17,7 @@ if (existsSync(mockDataPath)) {
 
 // Test import
 try {
-  const { mockDataGenerator } = await import('../lib/testing/mock-data-generator.js');
+  const { mockDataGenerator } = await import('../../lib/testing/mock-data-generator.js');
   console.log('✅ Mock data generator imports successfully');
   
   // Quick functionality test

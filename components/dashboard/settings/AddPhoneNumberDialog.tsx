@@ -77,6 +77,10 @@ export function AddPhoneNumberDialog({ isOpen, onClose, onAdd }: AddPhoneNumberD
     
     setSaving(true);
     try {
+      // Ensure all required fields are present
+      if (!formData.phoneNumber || !formData.displayName || !formData.timezone) {
+        throw new Error('Missing required fields');
+      }
       await onAdd(formData as PhoneNumberCreate);
       // Reset form
       setFormData({

@@ -51,21 +51,27 @@ async function testAPIEndpoint() {
     ];
 
     for (const metric of testMetrics) {
-      const response = await fetch(`${BASE_URL}/api/performance`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...metric,
-          delta: 0,
-          id: `test-${metric.name}-${Date.now()}`,
-          navigationType: 'navigate',
-          entries: [],
-        }),
-      });
+      try {
+        const response = await fetch(`${BASE_URL}/api/performance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...metric,
+            delta: 0,
+            id: `test-${metric.name}-${Date.now()}`,
+            navigationType: 'navigate',
+            entries: [],
+          }),
+        });
 
-      if (response.ok) {
-        results.metricsReceived[metric.name] = true;
-        results.performance[metric.name] = metric.value;
+        if (response.ok) {
+          results.metricsReceived[metric.name] = true;
+          results.performance[metric.name] = metric.value;
+        } else {
+          console.warn(`Failed to submit ${metric.name}: ${response.status}`);
+        }
+      } catch (error) {
+        console.warn(`Error submitting ${metric.name}:`, error.message);
       }
     }
 
@@ -207,7 +213,8 @@ function generateReport() {
 
   metricResults.forEach(({ name, value, target }) => {
     if (value !== null) {
-      const passed = name === 'CLS' ? value <= target : value <= target;
+      // All metrics in this test use "lower is better" logic
+      const passed = value <= target;
       const unit = name === 'CLS' ? '' : 'ms';
       console.log(`${passed ? '✅' : '❌'} ${name}: ${value}${unit} (Target: <${target}${unit})`);
     }

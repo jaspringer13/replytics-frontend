@@ -41,7 +41,7 @@ export function SettingsProvider({ businessId, children }: SettingsProviderProps
   
   // Auto-select primary or first phone when loaded
   useEffect(() => {
-    if (!selectedPhoneId && phoneNumbers.phoneNumbers.length > 0) {
+    if (!selectedPhoneId && !phoneNumbers.loading && phoneNumbers.phoneNumbers.length > 0) {
       const primaryPhone = phoneNumbers.phoneNumbers.find(p => p.isPrimary);
       const firstActive = phoneNumbers.phoneNumbers.find(p => p.isActive);
       const phoneToSelect = primaryPhone || firstActive || phoneNumbers.phoneNumbers[0];
@@ -49,7 +49,7 @@ export function SettingsProvider({ businessId, children }: SettingsProviderProps
         setSelectedPhoneId(phoneToSelect.id);
       }
     }
-  }, [phoneNumbers.phoneNumbers, selectedPhoneId]);
+  }, [phoneNumbers.phoneNumbers, phoneNumbers.loading, selectedPhoneId]);
   
   // Load phone-specific settings when phone is selected
   const phoneSettings = usePhoneSettings(selectedPhoneId);

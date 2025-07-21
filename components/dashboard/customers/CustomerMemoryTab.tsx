@@ -85,7 +85,7 @@ export function CustomerMemoryTab({ customer }: CustomerMemoryTabProps) {
               <span className="text-sm">First Visit</span>
             </div>
             <span className="text-white text-sm">
-              {formatDate(new Date(customer.firstInteraction))}
+              {customer.firstInteraction ? formatDate(new Date(customer.firstInteraction)) : 'N/A'}
             </span>
           </div>
           
@@ -95,7 +95,7 @@ export function CustomerMemoryTab({ customer }: CustomerMemoryTabProps) {
               <span className="text-sm">Last Visit</span>
             </div>
             <span className="text-white text-sm">
-              {formatDate(new Date(customer.lastInteraction))}
+              {customer.lastInteraction ? formatDate(new Date(customer.lastInteraction)) : 'N/A'}
             </span>
           </div>
           
@@ -169,7 +169,7 @@ export function CustomerMemoryTab({ customer }: CustomerMemoryTabProps) {
           {(customer.noShows > 0 || customer.cancelledBookings > 0) && (
             <div className="bg-orange-900/20 border border-orange-700 rounded-lg p-4 space-y-2 mb-3">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 w-4 text-orange-400" />
+                <AlertCircle className="w-4 h-4 text-orange-400" />
                 <h4 className="font-medium text-sm text-orange-300">Attention Required</h4>
               </div>
               <div className="space-y-1 text-sm text-gray-300">

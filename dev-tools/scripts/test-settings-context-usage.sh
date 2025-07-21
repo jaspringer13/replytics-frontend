@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Check if required files exist
+REQUIRED_FILES=(
+  "components/dashboard/settings/ServicesManagementTab.tsx"
+  "components/dashboard/settings/SMSConfigurationTab.tsx" 
+  "components/dashboard/settings/StaffManagementTab.tsx"
+  "components/dashboard/settings/ServiceEditor.tsx"
+  "components/dashboard/settings/IntegrationsTab.tsx"
+)
+
+for file in "${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$file" ]; then
+    echo "❌ Required file not found: $file"
+    exit 1
+  fi
+done
+
 echo "=== Settings Context Usage Test ==="
 echo
 
@@ -16,7 +32,7 @@ else
 fi
 
 # Check SMSConfigurationTab
-if grep -q "businessId" components/dashboard/settings/SMSConfigurationTab.tsx | grep -v "// Currently unused"; then
+if grep "businessId" components/dashboard/settings/SMSConfigurationTab.tsx | grep -v "// Currently unused" | grep -q .; then
   echo "   ❌ SMSConfigurationTab still has businessId references"
   ((PROP_ISSUES++))
 else

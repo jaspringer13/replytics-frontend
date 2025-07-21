@@ -21,7 +21,7 @@ export interface Service {
   duration_minutes: number;
   price: number;
   description?: string;
-  active: boolean;
+  isActive: boolean;
 }
 
 export interface BusinessHours {

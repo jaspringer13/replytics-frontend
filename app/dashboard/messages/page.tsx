@@ -207,7 +207,7 @@ export default function MessagesPage() {
   }
 
   // Template management state for optimistic updates
-  const [localTemplates, setLocalTemplates] = useState<MessageTemplate[]>([])
+  const [localTemplates, setLocalTemplates] = useState<MessageTemplate[]>(DEFAULT_MESSAGE_TEMPLATES)
   
   // Handle template management with optimistic updates
   const handleSaveTemplate = async (template: Omit<MessageTemplate, 'id'>) => {
@@ -428,7 +428,7 @@ export default function MessagesPage() {
                       className="border-l border-gray-700 bg-gray-900/50"
                     >
                       <MessageTemplates
-                        templates={DEFAULT_MESSAGE_TEMPLATES}
+                        templates={localTemplates}
                         onUseTemplate={handleUseTemplate}
                         onSaveTemplate={handleSaveTemplate}
                         onUpdateTemplate={handleUpdateTemplate}

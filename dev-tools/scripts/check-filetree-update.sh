@@ -4,7 +4,7 @@
 # This script checks if new files have been added and reminds developers to update FILETREE.md
 
 FILETREE_FILE="FILETREE.md"
-CHANGED_FILES="$@"
+CHANGED_FILES=("$@")
 
 # Colors for output
 RED='\033[0;31m'
@@ -22,7 +22,7 @@ fi
 NEW_COMPONENTS=0
 NEW_DIRECTORIES=0
 
-for file in $CHANGED_FILES; do
+for file in "${CHANGED_FILES[@]}"; do
     # Check for new component files
     if [[ "$file" == components/* && "$file" == *.tsx ]]; then
         NEW_COMPONENTS=$((NEW_COMPONENTS + 1))

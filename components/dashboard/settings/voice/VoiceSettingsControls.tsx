@@ -36,7 +36,7 @@ export const VoiceSettingsControls: React.FC<VoiceSettingsControlsProps> = ({
           Select Voice
         </Label>
         <RadioGroup 
-          value={settings.voiceId || 'kdmDKE6EkgrWrrykO9Qt'} 
+          value={settings.voiceId ?? 'kdmDKE6EkgrWrrykO9Qt'} 
           onValueChange={(value) => onSettingChange('voiceId', value)}
         >
           <div className="grid gap-3">

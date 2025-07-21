@@ -22,12 +22,23 @@ export const SettingsRefactorTests = {
   },
 
   // Test 2: Context Provider
-  testContextProvider: () => {
+  testContextProvider: async () => {
     console.log('TEST 2: Context Provider');
     try {
-      // This would be tested by checking if child components can access context
-      // In a real test, we'd render and check for context availability
-      console.log('✓ SettingsProvider wraps content correctly');
+      // Test that SettingsProvider exports required functions
+      const { SettingsProvider, useSettings } = await import('@/contexts/SettingsContext');
+      if (typeof SettingsProvider !== 'function' || typeof useSettings !== 'function') {
+        throw new Error('SettingsProvider or useSettings not properly exported');
+      }
+      console.log('✓ SettingsProvider and useSettings export correctly');
+      
+      // Verify SettingsProvider can be instantiated as React component
+      const providerElement = React.createElement(SettingsProvider, { businessId: 'test' });
+      if (!React.isValidElement(providerElement)) {
+        throw new Error('SettingsProvider does not create valid React element');
+      }
+      console.log('✓ SettingsProvider creates valid React element');
+      
       return true;
     } catch (error) {
       console.error('✗ Context provider failed:', error);
@@ -167,8 +178,7 @@ export const SettingsRefactorTests = {
     
     // Synchronous tests
     const syncTests = [
-      { name: 'Basic Render', fn: SettingsRefactorTests.testBasicRender },
-      { name: 'Context Provider', fn: SettingsRefactorTests.testContextProvider }
+      { name: 'Basic Render', fn: SettingsRefactorTests.testBasicRender }
     ];
     
     for (const test of syncTests) {
@@ -180,6 +190,7 @@ export const SettingsRefactorTests = {
     
     // Asynchronous tests
     const asyncTests = [
+      { name: 'Context Provider', fn: SettingsRefactorTests.testContextProvider },
       { name: 'Data Fetching', fn: SettingsRefactorTests.testDataFetching },
       { name: 'Real-time Config', fn: SettingsRefactorTests.testRealtimeConfig },
       { name: 'Tab Navigation', fn: SettingsRefactorTests.testTabNavigation },

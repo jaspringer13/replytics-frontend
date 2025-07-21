@@ -2,6 +2,8 @@
  * Dashboard-specific data models and types
  */
 
+import type { StaffMember } from './staff';
+
 // Validation Types
 export const VALID_TIMEZONES = [
   'America/New_York',
@@ -323,8 +325,9 @@ export type PromptCategory =
   | 'closing'
   | 'error_handling';
 
-// Staff Types
-export interface StaffMember {
+// Dashboard-specific Staff Types (for UI state management)
+// Note: Core StaffMember API model is defined in app/models/staff.ts
+export interface DashboardStaffMember {
   id: string;
   businessId: string;
   name: string;
@@ -332,17 +335,34 @@ export interface StaffMember {
   phone?: string;
   role: 'owner' | 'manager' | 'staff';
   services: string[]; // Service IDs this staff member can perform
-  availability: StaffAvailability[];
+  availability: DashboardStaffAvailability[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface StaffAvailability {
+export interface DashboardStaffAvailability {
   dayOfWeek: DayOfWeek;
   startTime: string;
   endTime: string;
   isAvailable: boolean;
+}
+
+// Helper function to convert API StaffMember to DashboardStaffMember
+export function toDashboardStaffMember(apiStaff: StaffMember): DashboardStaffMember {
+  return {
+    id: apiStaff.id,
+    businessId: apiStaff.businessId,
+    name: apiStaff.name,
+    email: apiStaff.email,
+    phone: apiStaff.phone,
+    role: apiStaff.role,
+    services: apiStaff.services || [],
+    availability: [], // Would need to be populated from separate API call
+    isActive: apiStaff.status === 'active',
+    createdAt: new Date(apiStaff.createdAt),
+    updatedAt: new Date(apiStaff.updatedAt),
+  };
 }
 
 // Integration Types

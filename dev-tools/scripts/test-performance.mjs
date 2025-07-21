@@ -20,7 +20,7 @@ global.performance = {
 };
 
 // Import after mocking globals
-const { getPerformanceTracker, markStatsLoaded } = await import('../lib/performance/metrics.ts');
+const { getPerformanceTracker, markStatsLoaded } = await import('../../lib/performance/metrics.ts');
 
 console.log('✅ Performance metrics module loaded successfully');
 console.log('✅ Module exports available');

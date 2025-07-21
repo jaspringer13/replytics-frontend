@@ -20,8 +20,22 @@ const simulatedMetrics = [
   { name: 'statsLoaded', value: 623, rating: 'good' },
 ];
 
+async function checkApiHealth() {
+  try {
+    const response = await fetch(`${BASE_URL}/api/health`);
+    return response.ok;
+  } catch (error) {
+    console.error('❌ API health check failed:', error.message);
+    return false;
+  }
+}
+
 async function sendMetric(metric) {
   try {
+    // Ensure API is responsive before sending metrics
+    if (!(await checkApiHealth())) {
+      throw new Error('API health check failed');
+    }
     const response = await fetch(METRICS_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -124,7 +138,17 @@ function getMetricRating(name, value) {
 async function generateReport() {
   console.log('\n' + '='.repeat(50));
   console.log('🎯 REPLYTICS PERFORMANCE SMOKE TEST RESULTS');
-  console.log('='.repeat(50));
+  // Add timeout wrapper
+function withTimeout(promise, timeoutMs = 30000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+    )
+  ]);
+}
+
+console.log('='.repeat(50));
   console.log(`Environment: Development`);
   console.log(`Date: ${new Date().toLocaleDateString()}`);
   console.log(`Browser: Simulated\n`);
@@ -151,7 +175,7 @@ async function generateReport() {
 async function main() {
   try {
     // Simulate browser metrics
-    const simulationSuccess = await simulateBrowserMetrics();
+    const simulationSuccess = await withTimeout(simulateBrowserMetrics());
     
     if (!simulationSuccess) {
       console.error('\n❌ Failed to simulate metrics');
@@ -162,7 +186,7 @@ async function main() {
     await setTimeout(1000);
 
     // Fetch and display all metrics
-    const fetchSuccess = await fetchAndDisplayMetrics();
+    const fetchSuccess = await withTimeout(fetchAndDisplayMetrics());
     
     if (!fetchSuccess) {
       console.error('\n❌ Failed to fetch metrics');
@@ -170,7 +194,7 @@ async function main() {
     }
 
     // Generate final report
-    await generateReport();
+    await withTimeout(generateReport());
     
     process.exit(0);
   } catch (error) {
