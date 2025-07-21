@@ -96,11 +96,14 @@ class Environment {
 
     const missing = required.filter(key => !this.config[key as keyof EnvironmentConfig]);
     
-    if (missing.length > 0 && this.config.IS_PRODUCTION) {
+    // Skip validation during build process
+    const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' || process.env.CI;
+    
+    if (missing.length > 0 && this.config.IS_PRODUCTION && !isBuildTime) {
       throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
     }
     
-    if (missing.length > 0) {
+    if (missing.length > 0 && !isBuildTime) {
       console.warn(`Missing environment variables: ${missing.join(', ')}`);
     }
   }
