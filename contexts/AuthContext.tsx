@@ -39,34 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status, update } = useSession()
   const [error, setError] = useState<string | null>(null)
   
-  // Initialize state from localStorage
-  const [localUser, setLocalUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      const storedUserStr = localStorage.getItem('user')
-      if (storedUserStr) {
-        try {
-          const user = JSON.parse(storedUserStr)
-          // Try to get businessId from localStorage if not in user object
-          if (!user.businessId) {
-            user.businessId = localStorage.getItem('current_business_id')
-          }
-          return user
-        } catch (err) {
-          console.error('Failed to parse stored user:', err)
-        }
-      }
-    }
-    return null
-  })
-  
-  const [isLoading, setIsLoading] = useState(() => {
-    // If we have a stored user/token, we're not loading
-    if (typeof window !== 'undefined') {
-      const hasStoredAuth = !!localStorage.getItem('auth_token')
-      return !hasStoredAuth
-    }
-    return true
-  })
+  // Initialize state without localStorage to prevent hydration mismatch
+  const [localUser, setLocalUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   
   // Token expiration utility function
   const isTokenExpired = (expiresAt: string | null): boolean => {
@@ -74,20 +49,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return new Date(expiresAt) <= new Date()
   }
   
-  // Get stored expiration time
-  const tokenExpiresAt = typeof window !== 'undefined' 
-    ? localStorage.getItem('token_expires_at') 
-    : null
+  // Track token expiration in state to avoid hydration issues
+  const [tokenExpiresAt, setTokenExpiresAt] = useState<string | null>(null)
 
-  // Initialize API client from localStorage on mount
+  // Initialize from localStorage on mount (after hydration)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedToken = localStorage.getItem('auth_token')
       const expiresAt = localStorage.getItem('token_expires_at')
+      const storedUserStr = localStorage.getItem('user')
+      
+      if (storedUserStr) {
+        try {
+          const user = JSON.parse(storedUserStr)
+          if (!user.businessId) {
+            user.businessId = localStorage.getItem('current_business_id')
+          }
+          setLocalUser(user)
+        } catch (err) {
+          console.error('Failed to parse stored user:', err)
+        }
+      }
       
       if (storedToken) {
         apiClient.setToken(storedToken, expiresAt || undefined)
+        setTokenExpiresAt(expiresAt)
         console.log('AuthContext: Restored auth token from localStorage')
+        setIsLoading(false)
+      } else {
+        setIsLoading(false)
       }
     }
   }, [])
