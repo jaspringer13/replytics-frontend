@@ -1,5 +1,5 @@
 /** PostCSS Configuration - Fixed env loading 2025-07-21 */
-module.exports = {
+export default {
   plugins: {
     tailwindcss: {},
     autoprefixer: {},
