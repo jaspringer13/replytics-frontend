@@ -1,7 +1,6 @@
 // Voice Bot API client for Next.js frontend
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+import { env } from '@/lib/config';
 
 // Types
 export interface BusinessProfile {
@@ -46,7 +45,8 @@ class VoiceBotAPI {
     endpoint: string,
     options?: RequestInit
   ): Promise<T> {
-    const response = await fetch(`${API_BASE}/api/v2/dashboard/voice-bot${endpoint}`, {
+    const apiBase = env.get('BACKEND_API_URL');
+    const response = await fetch(`${apiBase}/api/v2/dashboard/voice-bot${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',

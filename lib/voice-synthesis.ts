@@ -16,7 +16,6 @@ interface VoiceSynthesisResult {
 
 // ElevenLabs API configuration
 const ELEVENLABS_API_URL = EXTERNAL_APIS.ELEVENLABS.BASE_URL;
-const ELEVENLABS_API_KEY = env.get('ELEVENLABS_API_KEY');
 
 // Voice ID mapping for ElevenLabs
 const VOICE_ID_MAPPING: Record<string, string> = {
@@ -42,7 +41,8 @@ export class VoiceSynthesisService {
     const { text, settings, tenantId } = options;
 
     // Check if ElevenLabs is configured
-    if (!ELEVENLABS_API_KEY) {
+    const elevenLabsApiKey = env.get('ELEVENLABS_API_KEY');
+    if (!elevenLabsApiKey) {
       console.warn('ElevenLabs API key not configured, using fallback');
       return this.generateFallbackAudio(text, settings, tenantId);
     }
@@ -56,7 +56,7 @@ export class VoiceSynthesisService {
         headers: {
           'Accept': 'audio/mpeg',
           'Content-Type': 'application/json',
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'xi-api-key': elevenLabsApiKey,
         },
         body: JSON.stringify({
           text: text,
@@ -144,7 +144,8 @@ export class VoiceSynthesisService {
   }
 
   async validateVoiceId(voiceId: string): Promise<boolean> {
-    if (!ELEVENLABS_API_KEY) {
+    const elevenLabsApiKey = env.get('ELEVENLABS_API_KEY');
+    if (!elevenLabsApiKey) {
       // If no API key, just check against our known voices
       return Object.keys(VOICE_ID_MAPPING).includes(voiceId);
     }
@@ -152,7 +153,7 @@ export class VoiceSynthesisService {
     try {
       const response = await fetch(`${ELEVENLABS_API_URL}/voices/${voiceId}`, {
         headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'xi-api-key': elevenLabsApiKey,
         }
       });
 
@@ -164,14 +165,15 @@ export class VoiceSynthesisService {
   }
 
   async getAvailableVoices(): Promise<Record<string, string>> {
-    if (!ELEVENLABS_API_KEY) {
+    const elevenLabsApiKey = env.get('ELEVENLABS_API_KEY');
+    if (!elevenLabsApiKey) {
       return VOICE_ID_MAPPING;
     }
 
     try {
       const response = await fetch(`${ELEVENLABS_API_URL}/voices`, {
         headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'xi-api-key': elevenLabsApiKey,
         }
       });
 

@@ -6,14 +6,13 @@ interface QueryError {
   };
 }
 
-// Allow configuration via environment variables
-const STALE_TIME = parseInt(process.env.NEXT_PUBLIC_QUERY_STALE_TIME || '300000'); // 5 min default
-const GC_TIME = parseInt(process.env.NEXT_PUBLIC_QUERY_GC_TIME || '600000'); // 10 min default
+// Import env for lazy loading
+import { env } from '@/lib/config';
 
 const defaultQueryOptions: DefaultOptions = {
   queries: {
-    staleTime: STALE_TIME,
-    gcTime: GC_TIME,
+    staleTime: env.get('QUERY_STALE_TIME'),
+    gcTime: env.get('QUERY_GC_TIME'),
     retry: (failureCount: number, error: unknown) => {
       const queryError = error as QueryError;
       // Don't retry on 4xx errors except 401 (which we'll handle with token refresh)

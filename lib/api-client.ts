@@ -86,7 +86,7 @@ interface APIError {
 }
 
 class APIClient {
-  private baseURL: string;
+  private _baseURL: string | null = null;
   private token: string | null = null;
   private tenantId: string | null = null;
   private businessId: string | null = null;
@@ -96,11 +96,18 @@ class APIClient {
   private isRefreshing = false;
 
   constructor(private requestTimeout: number = API_CONFIG.REQUEST.TIMEOUT) {
-    this.baseURL = env.get('BACKEND_API_URL');
-    console.log('APIClient initialized with baseURL:', this.baseURL);
-    if (!this.baseURL) {
-      console.warn('Backend API URL not configured. Please set BACKEND_API_URL in environment.');
+    // Delay baseURL initialization until first use
+  }
+
+  private get baseURL(): string {
+    if (!this._baseURL) {
+      this._baseURL = env.get('BACKEND_API_URL');
+      console.log('APIClient initialized with baseURL:', this._baseURL);
+      if (!this._baseURL) {
+        console.warn('Backend API URL not configured. Please set BACKEND_API_URL in environment.');
+      }
     }
+    return this._baseURL;
   }
 
   private initializeFromStorage() {
@@ -1236,7 +1243,23 @@ class APIClient {
   }
 }
 
-export const apiClient = new APIClient();
+// Lazy singleton pattern to avoid initialization at build time
+let _apiClient: APIClient | null = null;
+
+export function getApiClient(): APIClient {
+  if (!_apiClient) {
+    _apiClient = new APIClient();
+  }
+  return _apiClient;
+}
+
+// For backward compatibility
+export const apiClient = new Proxy({} as APIClient, {
+  get(target, prop, receiver) {
+    const client = getApiClient();
+    return Reflect.get(client, prop, client);
+  }
+});
 
 export type {
   AuthResponse,
