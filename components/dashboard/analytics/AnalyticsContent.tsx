@@ -42,7 +42,7 @@ export function AnalyticsContent() {
   const customerSegmentsData = useMemo((): CustomerSegmentData[] => [
     { segment: 'vip' as const, count: analytics?.customerSegments?.vip || 0 },
     { segment: 'regular' as const, count: analytics?.customerSegments?.regular || 0 },
-    { segment: 'at_risk' as const, count: analytics?.customerSegments?.at_risk || 0 },
+    { segment: 'at_risk' as const, count: analytics?.customerSegments?.atRisk || 0 },
     { segment: 'new' as const, count: analytics?.customerSegments?.new || 0 },
     { segment: 'dormant' as const, count: analytics?.customerSegments?.dormant || 0 }
   ], [analytics?.customerSegments]);

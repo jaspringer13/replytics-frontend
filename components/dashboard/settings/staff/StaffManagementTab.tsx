@@ -480,9 +480,9 @@ export const StaffManagementTab: React.FC = () => {
                       <Badge variant="outline" className="text-xs">
                         {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
                       </Badge>
-                      {member.last_login && (
+                      {member.lastLogin && (
                         <span className="text-xs text-muted-foreground">
-                          Last login: {member.last_login}
+                          Last login: {member.lastLogin}
                         </span>
                       )}
                     </div>

@@ -273,7 +273,7 @@ export interface ServicePerformance {
 export interface SegmentDistribution {
   vip: number;
   regular: number;
-  at_risk: number;
+  atRisk: number;
   new: number;
   dormant: number;
 }

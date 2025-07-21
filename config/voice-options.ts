@@ -16,7 +16,7 @@
 export interface VoiceOption {
   id: string;
   name: string;
-  provider: 'elevenlabs';
+  provider: 'elevenlabs' | string;
   model?: string;
   gender: 'male' | 'female';
   personality: string;
