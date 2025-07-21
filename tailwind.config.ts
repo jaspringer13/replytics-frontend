@@ -64,7 +64,6 @@ const config = {
         success: "#10B981",
         error: "#EF4444",
         warning: "#F59E0B",
-        border: "#E4E4E7",
       },
       // Strict spacing system (8px grid)
       spacing: {
