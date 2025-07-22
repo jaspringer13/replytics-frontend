@@ -17,6 +17,8 @@ export function GoogleOAuthCallbackHandler() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
+    let redirectTimeoutId: NodeJS.Timeout | null = null
+
     const handleOAuthCallback = async () => {
       const code = searchParams.get('code')
       const state = searchParams.get('state')
@@ -63,7 +65,7 @@ export function GoogleOAuthCallbackHandler() {
         toast.success('Google Calendar connected successfully!')
         
         // Redirect back to integrations tab after 2 seconds
-        setTimeout(() => {
+        redirectTimeoutId = setTimeout(() => {
           router.push('/dashboard/settings?tab=integrations')
         }, 2000)
       } catch (error) {
@@ -75,6 +77,13 @@ export function GoogleOAuthCallbackHandler() {
     }
 
     handleOAuthCallback()
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      if (redirectTimeoutId) {
+        clearTimeout(redirectTimeoutId)
+      }
+    }
   }, [searchParams, router, toast, user])
 
   return (
