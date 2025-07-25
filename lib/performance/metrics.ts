@@ -1,4 +1,8 @@
-import { onCLS, onFCP, onLCP, onTTFB, onINP, Metric } from 'web-vitals';
+// Conditional import to avoid SSR issues
+let webVitals: any = null;
+if (typeof window !== 'undefined') {
+  webVitals = require('web-vitals');
+}
 
 interface CustomMetric {
   name: string;
@@ -47,8 +51,10 @@ class PerformanceTracker {
   }
 
   private initializeWebVitals() {
+    if (!webVitals) return;
+
     // First Contentful Paint
-    onFCP((metric: Metric) => {
+    webVitals.onFCP((metric: any) => {
       this.metrics.FCP = metric.value;
       console.log('[Performance] FCP:', metric.value, 'ms');
       this.sendMetricToEndpoint(metric);
@@ -56,7 +62,7 @@ class PerformanceTracker {
     });
 
     // Largest Contentful Paint
-    onLCP((metric: Metric) => {
+    webVitals.onLCP((metric: any) => {
       this.metrics.LCP = metric.value;
       console.log('[Performance] LCP:', metric.value, 'ms');
       this.sendMetricToEndpoint(metric);
@@ -64,7 +70,7 @@ class PerformanceTracker {
     });
 
     // Cumulative Layout Shift
-    onCLS((metric: Metric) => {
+    webVitals.onCLS((metric: any) => {
       this.metrics.CLS = metric.value;
       console.log('[Performance] CLS:', metric.value);
       this.sendMetricToEndpoint(metric);
@@ -72,7 +78,7 @@ class PerformanceTracker {
     });
 
     // Interaction to Next Paint (replaces FID)
-    onINP((metric: Metric) => {
+    webVitals.onINP((metric: any) => {
       this.metrics.INP = metric.value;
       console.log('[Performance] INP:', metric.value, 'ms');
       this.sendMetricToEndpoint(metric);
@@ -80,7 +86,7 @@ class PerformanceTracker {
     });
 
     // Time to First Byte
-    onTTFB((metric: Metric) => {
+    webVitals.onTTFB((metric: any) => {
       this.metrics.TTFB = metric.value;
       console.log('[Performance] TTFB:', metric.value, 'ms');
       this.sendMetricToEndpoint(metric);
@@ -143,10 +149,10 @@ class PerformanceTracker {
       entries: [],
     };
     
-    await this.sendMetricToEndpoint(customMetric as Metric);
+    await this.sendMetricToEndpoint(customMetric);
   }
 
-  private async sendMetricToEndpoint(metric: Metric) {
+  private async sendMetricToEndpoint(metric: any) {
     try {
       // Add browser console logging with clear prefix
       console.log(`[PERFORMANCE METRIC CAPTURED] ${metric.name}:`, {

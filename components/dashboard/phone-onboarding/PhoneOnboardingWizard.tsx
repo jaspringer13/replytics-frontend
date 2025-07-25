@@ -610,6 +610,9 @@ export function PhoneOnboardingWizard({
             </div>
           </div>
         );
+      
+      default:
+        return null;
     }
   };
 

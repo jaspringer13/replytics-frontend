@@ -48,6 +48,7 @@ export function useAnalytics({
       const interval = setInterval(fetchAnalytics, refreshInterval)
       return () => clearInterval(interval)
     }
+    return undefined
   }, [fetchAnalytics, autoRefresh, refreshInterval])
 
   // Refetch function for manual refresh

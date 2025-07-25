@@ -1,0 +1,196 @@
+# Docker Ignore File - Build Optimization
+# /Users/jakespringer/Desktop/Replytics Website/.dockerignore
+
+# Version Control
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Next.js
+.next/
+out/
+.next-env.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs
+*.log
+dev-server.log
+dev-server.pid
+server_startup.log
+server_startup2.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Test Files and Outputs
+test-results/
+playwright-report/
+__tests__/
+tests/
+*.spec.ts
+*.test.ts
+*.spec.js
+*.test.js
+jest.config.js
+jest.setup.js
+playwright.config.ts
+
+# Documentation
+README.md
+CLAUDE*.md
+*.md
+docs/
+FILETREE.md
+
+# Build artifacts (exclude from image)
+.next/cache/
+.next/trace
+.next/static/chunks/
+tsconfig.tsbuildinfo
+
+# Development tools
+dev-tools/
+scripts/
+agents/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+.npm/
+.eslintcache
+
+# Environment files (security)
+.env
+.env.*
+!.env.example
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Archives
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.tar
+*.gz
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Local development
+/extracted_admin_components/
+/extracted-components/
+dev-server.*
+
+# Monitoring and metrics
+monitoring/
+metrics/
+grafana/
+prometheus/
+
+# SSL certificates (security)
+ssl/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Voice-bot related (if building separately)
+../voice-bot/
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+
+# Audio files (if not needed in container)
+*.mp3
+*.wav
+*.ogg
+*.m4a
+
+# Image files (if not needed)
+*.psd
+*.ai
+*.eps
+
+# Build analysis
+.next/analyze/
+bundle-analyzer-report.html
+
+# Package managers lock files (use npm ci instead)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Optional: Exclude source maps in production builds
+*.map
+
+# Optional: Exclude TypeScript source in production
+*.ts
+*.tsx
+!*.d.ts

@@ -57,6 +57,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       document.addEventListener('click', handleClickOutside)
       return () => document.removeEventListener('click', handleClickOutside)
     }
+    return undefined
   }, [sidebarOpen])
 
   const handleSignOut = () => {

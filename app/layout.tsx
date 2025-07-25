@@ -3,6 +3,8 @@ import { Inter } from "next/font/google"
 import { Providers } from "@/components/providers/SessionProvider"
 import { PerformanceProvider } from "@/components/providers/PerformanceProvider"
 import "../styles/globals.css"
+// Import polyfills for SSR compatibility
+import "@/lib/polyfills"
 
 const inter = Inter({ 
   subsets: ["latin"],

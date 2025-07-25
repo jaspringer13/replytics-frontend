@@ -80,6 +80,7 @@ export class ReplyticsDB extends Dexie {
       if (expiredIds.length > 0) {
         return this.cachedQueries.bulkDelete(expiredIds);
       }
+      return Promise.resolve();
     });
     
     // Clean up performance metrics older than 7 days

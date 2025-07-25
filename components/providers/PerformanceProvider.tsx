@@ -37,6 +37,7 @@ export function PerformanceProvider({
         window.removeEventListener('load', handleLoad);
       };
     }
+    return undefined
   }, [metricsTimeout]);
 
   return <>{children}</>;

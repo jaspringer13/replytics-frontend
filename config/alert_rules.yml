@@ -1,0 +1,393 @@
+# Replytics Voice-Bot Integration Alert Rules
+# Comprehensive alerting for production monitoring
+
+groups:
+  # Critical System Health Alerts
+  - name: replytics-critical-health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+          component: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on instance {{ $labels.instance }} has been down for more than 1 minute"
+          runbook_url: "https://replytics.com/runbooks/service-down"
+          dashboard_url: "https://grafana.replytics.com/d/overview"
+
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m]) /
+            rate(http_requests_total[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "High error rate detected for {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }} on {{ $labels.route }}"
+          runbook_url: "https://replytics.com/runbooks/high-error-rate"
+
+      - alert: ExtremelyHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{status=~"5.."}[5m]) /
+            rate(http_requests_total[5m])
+          ) > 0.25
+        for: 30s
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "CRITICAL: Extremely high error rate for {{ $labels.job }}"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.job }} - immediate attention required"
+
+  # Performance and Latency Alerts
+  - name: replytics-performance
+    interval: 30s
+    rules:
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          team: backend
+          component: api
+        annotations:
+          summary: "High response time detected for {{ $labels.job }}"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.route }}"
+          runbook_url: "https://replytics.com/runbooks/high-latency"
+
+      - alert: CriticalResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 5.0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+          component: api
+        annotations:
+          summary: "CRITICAL: Response time exceeding 5 seconds"
+          description: "95th percentile response time is {{ $value }}s - system severely degraded"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          component: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (
+            node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes
+          ) / node_memory_MemTotal_bytes > 0.95
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          component: infrastructure
+        annotations:
+          summary: "CRITICAL: Memory usage critically high"
+          description: "Memory usage is {{ $value | humanizePercentage }} - system at risk"
+
+  # Database Performance Alerts
+  - name: replytics-database
+    interval: 60s
+    rules:
+      - alert: DatabaseConnectionPoolExhaustion
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          team: backend
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Connection pool usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: CriticalDatabaseConnections
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections > 0.95
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+          component: database
+        annotations:
+          summary: "CRITICAL: Database connection pool near full capacity"
+          description: "Connection pool at {{ $value | humanizePercentage }} - immediate action required"
+
+      - alert: SlowDatabaseQueries
+        expr: |
+          rate(analytics_query_duration_seconds_sum[5m]) / 
+          rate(analytics_query_duration_seconds_count[5m]) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Average query time is {{ $value }}s for {{ $labels.query_type }}"
+
+      - alert: DatabaseReplicationLag
+        expr: |
+          pg_stat_replication_lag_bytes > 100000000
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+          component: database
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value | humanizeBytes }}"
+
+  # Security and Authentication Alerts
+  - name: replytics-security
+    interval: 30s
+    rules:
+      - alert: AuthenticationFailureSpike
+        expr: |
+          rate(authentication_failures_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          team: security
+          component: authentication
+        annotations:
+          summary: "Authentication failure spike detected"
+          description: "{{ $value }} authentication failures per second from {{ $labels.ip_address }}"
+          runbook_url: "https://replytics.com/runbooks/auth-failures"
+
+      - alert: CrossTenantAccessAttempt
+        expr: |
+          increase(security_violations_total{type="cross_tenant"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          team: security
+          component: authorization
+        annotations:
+          summary: "Cross-tenant access attempt detected"
+          description: "{{ $value }} cross-tenant access violations detected in 5 minutes"
+          runbook_url: "https://replytics.com/runbooks/security-violation"
+
+      - alert: RateLimitViolations
+        expr: |
+          rate(rate_limit_violations_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+          team: security
+          component: rate_limiting
+        annotations:
+          summary: "High rate of rate limit violations"
+          description: "{{ $value }} rate limit violations per second on {{ $labels.endpoint }}"
+
+      - alert: SuspiciousUserActivity
+        expr: |
+          rate(security_violations_total{type="suspicious_activity"}[10m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+          component: monitoring
+        annotations:
+          summary: "Suspicious user activity detected"
+          description: "{{ $value }} suspicious activities detected for user {{ $labels.user_id }}"
+
+  # Business Metrics and Analytics Alerts  
+  - name: replytics-business
+    interval: 60s
+    rules:
+      - alert: LowAnalyticsAccuracy
+        expr: |
+          analytics_data_accuracy_ratio < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          team: analytics
+          component: data_quality
+        annotations:
+          summary: "Analytics data accuracy below threshold"
+          description: "Analytics accuracy is {{ $value | humanizePercentage }} for business {{ $labels.business_id }}"
+
+      - alert: CriticalAnalyticsAccuracy
+        expr: |
+          analytics_data_accuracy_ratio < 0.90
+        for: 2m
+        labels:
+          severity: critical
+          team: analytics
+          component: data_quality
+        annotations:
+          summary: "CRITICAL: Analytics data accuracy critically low"
+          description: "Analytics accuracy is {{ $value | humanizePercentage }} - data integrity compromised"
+
+      - alert: VoiceCallFailureSpike
+        expr: |
+          rate(voice_calls_failed_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: voice_ai
+          component: call_processing
+        annotations:
+          summary: "Voice call failure rate increased"
+          description: "Voice call failure rate: {{ $value | humanizePercentage }} for business {{ $labels.business_id }}"
+
+      - alert: CriticalVoiceCallFailures
+        expr: |
+          rate(voice_calls_failed_total[5m]) > 0.25
+        for: 2m
+        labels:
+          severity: critical
+          team: voice_ai
+          component: call_processing
+        annotations:
+          summary: "CRITICAL: High voice call failure rate"
+          description: "Voice call failure rate: {{ $value | humanizePercentage }} - service severely impacted"
+
+      - alert: CacheHitRateLow
+        expr: |
+          cache_hit_ratio{cache_type="business_id"} < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+          component: caching
+        annotations:
+          summary: "Business ID cache hit rate low"
+          description: "Cache hit rate: {{ $value | humanizePercentage }} - performance may be degraded"
+
+      - alert: LowVoiceCallQuality
+        expr: |
+          avg_over_time(voice_call_quality_score[10m]) < 3.5
+        for: 5m
+        labels:
+          severity: warning
+          team: voice_ai
+          component: quality
+        annotations:
+          summary: "Voice call quality degraded"
+          description: "Average call quality score: {{ $value }} for business {{ $labels.business_id }}"
+
+  # Infrastructure and Resource Alerts
+  - name: replytics-infrastructure
+    interval: 60s
+    rules:
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: CriticalCPUUsage
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          component: infrastructure
+        annotations:
+          summary: "CRITICAL: CPU usage critically high"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!="tmpfs"} / 
+            node_filesystem_size_bytes{fstype!="tmpfs"}
+          ) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+          component: storage
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Disk space is {{ $value | humanizePercentage }} full on {{ $labels.mountpoint }}"
+
+      - alert: CriticalDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!="tmpfs"} / 
+            node_filesystem_size_bytes{fstype!="tmpfs"}
+          ) < 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+          component: storage
+        annotations:
+          summary: "CRITICAL: Disk space critically low"
+          description: "Disk space is {{ $value | humanizePercentage }} full - immediate action required"
+
+  # Service-Specific Health Checks
+  - name: replytics-service-health
+    interval: 30s
+    rules:
+      - alert: NextJSApplicationUnhealthy
+        expr: |
+          up{job="replytics-frontend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: frontend
+          component: nextjs
+        annotations:
+          summary: "Next.js application is down"
+          description: "Frontend application is not responding on {{ $labels.instance }}"
+
+      - alert: VoiceBotServiceUnhealthy
+        expr: |
+          up{job="replytics-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: voice_ai
+          component: voice_bot
+        annotations:
+          summary: "Voice bot service is down"
+          description: "Voice bot backend is not responding on {{ $labels.instance }}"
+
+      - alert: AnalyticsServiceUnhealthy
+        expr: |
+          up{job="analytics-service"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          team: analytics
+          component: analytics_api
+        annotations:
+          summary: "Analytics service is down"
+          description: "Analytics API is not responding - dashboard data may be stale"

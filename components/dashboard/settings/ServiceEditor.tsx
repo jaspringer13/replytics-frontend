@@ -1,7 +1,23 @@
 "use client"
 
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import dynamic from 'next/dynamic';
+
+// Dynamically import react-beautiful-dnd to avoid SSR issues
+const DragDropContext = dynamic(
+  () => import('react-beautiful-dnd').then(mod => mod.DragDropContext),
+  { ssr: false }
+);
+const Droppable = dynamic(
+  () => import('react-beautiful-dnd').then(mod => mod.Droppable),
+  { ssr: false }
+);
+const Draggable = dynamic(
+  () => import('react-beautiful-dnd').then(mod => mod.Draggable),
+  { ssr: false }
+);
+
+import type { DropResult } from 'react-beautiful-dnd';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
