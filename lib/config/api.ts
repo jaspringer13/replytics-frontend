@@ -69,7 +69,7 @@ export const EXTERNAL_APIS = {
   },
   
   VOICE_BOT: {
-    BASE_URL: 'https://replytics-dhhf.onrender.com',
+    BASE_URL: env.get('BACKEND_API_URL'),
     STATUS: '/status',
     CALLS: '/api/calls',
   },
