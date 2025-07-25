@@ -1,94 +1,78 @@
-// middleware.ts - NextAuth-powered Security Middleware
+// middleware.ts - Simplified NextAuth Security Middleware
 
-import { NextResponse, type NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
 
-// Routes that should redirect *away* if user is already authed
-const authRoutes = ['/auth/signin', '/auth/signup']
+export default withAuth(
+  // Middleware function
+  function middleware(req) {
+    const pathname = req.nextUrl.pathname
+    const token = req.nextauth.token
 
-// Public routes that don't require authentication
-const publicRoutes = ['/', '/about', '/contact', '/pricing']
-
-// API routes that require special handling (NextAuth, health checks, etc.)
-const specialAPIRoutes = [
-  '/api/auth',
-  '/api/debug-session',
-  '/api/health'
-]
-
-// Protected routes that require authentication
-const protectedRoutes = ['/dashboard']
-
-export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-  const isAPIRoute = pathname.startsWith('/api')
-
-  try {
-    // Get NextAuth token for authentication check
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
-
-    // Handle auth pages (redirect if already authenticated)
+    // Skip processing for auth routes when user is already authenticated
+    const authRoutes = ['/auth/signin', '/auth/signup']
     if (authRoutes.some(route => pathname.startsWith(route))) {
-      if (token) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-      return NextResponse.next()
+      return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
-    // Skip middleware for public routes
-    if (publicRoutes.includes(pathname) || pathname.startsWith('/public')) {
-      return NextResponse.next()
-    }
-
-    // Skip middleware for special API routes (NextAuth handles its own auth)
-    if (specialAPIRoutes.some(route => pathname.startsWith(route))) {
-      return NextResponse.next()
-    }
-
-    // Handle protected API routes
-    if (isAPIRoute && pathname.startsWith('/api/v2/')) {
-      if (!token?.tenantId || !token?.businessId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-      
-      // Add security headers for authenticated API requests
+    // For protected API routes, add tenant context headers
+    if (pathname.startsWith('/api/v2/')) {
       const response = NextResponse.next()
-      response.headers.set('X-User-ID', token.id as string)
-      response.headers.set('X-Tenant-ID', token.tenantId as string)
-      response.headers.set('X-Business-ID', token.businessId as string)
+      
+      // Add business context headers for tenant isolation
+      if (token?.id) response.headers.set('X-User-ID', token.id)
+      if (token?.tenantId) response.headers.set('X-Tenant-ID', token.tenantId)
+      if (token?.businessId) response.headers.set('X-Business-ID', token.businessId)
+      
       return response
     }
 
-    // Handle protected frontend routes
-    if (protectedRoutes.some(route => pathname.startsWith(route))) {
-      if (!token) {
-        const signIn = new URL('/auth/signin', request.url)
-        signIn.searchParams.set('redirect', pathname)
-        return NextResponse.redirect(signIn)
-      }
-      return NextResponse.next()
-    }
-
-    // Default: continue without authentication
+    // Continue with request
     return NextResponse.next()
+  },
+  {
+    callbacks: {
+      // Authorization check - require businessId and tenantId for protected routes
+      authorized: ({ token, req }) => {
+        const pathname = req.nextUrl.pathname
 
-  } catch (error) {
-    console.error('Middleware error:', error)
+        // Public routes - always allow
+        const publicRoutes = ['/', '/about', '/contact', '/pricing']
+        if (publicRoutes.includes(pathname) || pathname.startsWith('/public')) {
+          return true
+        }
 
-    if (isAPIRoute) {
-      return NextResponse.json(
-        { error: 'Authentication system error' },
-        { status: 500 }
-      )
+        // Special API routes - always allow (NextAuth handles its own auth)
+        const specialAPIRoutes = ['/api/auth', '/api/debug-session', '/api/health']
+        if (specialAPIRoutes.some(route => pathname.startsWith(route))) {
+          return true
+        }
+
+        // Protected routes - require valid token with business context
+        const protectedRoutes = ['/dashboard', '/api/v2/']
+        if (protectedRoutes.some(route => pathname.startsWith(route))) {
+          // Require authentication
+          if (!token) return false
+          
+          // For onboarding users (step 0), allow access to dashboard but not API
+          if (token.onboardingStep === 0) {
+            return pathname.startsWith('/dashboard') // Allow dashboard, block API
+          }
+          
+          // For completed users, require full business context
+          return !!(token.tenantId && token.businessId)
+        }
+
+        // Default: allow access for other routes
+        return true
+      }
+    },
+    pages: {
+      signIn: '/auth/signin',
+      error: '/auth/error',
     }
-
-    // Redirect to error page for frontend routes
-    return NextResponse.redirect(new URL('/auth/error', request.url))
   }
-}
+)
 
 
 /* Configure which paths run through the middleware */

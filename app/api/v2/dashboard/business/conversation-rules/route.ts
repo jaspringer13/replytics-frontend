@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { ConversationRules } from '@/app/models/dashboard';
 
@@ -11,23 +13,25 @@ const supabase = createClient(
 /**
  * GET /api/v2/dashboard/business/conversation-rules
  * Get conversation rules for the voice agent
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to conversation rules');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
-    // Fetch conversation rules from database
+    // SECURITY: Fetch conversation rules from database with authenticated context
     const { data: business, error } = await supabase
       .from('businesses')
       .select('conversation_rules')
-      .eq('id', tenantId)
+      .eq('id', businessId)
       .single();
 
     if (error || !business) {
@@ -63,17 +67,19 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH /api/v2/dashboard/business/conversation-rules
  * Update conversation rules - affects voice agent behavior
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to conversation rules update');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const updates: Partial<ConversationRules> = await request.json();
 
@@ -99,11 +105,11 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Get current rules to merge with updates
+    // SECURITY: Get current rules to merge with updates using authenticated context
     const { data: business, error: fetchError } = await supabase
       .from('businesses')
       .select('conversation_rules')
-      .eq('id', tenantId)
+      .eq('id', businessId)
       .single();
 
     if (fetchError) {
@@ -127,14 +133,14 @@ export async function PATCH(request: NextRequest) {
       ...updates
     };
 
-    // Update in database
+    // SECURITY: Update in database with authenticated context
     const { error: updateError } = await supabase
       .from('businesses')
       .update({
         conversation_rules: newRules,
         updated_at: new Date().toISOString()
       })
-      .eq('id', tenantId);
+      .eq('id', businessId);
 
     if (updateError) {
       console.error('Error updating conversation rules:', updateError);
@@ -144,15 +150,15 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Broadcast real-time update for voice agent
-    const channel = supabase.channel(`conversation-rules:${tenantId}`);
+    // Broadcast real-time update for voice agent with authenticated context
+    const channel = supabase.channel(`conversation-rules:${businessId}`);
     
     // Send immediate notification
     await channel.send({
       type: 'broadcast',
       event: 'conversation_rules_updated',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         rules: newRules,
         timestamp: new Date().toISOString(),
         requiresReload: true // Signal to voice agent to update behavior
@@ -160,21 +166,21 @@ export async function PATCH(request: NextRequest) {
     });
 
     // Also update via general business channel
-    const businessChannel = supabase.channel(`business:${tenantId}`);
+    const businessChannel = supabase.channel(`business:${businessId}`);
     await businessChannel.send({
       type: 'broadcast',
       event: 'settings_updated',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         type: 'conversation_rules',
         rules: newRules,
         timestamp: new Date().toISOString()
       }
     });
 
-    // Log important rule changes for audit
+    // Log important rule changes for audit with authenticated context
     if (updates.noShowBlockEnabled !== undefined || updates.allowCancellations !== undefined) {
-      console.log(`Important conversation rule change for business ${tenantId}:`, {
+      console.log(`Important conversation rule change for business ${businessId}:`, {
         changes: updates,
         timestamp: new Date().toISOString()
       });

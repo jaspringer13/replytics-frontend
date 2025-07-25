@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { Customer, CustomerSegment, PaginatedResponse, FilterOptions } from '@/app/models/dashboard';
 
@@ -11,17 +13,19 @@ const supabase = createClient(
 /**
  * GET /api/v2/dashboard/customers
  * Get customers list with segmentation and filtering
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to customers list');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -38,7 +42,7 @@ export async function GET(request: NextRequest) {
     if (filters.page! < 1) filters.page = 1;
     if (filters.pageSize! < 1 || filters.pageSize! > 100) filters.pageSize = 20;
 
-    // Fetch customers from caller_memory table
+    // SECURITY: Fetch customers from caller_memory table with authenticated tenant context
     let query = supabase
       .from('caller_memory')
       .select('*', { count: 'exact' })
@@ -68,9 +72,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch appointment data for each customer
+    // SECURITY: Fetch appointment data for each customer with tenant context
     const customerIds = customers?.map(c => c.ani_hash) || [];
-    const appointmentData = await fetchAppointmentData(tenantId, customerIds);
+    const appointmentData = await fetchAppointmentData(businessId, customerIds);
 
     // Transform and segment customers
     const transformedCustomers: Customer[] = (customers || []).map(customer => {
@@ -86,7 +90,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: customer.ani_hash,
-        businessId: tenantId,
+        businessId: businessId,
         firstName: customer.first_name,
         lastName: customer.last_name,
         phone: customer.ani_hash, // This is a hash, not the actual phone
@@ -143,13 +147,14 @@ function getSortColumn(sortBy: string): string {
   return sortMap[sortBy] || 'updated_at';
 }
 
-async function fetchAppointmentData(tenantId: string, customerIds: string[]) {
+async function fetchAppointmentData(businessId: string, customerIds: string[]) {
   if (customerIds.length === 0) return new Map();
 
+  // SECURITY: Tenant-scoped appointment data fetching
   const { data: appointments, error } = await supabase
     .from('appointments')
     .select('customer_id, appointment_time, status, price')
-    .eq('business_id', tenantId)
+    .eq('business_id', businessId)
     .in('customer_id', customerIds);
 
   if (error) {

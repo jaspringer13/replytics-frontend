@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { BusinessProfile } from '@/app/models/dashboard';
 
@@ -11,24 +13,25 @@ const supabase = createClient(
 /**
  * GET /api/v2/dashboard/business/profile
  * Get full business profile with all settings
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    // Extract tenant ID from headers
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to business profile');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
-    // Fetch business profile from database
+    // SECURITY: Fetch business profile from database with authenticated context
     const { data: business, error } = await supabase
       .from('businesses')
       .select('*')
-      .eq('id', tenantId)
+      .eq('id', businessId)
       .single();
 
     if (error || !business) {
@@ -88,18 +91,19 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH /api/v2/dashboard/business/profile
  * Update business profile information
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function PATCH(request: NextRequest) {
   try {
-    // Extract tenant ID from headers
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to business profile update');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const updates = await request.json();
 
@@ -123,11 +127,11 @@ export async function PATCH(request: NextRequest) {
     // Add updated_at timestamp
     updateData.updated_at = new Date().toISOString();
 
-    // Update business profile
+    // SECURITY: Update business profile with authenticated context
     const { data, error } = await supabase
       .from('businesses')
       .update(updateData)
-      .eq('id', tenantId)
+      .eq('id', businessId)
       .select()
       .single();
 
@@ -139,13 +143,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Broadcast update via real-time channel for voice agent
-    const channel = supabase.channel(`business:${tenantId}`);
+    // Broadcast update via real-time channel for voice agent with authenticated context
+    const channel = supabase.channel(`business:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'profile_updated',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         updates: updateData,
         timestamp: new Date().toISOString()
       }

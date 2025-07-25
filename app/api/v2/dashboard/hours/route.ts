@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { OperatingHours } from '@/app/models/dashboard';
 
@@ -13,23 +15,25 @@ const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 /**
  * GET /api/v2/dashboard/hours
  * Get all business hours for the week
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to business hours');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
-    // Fetch operating hours from database
+    // SECURITY: Fetch operating hours from database with authenticated context
     const { data: hours, error } = await supabase
       .from('operating_hours')
       .select('*')
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .order('day_of_week', { ascending: true });
 
     if (error) {
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // If no hours exist, create default hours (9 AM - 5 PM, closed Sunday)
     if (!hours || hours.length === 0) {
-      const defaultHours = await createDefaultHours(tenantId);
+      const defaultHours = await createDefaultHours(businessId);
       return NextResponse.json({
         success: true,
         data: defaultHours,
@@ -79,17 +83,19 @@ export async function GET(request: NextRequest) {
 /**
  * PATCH /api/v2/dashboard/hours
  * Update business hours (bulk update)
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to business hours update');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const updates: Partial<OperatingHours>[] = await request.json();
 
@@ -138,11 +144,11 @@ export async function PATCH(request: NextRequest) {
 
     // Update each day's hours
     const updatePromises = updates.map(async (update) => {
-      // Check if hours exist for this day
+      // SECURITY: Check if hours exist for this day with authenticated context
       const { data: existing } = await supabase
         .from('operating_hours')
         .select('id')
-        .eq('business_id', tenantId)
+        .eq('business_id', businessId)
         .eq('day_of_week', update.dayOfWeek!)
         .single();
 
@@ -158,11 +164,11 @@ export async function PATCH(request: NextRequest) {
           })
           .eq('id', existing.id);
       } else {
-        // Insert new hours
+        // SECURITY: Insert new hours with authenticated context
         return supabase
           .from('operating_hours')
           .insert({
-            business_id: tenantId,
+            business_id: businessId,
             day_of_week: update.dayOfWeek,
             open_time: update.openTime,
             close_time: update.closeTime,
@@ -183,13 +189,13 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Broadcast update for real-time sync
-    const channel = supabase.channel(`hours:${tenantId}`);
+    // Broadcast update for real-time sync with authenticated context
+    const channel = supabase.channel(`hours:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'hours_updated',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         updates,
         timestamp: new Date().toISOString()
       }

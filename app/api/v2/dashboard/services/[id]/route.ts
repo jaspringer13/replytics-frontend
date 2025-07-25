@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { ServiceUpdate } from '@/app/models/dashboard';
 
@@ -11,21 +13,23 @@ const supabase = createClient(
 /**
  * PATCH /api/v2/dashboard/services/[id]
  * Update a specific service
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    const serviceId = params.id;
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to service update');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
+    const serviceId = params.id;
 
     const updates: ServiceUpdate = await request.json();
 
@@ -49,7 +53,7 @@ export async function PATCH(
       .from('services')
       .select('*')
       .eq('id', serviceId)
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .single();
 
     if (fetchError || !existingService) {
@@ -89,12 +93,12 @@ export async function PATCH(
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = supabase.channel(`services:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'service_updated',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         serviceId,
         updates: updateData,
         timestamp: new Date().toISOString()
@@ -119,18 +123,28 @@ export async function PATCH(
 /**
  * DELETE /api/v2/dashboard/services/[id]
  * Delete a service (soft delete by setting active = false)
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    const serviceId = params.id;
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to service deletion');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     
-    if (!tenantId) {
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
+    const serviceId = params.id;
+
+    // Validate business context
+    if (!businessId) {
       return NextResponse.json(
-        { error: 'Tenant ID is required' },
+        { error: 'Business context required' },
         { status: 400 }
       );
     }
@@ -140,7 +154,7 @@ export async function DELETE(
       .from('services')
       .select('*')
       .eq('id', serviceId)
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .single();
 
     if (fetchError || !existingService) {
@@ -183,12 +197,12 @@ export async function DELETE(
     }
 
     // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    const channel = supabase.channel(`services:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'service_deleted',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         serviceId,
         timestamp: new Date().toISOString()
       }

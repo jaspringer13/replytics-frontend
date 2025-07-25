@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with service role
@@ -14,17 +16,19 @@ interface ReorderRequest {
 /**
  * POST /api/v2/dashboard/services/reorder
  * Reorder services by updating their display_order
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function POST(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to service reorder');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const { serviceIds }: ReorderRequest = await request.json();
 
@@ -35,11 +39,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify all services belong to the business
+    // SECURITY: Verify all services belong to authenticated business
     const { data: existingServices, error: fetchError } = await supabase
       .from('services')
       .select('id')
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .in('id', serviceIds);
 
     if (fetchError) {
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update display_order for each service
+    // SECURITY: Update display_order for each service with authenticated context
     const updatePromises = serviceIds.map((serviceId, index) =>
       supabase
         .from('services')
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString()
         })
         .eq('id', serviceId)
-        .eq('business_id', tenantId)
+        .eq('business_id', businessId)
     );
 
     const results = await Promise.all(updatePromises);
@@ -85,13 +89,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    // Broadcast update for real-time sync with authenticated context
+    const channel = supabase.channel(`services:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'services_reordered',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         serviceIds,
         timestamp: new Date().toISOString()
       }

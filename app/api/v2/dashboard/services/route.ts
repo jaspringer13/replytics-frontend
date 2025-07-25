@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { Service, ServiceCreate } from '@/app/models/dashboard';
 
@@ -11,27 +13,29 @@ const supabase = createClient(
 /**
  * GET /api/v2/dashboard/services
  * List all services for the business
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to services list');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get('includeInactive') === 'true';
 
-    // Build query
+    // SECURITY: All data queries use authenticated tenant/business context for bulletproof isolation
     let query = supabase
       .from('services')
       .select('*')
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .order('display_order', { ascending: true });
 
     // Filter out inactive services unless requested
@@ -81,17 +85,19 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/v2/dashboard/services
  * Create a new service
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function POST(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to service creation');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const serviceData: ServiceCreate = await request.json();
 
@@ -119,21 +125,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current max display order
+    // SECURITY: Tenant-scoped query for max display order
     const { data: existingServices } = await supabase
       .from('services')
       .select('display_order')
-      .eq('business_id', tenantId)
+      .eq('business_id', businessId)
       .order('display_order', { ascending: false })
       .limit(1);
 
     const maxOrder = existingServices?.[0]?.display_order || 0;
 
-    // Create service
+    // SECURITY: Create service with authenticated business context
     const { data: newService, error } = await supabase
       .from('services')
       .insert({
-        business_id: tenantId,
+        business_id: businessId,
         name: serviceData.name,
         duration: serviceData.duration,
         price: serviceData.price,
@@ -152,13 +158,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Broadcast update for real-time sync
-    const channel = supabase.channel(`services:${tenantId}`);
+    // Broadcast update for real-time sync with authenticated context
+    const channel = supabase.channel(`services:${businessId}`);
     await channel.send({
       type: 'broadcast',
       event: 'service_created',
       payload: {
-        businessId: tenantId,
+        businessId: businessId,
         service: newService,
         timestamp: new Date().toISOString()
       }

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-config';
 import { createClient } from '@supabase/supabase-js';
 import { VoiceSettings } from '@/app/models/dashboard';
 
@@ -14,23 +16,25 @@ const DEFAULT_VOICE_ID = 'kdmDKE6EkgrWrrykO9Qt';
 /**
  * GET /api/v2/dashboard/business/voice-settings
  * Get voice configuration for the business
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function GET(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to voice settings');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
-    // Fetch voice settings from database
+    // SECURITY: Fetch voice settings from database with authenticated context
     const { data: business, error } = await supabase
       .from('businesses')
       .select('voice_settings')
-      .eq('id', tenantId)
+      .eq('id', businessId)
       .single();
 
     if (error || !business) {
@@ -64,17 +68,19 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/v2/dashboard/business/voice-settings/test
  * Test voice settings with a sample message
+ * SECURITY: Bulletproof NextAuth session validation with tenant isolation
  */
 export async function POST(request: NextRequest) {
   try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
+    // SECURITY CRITICAL: Validate NextAuth session first - ZERO BYPASS ALLOWED
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.businessId || !session?.user?.tenantId) {
+      console.warn('[Security] Unauthorized access attempt to voice settings test');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    
+    // Use authenticated business context - bulletproof tenant isolation
+    const { tenantId, businessId } = session.user;
 
     const { message = 'Hello! This is a test of your voice settings.', settings } = await request.json();
 
