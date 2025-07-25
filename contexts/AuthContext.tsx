@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Initialize from localStorage on mount (after hydration)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('auth_token')
+      const storedToken = null
       const expiresAt = localStorage.getItem('token_expires_at')
       const storedUserStr = localStorage.getItem('user')
       
@@ -88,35 +88,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (session?.user) {
       // Store auth data in localStorage for API client
-      const authToken = session.user.authToken
       const tenantId = session.user.tenantId
       
-      if (authToken && tenantId) {
-        localStorage.setItem('auth_token', authToken)
+      if (tenantId) {
         localStorage.setItem('tenant_id', tenantId)
         localStorage.setItem('token_expires_at', session.expires)
-        apiClient.setToken(authToken, session.expires)
+        // Note: NextAuth handles authentication, no separate auth token needed
         
         // Set cookies for middleware
-        document.cookie = `auth_token=${authToken}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `tenant_id=${tenantId}; path=/; max-age=86400; SameSite=Lax`
         document.cookie = `token_expires_at=${session.expires}; path=/; max-age=86400; SameSite=Lax`
       }
     } else {
       // Clear auth data
-      localStorage.removeItem('auth_token')
+      // auth_token no longer used - NextAuth handles authentication
       localStorage.removeItem('tenant_id')
       localStorage.removeItem('token_expires_at')
-      apiClient.setToken(null)
+      // apiClient auth handled by NextAuth
       
       // Remove cookies
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      // auth_token cookie no longer used
       document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     }
     
     // Only set loading false if we're not using email/password auth
-    if (!localUser && !localStorage.getItem('auth_token')) {
+    if (!localUser) {
       setIsLoading(false)
     }
   }, [session, status, localUser])
@@ -131,12 +128,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Clear local storage
       localStorage.removeItem('user')
-      localStorage.removeItem('auth_token')
+      // auth_token no longer used - NextAuth handles authentication
       localStorage.removeItem('tenant_id')
       localStorage.removeItem('token_expires_at')
       
       // Clear cookies
-      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      // auth_token cookie no longer used
       document.cookie = 'tenant_id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'token_expires_at=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
@@ -187,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // Only run if we have either a session or stored auth token
-    const hasStoredToken = typeof window !== 'undefined' && localStorage.getItem('auth_token')
+    const hasStoredToken = typeof window !== 'undefined' && null
     if (session || hasStoredToken) {
       // Check immediately
       checkTokenExpiration()
@@ -205,7 +202,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: session.user.email || '',
     name: session.user.name || '',
     tenantId: session.user.tenantId,
-    authToken: session.user.authToken,
     onboardingStep: session.user.onboardingStep
   } : localUser
 
@@ -338,11 +334,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Check localStorage for auth state
-  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  const storedToken = typeof window !== 'undefined' ? null : null
   const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null
   
   const isAuthenticated = !!user || (status === 'authenticated') || !!storedToken
-  const token = session?.user?.authToken || storedToken
+  const token = storedToken // NextAuth handles authentication, no separate token needed
   const tenantId = session?.user?.tenantId || (typeof window !== 'undefined' ? localStorage.getItem('tenant_id') : null)
   const businessId = user?.businessId || (typeof window !== 'undefined' ? localStorage.getItem('current_business_id') : null)
   const onboardingStep = session?.user?.onboardingStep || 0

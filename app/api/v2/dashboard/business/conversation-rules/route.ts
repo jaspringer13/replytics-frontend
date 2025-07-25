@@ -137,7 +137,7 @@ export async function PATCH(request: NextRequest) {
       .eq('id', tenantId);
 
     if (updateError) {
-      console.error('Error updating conversation rules:', error);
+      console.error('Error updating conversation rules:', updateError);
       return NextResponse.json(
         { error: 'Failed to update conversation rules' },
         { status: 500 }

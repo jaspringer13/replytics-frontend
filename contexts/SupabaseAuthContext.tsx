@@ -3,9 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react"
 import { createClient } from '@supabase/supabase-js'
 
-type SupabaseClient = ReturnType<typeof createClient>
-
-const SupabaseContext = createContext<SupabaseClient | null>(null)
+const SupabaseContext = createContext<any>(null)
 
 export function SupabaseProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(

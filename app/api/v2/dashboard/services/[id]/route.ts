@@ -69,7 +69,7 @@ export async function PATCH(
     if (updates.duration !== undefined) updateData.duration = updates.duration;
     if (updates.price !== undefined) updateData.price = updates.price;
     if (updates.description !== undefined) updateData.description = updates.description;
-    if (updates.active !== undefined) updateData.active = updates.active;
+    if (updates.isActive !== undefined) updateData.active = updates.isActive;
     if (updates.displayOrder !== undefined) updateData.display_order = updates.displayOrder;
 
     // Update service

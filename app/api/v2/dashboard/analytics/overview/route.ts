@@ -199,7 +199,7 @@ async function fetchServicePerformance(tenantId: string, dateRange: DateRange): 
   serviceData?.forEach(apt => {
     const serviceId = apt.service_id;
     // Handle services as array (Supabase join returns array even with !inner)
-    const serviceName = Array.isArray(apt.services) ? apt.services[0]?.name : apt.services?.name;
+    const serviceName = Array.isArray(apt.services) ? apt.services[0]?.name : (apt.services as any)?.name;
     const existing = serviceMap.get(serviceId) || {
       serviceId,
       serviceName: serviceName || 'Unknown Service',

@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       duration: service.duration,
       price: service.price,
       description: service.description,
-      active: service.active,
+      isActive: service.active,
       displayOrder: service.display_order,
       createdAt: new Date(service.created_at),
       updatedAt: new Date(service.updated_at)
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         duration: serviceData.duration,
         price: serviceData.price,
         description: serviceData.description,
-        active: serviceData.active !== false, // Default to true
+        active: serviceData.isActive !== false, // Default to true
         display_order: maxOrder + 1
       })
       .select()
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       duration: newService.duration,
       price: newService.price,
       description: newService.description,
-      active: newService.active,
+      isActive: newService.active,
       displayOrder: newService.display_order,
       createdAt: new Date(newService.created_at),
       updatedAt: new Date(newService.updated_at)

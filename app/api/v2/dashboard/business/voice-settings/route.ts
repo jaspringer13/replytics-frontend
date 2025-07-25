@@ -8,13 +8,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// Available voice IDs from ElevenLabs or similar service
-const AVAILABLE_VOICES = {
-  'kdmDKE6EkgrWrrykO9Qt': 'Professional Female',
-  'pNInz6obpgDQGcFmaJgB': 'Friendly Male',
-  'Yko7PKHZNXotIFUBG7I9': 'Professional Male',
-  'VR6AewLTigWG4xSOukaG': 'Warm Female'
-};
+// Fixed voice ID - no customization allowed
+const DEFAULT_VOICE_ID = 'kdmDKE6EkgrWrrykO9Qt';
 
 /**
  * GET /api/v2/dashboard/business/voice-settings
@@ -47,16 +42,12 @@ export async function GET(request: NextRequest) {
 
     // Return voice settings with defaults if not set
     const voiceSettings: VoiceSettings = business.voice_settings || {
-      voiceId: 'kdmDKE6EkgrWrrykO9Qt',
-      speakingStyle: 'friendly_professional',
-      speed: 1.0,
-      pitch: 1.0
+      voiceId: DEFAULT_VOICE_ID
     };
 
     return NextResponse.json({
       success: true,
-      data: voiceSettings,
-      availableVoices: AVAILABLE_VOICES
+      data: voiceSettings
     });
 
   } catch (error) {
@@ -68,140 +59,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * PATCH /api/v2/dashboard/business/voice-settings
- * Update voice settings - triggers real-time update to voice agent
- */
-export async function PATCH(request: NextRequest) {
-  try {
-    const tenantId = request.headers.get('X-Tenant-ID');
-    
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'Tenant ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const updates: Partial<VoiceSettings> = await request.json();
-
-    // Validate voice settings
-    if (updates.voiceId && !AVAILABLE_VOICES[updates.voiceId as keyof typeof AVAILABLE_VOICES]) {
-      return NextResponse.json(
-        { error: 'Invalid voice ID' },
-        { status: 400 }
-      );
-    }
-
-    if (updates.speed !== undefined && (updates.speed < 0.5 || updates.speed > 2.0)) {
-      return NextResponse.json(
-        { error: 'Speed must be between 0.5 and 2.0' },
-        { status: 400 }
-      );
-    }
-
-    if (updates.pitch !== undefined && (updates.pitch < 0.5 || updates.pitch > 2.0)) {
-      return NextResponse.json(
-        { error: 'Pitch must be between 0.5 and 2.0' },
-        { status: 400 }
-      );
-    }
-
-    const validStyles = ['friendly_professional', 'casual', 'formal', 'enthusiastic'];
-    if (updates.speakingStyle && !validStyles.includes(updates.speakingStyle)) {
-      return NextResponse.json(
-        { error: 'Invalid speaking style' },
-        { status: 400 }
-      );
-    }
-
-    // Get current settings to merge with updates
-    const { data: business, error: fetchError } = await supabase
-      .from('businesses')
-      .select('voice_settings')
-      .eq('id', tenantId)
-      .single();
-
-    if (fetchError) {
-      return NextResponse.json(
-        { error: 'Failed to fetch current settings' },
-        { status: 500 }
-      );
-    }
-
-    const currentSettings = business?.voice_settings || {
-      voiceId: 'kdmDKE6EkgrWrrykO9Qt',
-      speakingStyle: 'friendly_professional',
-      speed: 1.0,
-      pitch: 1.0
-    };
-
-    // Merge updates with current settings
-    const newSettings: VoiceSettings = {
-      ...currentSettings,
-      ...updates
-    };
-
-    // Update in database
-    const { error: updateError } = await supabase
-      .from('businesses')
-      .update({
-        voice_settings: newSettings,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', tenantId);
-
-    if (updateError) {
-      console.error('Error updating voice settings:', error);
-      return NextResponse.json(
-        { error: 'Failed to update voice settings' },
-        { status: 500 }
-      );
-    }
-
-    // CRITICAL: Broadcast real-time update for voice agent
-    const channel = supabase.channel(`voice-settings:${tenantId}`);
-    
-    // Send immediate notification
-    await channel.send({
-      type: 'broadcast',
-      event: 'voice_settings_updated',
-      payload: {
-        businessId: tenantId,
-        settings: newSettings,
-        timestamp: new Date().toISOString(),
-        requiresReload: true // Signal to voice agent to hot-reload config
-      }
-    });
-
-    // Also update via general business channel
-    const businessChannel = supabase.channel(`business:${tenantId}`);
-    await businessChannel.send({
-      type: 'broadcast',
-      event: 'settings_updated',
-      payload: {
-        businessId: tenantId,
-        type: 'voice_settings',
-        settings: newSettings,
-        timestamp: new Date().toISOString()
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: newSettings,
-      message: 'Voice settings updated successfully',
-      realTimeUpdate: 'Voice agent will update in real-time'
-    });
-
-  } catch (error) {
-    console.error('Error updating voice settings:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
+// No PATCH method - voice settings cannot be customized
 
 /**
  * POST /api/v2/dashboard/business/voice-settings/test

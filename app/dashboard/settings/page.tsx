@@ -18,7 +18,7 @@ function SettingsContent() {
     )
   }
 
-  return <Settings businessId={user.tenantId} />
+  return <Settings businessId={session.user.tenantId} />
 }
 
 export default function SettingsPage() {

@@ -233,7 +233,7 @@ export interface DashboardOverview {
   };
   topServices: ServicePerformance[];
   customerSegments: SegmentDistribution;
-  popularTimes: PopularTime[];
+  popularTimes?: PopularTime[];
 }
 
 export interface DateRange {

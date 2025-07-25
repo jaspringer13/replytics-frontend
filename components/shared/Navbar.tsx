@@ -143,7 +143,7 @@ export function Navbar() {
                     className="flex items-center gap-2 h-10 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
                   >
                     <User className="h-4 w-4" />
-                    <span className="text-sm font-medium text-gray-700">{user?.email}</span>
+                    <span className="text-sm font-medium text-gray-700">{session?.user?.email}</span>
                     <ChevronDown className="h-4 w-4 text-gray-500" />
                   </button>
                   
@@ -297,7 +297,7 @@ export function Navbar() {
                   <div className="px-4 py-3 bg-white rounded-lg border border-gray-200">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <User className="h-4 w-4" />
-                      <span>{user?.email}</span>
+                      <span>{session?.user?.email}</span>
                     </div>
                   </div>
                   <Link href="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>
