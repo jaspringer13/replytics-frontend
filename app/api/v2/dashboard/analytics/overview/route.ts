@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution } from '@/app/models/dashboard';
+import { DashboardOverview, DateRange, TrendData, ServicePerformance, SegmentDistribution, PopularTime } from '@/app/models/dashboard';
 
 // Initialize Supabase client with service role
 const supabase = createClient(
@@ -64,6 +64,9 @@ export async function GET(request: NextRequest) {
     const appointmentChange = calculatePercentChange(previousMetrics.totalAppointments, currentMetrics.totalAppointments);
     const customerChange = calculatePercentChange(previousMetrics.totalCustomers, currentMetrics.totalCustomers);
 
+    // Popular times data - currently not implemented
+    const popularTimes: PopularTime[] = [];
+
     // Build response
     const overview: DashboardOverview = {
       dateRange,
@@ -89,7 +92,8 @@ export async function GET(request: NextRequest) {
         }
       },
       topServices: servicePerformance,
-      customerSegments
+      customerSegments,
+      popularTimes
     };
 
     return NextResponse.json({
