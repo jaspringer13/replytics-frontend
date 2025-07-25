@@ -38,6 +38,12 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
+      console.debug('[NextAuth] signIn callback', { 
+        provider: account?.provider,
+        email: user.email,
+        userId: user.id 
+      })
+      
       if (account?.provider === "google" && user.email) {
         try {
           // Initialize Supabase client with service role
@@ -95,6 +101,11 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {
+        console.debug('[NextAuth] JWT callback - new user', { 
+          userId: user.id,
+          tenantId: user.tenantId,
+          businessId: user.businessId
+        })
         token.id = user.id
         token.tenantId = user.tenantId
         token.businessId = user.businessId
@@ -114,14 +125,28 @@ export const authOptions: NextAuthOptions = {
         session.user.tenantId = token.tenantId as string
         session.user.businessId = token.businessId as string
         session.user.onboardingStep = token.onboardingStep as number
+        
+        console.debug('[NextAuth] Session callback', { 
+          sessionUserId: session.user.id,
+          tenantId: session.user.tenantId,
+          businessId: session.user.businessId
+        })
       }
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Redirect based on onboarding status
+      console.debug('[NextAuth] Redirect callback', { url, baseUrl })
+      
+      // Always redirect to dashboard after successful sign-in
+      if (url.includes('/api/auth/callback')) {
+        return `${baseUrl}/dashboard`
+      }
+      
+      // Redirect from signin page to dashboard
       if (url.includes('/auth/signin')) {
         return `${baseUrl}/dashboard`
       }
+      
       return url
     },
   },
@@ -131,6 +156,12 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // Add debug mode in development
+  debug: process.env.NODE_ENV === 'development',
 }
