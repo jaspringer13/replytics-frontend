@@ -64,8 +64,8 @@ import { useSupabaseAuth as useAuth } from "@/contexts/SupabaseAuthContext"
 
 Ensure these are set in `.env.local`:
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://yiyirycsribpgnehpijo.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key-from-dashboard
 
 # Backend also needs:
 SUPABASE_JWT_SECRET=your-jwt-secret-from-supabase-dashboard

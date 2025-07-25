@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useToast } from '@/hooks/useToast'
-import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext'
+import { useSession } from 'next-auth/react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { Card } from '@/components/ui/Card'
 import { Loader2, CheckCircle, XCircle } from 'lucide-react'
@@ -12,7 +12,7 @@ export function GoogleOAuthCallbackHandler() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { toast } = useToast()
-  const { user } = useSupabaseAuth()
+  const { data: session } = useSession()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -36,7 +36,7 @@ export function GoogleOAuthCallbackHandler() {
         return
       }
 
-      if (!user?.tenantId) {
+      if (!session?.user?.tenantId) {
         setStatus('error')
         setErrorMessage('User not authenticated')
         return
@@ -50,7 +50,7 @@ export function GoogleOAuthCallbackHandler() {
         }), {
           method: 'POST',
           headers: {
-            'X-Tenant-ID': user.tenantId
+            'X-Tenant-ID': session.user.tenantId
           }
         })
 
@@ -84,7 +84,7 @@ export function GoogleOAuthCallbackHandler() {
         clearTimeout(redirectTimeoutId)
       }
     }
-  }, [searchParams, router, toast, user])
+  }, [searchParams, router, toast, session])
 
   return (
     <DashboardLayout>

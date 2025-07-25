@@ -7,11 +7,11 @@ import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { Navbar } from "@/components/shared/Navbar"
 import { Footer } from "@/components/shared/Footer"
-import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext"
+import { signIn, useSession } from "next-auth/react"
 
 export default function SignInPage() {
   const router = useRouter()
-  const { login, signInWithGoogle, isAuthenticated } = useSupabaseAuth()
+  const { data: session } = useSession()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [rememberMe, setRememberMe] = useState(false)
@@ -30,10 +30,10 @@ export default function SignInPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
+    if (session) {
       router.push("/dashboard")
     }
-  }, [isAuthenticated, router])
+  }, [session, router])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -47,13 +47,9 @@ export default function SignInPage() {
     setIsLoading(true)
 
     try {
-      const success = await login(email, password)
-      
-      if (!success) {
-        setError("Invalid email or password")
-        setIsLoading(false)
-      }
-      // If success, SupabaseAuthContext will handle the navigation
+      // TODO: Implement email/password auth with NextAuth if needed
+      setError("Email/password login not implemented. Please use Google sign-in.")
+      setIsLoading(false)
     } catch (err) {
       setError("An error occurred. Please try again.")
       setIsLoading(false)
@@ -65,7 +61,7 @@ export default function SignInPage() {
     setError("")
     
     try {
-      await signInWithGoogle()
+      await signIn('google', { callbackUrl: '/dashboard' })
       // OAuth will redirect to callback page
     } catch (err) {
       setError("Failed to sign in with Google")

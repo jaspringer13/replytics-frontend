@@ -1,10 +1,13 @@
-import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
+import { useSession } from 'next-auth/react'
 
 export function useUserTenant() {
-  const { tenantId, isLoading, isTokenExpired } = useAuth()
+  const { data: session, status } = useSession()
   
-  // Determine error state based on auth context
-  const error = isTokenExpired ? 'Token expired' : (!tenantId && !isLoading ? 'No tenant ID available' : null)
+  const tenantId = session?.user?.tenantId || ''
+  const isLoading = status === 'loading'
+  
+  // Determine error state
+  const error = !tenantId && !isLoading ? 'No tenant ID available' : null
   
   return {
     tenantId,

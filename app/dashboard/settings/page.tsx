@@ -3,12 +3,12 @@
 import { Suspense } from 'react'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { Settings } from '@/components/dashboard/settings/Settings'
-import { useSupabaseAuth as useAuth } from '@/contexts/SupabaseAuthContext'
+import { useSession } from 'next-auth/react'
 
 function SettingsContent() {
-  const { user } = useAuth()
+  const { data: session } = useSession()
 
-  if (!user?.tenantId) {
+  if (!session?.user?.tenantId) {
     return (
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center text-red-600">

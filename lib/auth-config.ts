@@ -1,5 +1,6 @@
 import { NextAuthOptions, DefaultSession } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import { createClient } from '@supabase/supabase-js'
 
 declare module "next-auth" {
   interface Session {
@@ -7,14 +8,14 @@ declare module "next-auth" {
       id: string
       onboardingStep: number
       tenantId?: string
-      authToken?: string
+      businessId?: string
     } & DefaultSession["user"]
   }
   
   interface User {
     id: string
     tenantId?: string
-    authToken?: string
+    businessId?: string
     onboardingStep?: number
   }
 }
@@ -23,7 +24,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string
     tenantId?: string
-    authToken?: string
+    businessId?: string
     onboardingStep: number
   }
 }
@@ -37,35 +38,56 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      if (account?.provider === "google") {
+      if (account?.provider === "google" && user.email) {
         try {
-          // Register/login with backend
-          const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/dashboard/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              google_id: user.id || user.email
-            })
-          })
+          // Initialize Supabase client with service role
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          )
           
-          if (!response.ok) {
-            console.error('Backend auth failed:', await response.text())
+          // Check if user exists in businesses table
+          const { data: business, error } = await supabase
+            .from('businesses')
+            .select('id, tenant_id')
+            .eq('email', user.email)
+            .single()
+          
+          if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            console.error('Supabase query error:', error)
             return false
           }
           
-          const data = await response.json()
-          
-          // Store backend data on user object for JWT callback
-          user.tenantId = data.tenant_id
-          user.authToken = data.token
-          user.onboardingStep = data.is_new_user ? 0 : 5 // 0 for new users, 5 for existing
+          if (business) {
+            // Existing user
+            user.tenantId = business.id
+            user.businessId = business.id
+            user.onboardingStep = 5
+          } else {
+            // New user - create business record
+            const { data: newBusiness, error: createError } = await supabase
+              .from('businesses')
+              .insert({
+                email: user.email,
+                name: user.name || 'New Business',
+                tenant_id: crypto.randomUUID() // Generate new tenant ID
+              })
+              .select('id, tenant_id')
+              .single()
+            
+            if (createError || !newBusiness) {
+              console.error('Failed to create business:', createError)
+              return false
+            }
+            
+            user.tenantId = newBusiness.id
+            user.businessId = newBusiness.id
+            user.onboardingStep = 0
+          }
           
           return true
         } catch (error) {
-          console.error('Backend integration error:', error)
+          console.error('Supabase integration error:', error)
           return false
         }
       }
@@ -75,7 +97,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.tenantId = user.tenantId
-        token.authToken = user.authToken
+        token.businessId = user.businessId
         token.onboardingStep = user.onboardingStep || 0
       }
       
@@ -90,7 +112,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.tenantId = token.tenantId as string
-        session.user.authToken = token.authToken as string
+        session.user.businessId = token.businessId as string
         session.user.onboardingStep = token.onboardingStep as number
       }
       return session

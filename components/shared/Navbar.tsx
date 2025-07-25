@@ -8,7 +8,7 @@ import { Logo } from "@/components/shared/Logo"
 import { Menu, X, Phone, ChevronRight, Sparkles, ChevronDown, LogOut, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
-import { useSupabaseAuth as useAuth } from "@/contexts/SupabaseAuthContext"
+import { useSession, signOut } from "next-auth/react"
 
 const businessTypes = [
   { name: 'Barbers', href: '/businesses/barbers' },
@@ -29,7 +29,7 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [businessDropdownOpen, setBusinessDropdownOpen] = useState(false)
   const [userDropdownOpen, setUserDropdownOpen] = useState(false)
-  const { user, isAuthenticated, logout } = useAuth()
+  const { data: session } = useSession()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -134,7 +134,7 @@ export function Navbar() {
 
             {/* Desktop CTA */}
             <div className="hidden md:flex items-center gap-4">
-              {isAuthenticated ? (
+              {session ? (
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
@@ -168,7 +168,7 @@ export function Navbar() {
                         <button
                           onClick={() => {
                             setUserDropdownOpen(false)
-                            logout()
+                            signOut({ callbackUrl: '/' })
                           }}
                           className="w-full text-left px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
                         >
@@ -292,7 +292,7 @@ export function Navbar() {
 
             {/* CTA Section */}
             <div className="p-6 border-t bg-gray-50">
-              {isAuthenticated ? (
+              {session ? (
                 <div className="space-y-3">
                   <div className="px-4 py-3 bg-white rounded-lg border border-gray-200">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -311,7 +311,7 @@ export function Navbar() {
                     className="w-full h-12 text-red-600 border-red-200 hover:bg-red-50"
                     onClick={() => {
                       setIsMobileMenuOpen(false)
-                      logout()
+                      signOut({ callbackUrl: '/' })
                     }}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
