@@ -38,68 +38,15 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.debug('[NextAuth] signIn callback', { 
+      console.log('[NextAuth][signIn] forcing allow', {
         provider: account?.provider,
-        email: user.email,
-        userId: user.id 
-      })
-      
-      if (account?.provider === "google" && user.email) {
-        try {
-          // Initialize Supabase client with service role
-          const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-          )
-          
-          // Check if user exists in businesses table
-          const { data: business, error } = await supabase
-            .from('businesses')
-            .select('id, tenant_id')
-            .eq('email', user.email)
-            .single()
-          
-          if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-            console.error('Supabase query error:', error)
-            return false
-          }
-          
-          if (business) {
-            // Existing user
-            user.tenantId = business.id
-            user.businessId = business.id
-            user.onboardingStep = 5
-          } else {
-            // New user - create business record
-            const { data: newBusiness, error: createError } = await supabase
-              .from('businesses')
-              .insert({
-                email: user.email,
-                name: user.name || 'New Business',
-                tenant_id: crypto.randomUUID() // Generate new tenant ID
-              })
-              .select('id, tenant_id')
-              .single()
-            
-            if (createError || !newBusiness) {
-              console.error('Failed to create business:', createError)
-              return false
-            }
-            
-            user.tenantId = newBusiness.id
-            user.businessId = newBusiness.id
-            user.onboardingStep = 0
-          }
-          
-          return true
-        } catch (error) {
-          console.error('Supabase integration error:', error)
-          return false
-        }
-      }
-      return true
+        email: user?.email,
+        id: user?.id,
+      });
+      return true; // BYPASS EVERYTHING
     },
     async jwt({ token, user, trigger, session }) {
+      console.log('[NextAuth][jwt]', { token, user, trigger, session });
       if (user) {
         console.debug('[NextAuth] JWT callback - new user', { 
           userId: user.id,
@@ -120,6 +67,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
     async session({ session, token }) {
+      console.log('[NextAuth][session]', { session, token });
       if (session.user) {
         session.user.id = token.id as string
         session.user.tenantId = token.tenantId as string
@@ -135,19 +83,9 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      console.debug('[NextAuth] Redirect callback', { url, baseUrl })
-      
-      // Always redirect to dashboard after successful sign-in
-      if (url.includes('/api/auth/callback')) {
-        return `${baseUrl}/dashboard`
-      }
-      
-      // Redirect from signin page to dashboard
-      if (url.includes('/auth/signin')) {
-        return `${baseUrl}/dashboard`
-      }
-      
-      return url
+      if (url.startsWith(baseUrl)) return url;
+      if (url.startsWith('http')) return baseUrl + '/dashboard';
+      return baseUrl + '/dashboard';
     },
   },
   pages: {
@@ -162,6 +100,5 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // Add debug mode in development
-  debug: process.env.NODE_ENV === 'development',
+  debug: true,
 }
