@@ -87,7 +87,7 @@ export const authOptions: NextAuthOptions = {
         // Check if user already exists with business context
         const { data: existingUser, error: userFetchError } = await supabase
           .from('users')
-          .select('id, tenant_id, business_id, onboarding_step, is_active')
+          .select('id, organization_id, business_id, onboarding_step, is_active')
           .eq('email', user.email)
           .single();
 
@@ -100,11 +100,11 @@ export const authOptions: NextAuthOptions = {
           // Existing user - populate business context
           console.log('[NextAuth][signIn] Existing user found:', {
             userId: existingUser.id,
-            tenantId: existingUser.tenant_id,
+            tenantId: existingUser.organization_id,
             businessId: existingUser.business_id
           });
           
-          user.tenantId = existingUser.tenant_id;
+          user.tenantId = existingUser.organization_id;
           user.businessId = existingUser.business_id;
           user.onboardingStep = existingUser.onboarding_step || 5; // Existing users are onboarded
           user.externalId = existingUser.id;
@@ -117,7 +117,7 @@ export const authOptions: NextAuthOptions = {
         console.log('[NextAuth][signIn] Creating new user and business context');
         
         const businessId = crypto.randomUUID();
-        const tenantId = businessId; // Using businessId as tenantId for simplicity
+        const organizationId = businessId; // Using businessId as organizationId for tenant isolation
         
         // Create business record
         const { data: newBusiness, error: businessError } = await supabase
@@ -125,9 +125,7 @@ export const authOptions: NextAuthOptions = {
           .insert({
             id: businessId,
             name: `${user.name}'s Business`,
-            owner_email: user.email,
-            tenant_id: tenantId,
-            active: true
+            external_id: `ext_${businessId.slice(0, 8)}`
           })
           .select()
           .single();
@@ -143,12 +141,13 @@ export const authOptions: NextAuthOptions = {
           .insert({
             id: user.id,
             email: user.email,
-            name: user.name,
-            tenant_id: tenantId,
+            first_name: user.name?.split(' ')[0] || '',
+            last_name: user.name?.split(' ').slice(1).join(' ') || '',
+            organization_id: organizationId,
             business_id: businessId,
-            onboarding_step: 0,
-            external_id: user.id,
-            is_active: true
+            is_active: true,
+            email_verified: true,
+            email_verified_at: new Date().toISOString()
           })
           .select()
           .single();
@@ -161,7 +160,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Populate user object with business context
-        user.tenantId = tenantId;
+        user.tenantId = organizationId;
         user.businessId = businessId;
         user.onboardingStep = 0;
         user.externalId = user.id;

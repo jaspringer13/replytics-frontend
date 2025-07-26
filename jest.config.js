@@ -7,6 +7,9 @@ module.exports = {
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
+  // Environment variables for tests
+  setupFiles: ['<rootDir>/jest.env.js'],
+  
   // Module name mapper for path aliases
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
@@ -30,13 +33,21 @@ module.exports = {
         jsx: 'react',
         esModuleInterop: true,
       },
+      isolatedModules: true,
     }],
   },
   
-  // Test match patterns
+  // Transform ignore patterns - allow NextAuth and related ES modules to be transformed
+  transformIgnorePatterns: [
+    'node_modules/(?!(next-auth|@auth|jose|preact-render-to-string|oauth|openid-client|@supabase|isows|ws|@websocket|realtime-js)/)',
+  ],
+  
+  // Test match patterns - Only include Jest tests, exclude Playwright
   testMatch: [
-    '**/__tests__/**/*.(test|spec).(ts|tsx|js)',
-    '**/*.(test|spec).(ts|tsx|js)',
+    '**/__tests__/**/*.test.(ts|tsx|js)',
+    '**/tests/**/*.test.(ts|tsx|js)',
+    '!**/tests/**/*.spec.(ts|tsx|js)', // Exclude Playwright spec files
+    '!**/tests/**/e2e-*.test.(ts|tsx|js)', // Exclude E2E test files
   ],
   
   // Coverage configuration
@@ -78,15 +89,10 @@ module.exports = {
     '/.next/',
     '/out/',
     '/build/',
+    'tests/.*\\.spec\\.ts$', // Exclude Playwright tests
+    'tests/auth/e2e-auth-journey\\.test\\.ts$', // Exclude specific E2E test
   ],
   
   // Module file extensions
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  
-  // Globals
-  globals: {
-    'ts-jest': {
-      isolatedModules: true,
-    },
-  },
 };
