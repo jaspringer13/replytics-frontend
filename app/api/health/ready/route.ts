@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * Checks if the application is ready to receive traffic
  * This is separate from the health check to provide faster, lighter checks
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Quick readiness check without heavy operations
     const uptime = process.uptime();
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
 /**
  * HEAD request for lightweight readiness checks
  */
-export async function HEAD(request: NextRequest) {
+export async function HEAD() {
   try {
     const uptime = process.uptime();
     

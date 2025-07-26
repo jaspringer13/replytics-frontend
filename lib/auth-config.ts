@@ -1,6 +1,6 @@
 import { NextAuthOptions, DefaultSession } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import { createClient } from '@supabase/supabase-js'
+import { getSupabaseServer } from '@/lib/supabase-server'
 
 // Define the custom session user interface
 interface CustomSessionUser {
@@ -70,33 +70,170 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
-      console.log('[NextAuth][signIn] forcing allow', {
+      console.log('[NextAuth][signIn] Processing authentication', {
         provider: account?.provider,
         email: user?.email,
         id: user?.id,
       });
-      return true; // BYPASS EVERYTHING
-    },
-    async jwt({ token, user, trigger, session }) {
-      console.log('[NextAuth][jwt]', { token, user, trigger, session });
-      if (user) {
-        console.debug('[NextAuth] JWT callback - new user', { 
+
+      if (!user.email) {
+        console.error('[NextAuth][signIn] No email provided');
+        return false;
+      }
+
+      try {
+        const supabase = getSupabaseServer();
+        
+        // Check if user already exists with business context
+        const { data: existingUser, error: userFetchError } = await supabase
+          .from('users')
+          .select('id, tenant_id, business_id, onboarding_step, is_active')
+          .eq('email', user.email)
+          .single();
+
+        if (userFetchError && userFetchError.code !== 'PGRST116') {
+          console.error('[NextAuth][signIn] Database error fetching user:', userFetchError);
+          return false;
+        }
+
+        if (existingUser) {
+          // Existing user - populate business context
+          console.log('[NextAuth][signIn] Existing user found:', {
+            userId: existingUser.id,
+            tenantId: existingUser.tenant_id,
+            businessId: existingUser.business_id
+          });
+          
+          user.tenantId = existingUser.tenant_id;
+          user.businessId = existingUser.business_id;
+          user.onboardingStep = existingUser.onboarding_step || 5; // Existing users are onboarded
+          user.externalId = existingUser.id;
+          user.isActive = existingUser.is_active;
+          
+          return true;
+        }
+
+        // New user - create business and user record
+        console.log('[NextAuth][signIn] Creating new user and business context');
+        
+        const businessId = crypto.randomUUID();
+        const tenantId = businessId; // Using businessId as tenantId for simplicity
+        
+        // Create business record
+        const { data: newBusiness, error: businessError } = await supabase
+          .from('businesses')
+          .insert({
+            id: businessId,
+            name: `${user.name}'s Business`,
+            owner_email: user.email,
+            tenant_id: tenantId,
+            active: true
+          })
+          .select()
+          .single();
+
+        if (businessError) {
+          console.error('[NextAuth][signIn] Failed to create business:', businessError);
+          return false;
+        }
+
+        // Create user record
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            tenant_id: tenantId,
+            business_id: businessId,
+            onboarding_step: 0,
+            external_id: user.id,
+            is_active: true
+          })
+          .select()
+          .single();
+
+        if (userError) {
+          console.error('[NextAuth][signIn] Failed to create user:', userError);
+          // Clean up business record
+          await supabase.from('businesses').delete().eq('id', businessId);
+          return false;
+        }
+
+        // Populate user object with business context
+        user.tenantId = tenantId;
+        user.businessId = businessId;
+        user.onboardingStep = 0;
+        user.externalId = user.id;
+        user.isActive = true;
+        
+        console.log('[NextAuth][signIn] Business context created successfully:', {
           userId: user.id,
           tenantId: user.tenantId,
-          businessId: user.businessId
-        })
-        token.id = user.id
-        token.tenantId = user.tenantId
-        token.businessId = user.businessId
-        token.onboardingStep = user.onboardingStep || 0
+          businessId: user.businessId,
+          onboardingStep: user.onboardingStep
+        });
+
+        return true;
+        
+      } catch (error) {
+        console.error('[NextAuth][signIn] Critical error:', error);
+        return false;
+      }
+    },
+    async jwt({ token, user, trigger, session }) {
+      console.log('[NextAuth][jwt] JWT callback invoked:', { 
+        hasUser: !!user,
+        trigger,
+        tokenId: token.id,
+        tokenTenantId: token.tenantId,
+        tokenBusinessId: token.businessId
+      });
+      
+      if (user) {
+        console.debug('[NextAuth][jwt] Populating token with user data:', { 
+          userId: user.id,
+          email: user.email,
+          tenantId: user.tenantId,
+          businessId: user.businessId,
+          onboardingStep: user.onboardingStep,
+          externalId: user.externalId,
+          isActive: user.isActive
+        });
+        
+        // Populate token with all user context
+        token.id = user.id;
+        token.email = user.email || token.email;
+        token.name = user.name || token.name;
+        token.tenantId = user.tenantId;
+        token.businessId = user.businessId;
+        token.onboardingStep = user.onboardingStep || 0;
+        token.externalId = user.externalId;
+        token.isActive = user.isActive !== undefined ? user.isActive : true;
+        token.roles = user.roles || [];
+        token.permissions = user.permissions || [];
+        token.lastLogin = new Date().toISOString();
       }
       
       // Handle session updates (e.g., after onboarding step completion)
       if (trigger === "update" && session?.onboardingStep !== undefined) {
-        token.onboardingStep = session.onboardingStep
+        console.debug('[NextAuth][jwt] Updating onboarding step:', {
+          from: token.onboardingStep,
+          to: session.onboardingStep
+        });
+        token.onboardingStep = session.onboardingStep;
       }
       
-      return token
+      console.log('[NextAuth][jwt] Token populated successfully:', {
+        id: token.id,
+        email: token.email,
+        tenantId: token.tenantId,
+        businessId: token.businessId,
+        onboardingStep: token.onboardingStep,
+        isActive: token.isActive
+      });
+      
+      return token;
     },
     /**
      * BULLETPROOF SESSION CALLBACK
@@ -174,25 +311,18 @@ export const authOptions: NextAuthOptions = {
           image: session.user.image
         }
         
-        // Critical validation: Multi-tenant security requires business context
+        // Validate business context for multi-tenant security
         if (!sessionData.tenantId || !sessionData.businessId) {
-          console.warn('[Auth][Session] Missing critical business context:', {
+          console.error('[Auth][Session] CRITICAL: Missing business context after signIn callback:', {
             userId: sessionData.id,
             tenantId: sessionData.tenantId,
             businessId: sessionData.businessId,
-            requiresOnboarding: sessionData.onboardingStep === 0
-          })
+            onboardingStep: sessionData.onboardingStep
+          });
           
-          // For new users in onboarding, this is acceptable
-          if (sessionData.onboardingStep === 0) {
-            console.log('[Auth][Session] User in onboarding, business context will be created during onboarding')
-          } else {
-            // For existing users, this is a security issue
-            console.error('[Auth][Session] Critical: Existing user missing business context')
-            // Note: We don't throw here to prevent breaking existing sessions
-            // Instead, we log and let the application handle onboarding
-            sessionData.onboardingStep = 0 // Force re-onboarding
-          }
+          // This should never happen with the fixed signIn callback
+          // If it does, it indicates a critical system failure
+          throw new Error('Missing business context - authentication system failure');
         }
         
         // Populate the session user object

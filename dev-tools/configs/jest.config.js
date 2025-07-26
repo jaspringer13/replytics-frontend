@@ -4,8 +4,11 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   
+  // Root directory
+  rootDir: '../../',
+  
   // Setup files
-  setupFilesAfterEnv: ['<rootDir>/dev-tools/configs/jest.setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
   // Module name mapper for path aliases
   moduleNameMapper: {
@@ -31,6 +34,7 @@ module.exports = {
         esModuleInterop: true,
       },
     }],
+    '^.+\\.(js|jsx)$': ['babel-jest'],
   },
   
   // Test match patterns
@@ -78,6 +82,11 @@ module.exports = {
     '/.next/',
     '/out/',
     '/build/',
+  ],
+  
+  // Transform ignore patterns for ES modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(jose|next-auth)/)',
   ],
   
   // Module file extensions

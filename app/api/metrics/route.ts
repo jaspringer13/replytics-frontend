@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMetrics, BusinessMetricsTracker } from '@/lib/monitoring/metrics-collector';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const startTime = Date.now();
   
   try {

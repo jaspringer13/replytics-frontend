@@ -5,228 +5,152 @@
   ▲ Next.js 14.2.13
   - Local:        http://localhost:3000
   - Environments: .env.local
+  - Experiments (use with caution):
+    · turbotrace
+    · optimizeCss
 
  ✓ Starting...
- ✓ Ready in 8s
- ✓ Compiled /middleware in 319ms (171 modules)
- ○ Compiling / ...
- ✓ Compiled / in 8.4s (1799 modules)
- GET / 200 in 8664ms
- ✓ Compiled in 341ms (875 modules)
- GET / 200 in 78ms
- ○ Compiling /auth/signin ...
- ✓ Compiled /auth/signin in 1033ms (1800 modules)
- GET /auth/signin 200 in 1274ms
- ○ Compiling /api/performance ...
- ✓ Compiled /api/performance in 4.2s (1158 modules)
- ✓ Compiled (1263 modules)
-Performance metric: {
-  name: 'TTFB',
-  value: 1577.5,
-  rating: 'needs-improvement',
-  delta: 1577.5,
-  id: 'v5-1753404404979-9249290767491',
-  navigationType: 'navigate',
-  entries: [
-    {
-      name: 'http://localhost:3000/auth/signin',
-      entryType: 'navigation',
-      startTime: 0,
-      duration: 3505,
-      initiatorType: 'navigation',
-      deliveryType: '',
-      nextHopProtocol: 'http/1.1',
-      renderBlockingStatus: 'non-blocking',
-      workerStart: 0,
-      redirectStart: 0,
-      redirectEnd: 0,
-      fetchStart: 4.5,
-      domainLookupStart: 4.5,
-      domainLookupEnd: 4.5,
-      connectStart: 4.5,
-      secureConnectionStart: 0,
-      connectEnd: 4.5,
-      requestStart: 9.100000143051147,
-      responseStart: 1577.5,
-      firstInterimResponseStart: 0,
-      finalResponseHeadersStart: 1577.5,
-      responseEnd: 1579.3000001907349,
-      transferSize: 7788,
-      encodedBodySize: 7488,
-      decodedBodySize: 33763,
-      responseStatus: 200,
-      serverTiming: [],
-      unloadEventStart: 0,
-      unloadEventEnd: 0,
-      domInteractive: 1887.6000001430511,
-      domContentLoadedEventStart: 1887.6000001430511,
-      domContentLoadedEventEnd: 1887.6000001430511,
-      domComplete: 3505,
-      loadEventStart: 3505,
-      loadEventEnd: 3505,
-      type: 'navigate',
-      redirectCount: 0,
-      activationStart: 0,
-      criticalCHRestart: 0,
-      notRestoredReasons: null
-    }
-  ]
+   Disabled SWC as replacement for Babel because of custom Babel configuration "babel.config.js" https://nextjs.org/docs/messages/swc-disabled
+   `compiler` options in `next.config.js` will be ignored while using Babel https://nextjs.org/docs/messages/ignored-compiler-options
+ ✓ Ready in 1918ms
+   Using external babel configuration from /Users/jakespringer/Desktop/Replytics Website/babel.config.js
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1374ms (219 modules)
+ ○ Compiling /api/debug-session ...
+ ⨯ ./lib/auth-config.ts:6:1
+Syntax error: Unexpected reserved word 'interface'. (6:0)
+
+  4 |
+  5 | // Define the custom session user interface
+> 6 | interface CustomSessionUser {
+    | ^
+  7 |   id: string
+  8 |   email: string
+  9 |   name: string
+ ⨯ ./app/error.tsx:11:1
+Syntax error: Unexpected token, expected ","
+
+   9 |   error,
+  10 |   reset,
+> 11 | }: {
+     |  ^
+  12 |   error: Error & { digest?: string };
+  13 |   reset: () => void;
+  14 | }) {
+ ⨯ TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
-Performance metric: {
-  name: 'FCP',
-  value: 2764,
-  rating: 'needs-improvement',
-  delta: 2764,
-  id: 'v5-1753404404979-8179721414049',
-  navigationType: 'navigate',
-  entries: [
-    {
-      name: 'first-contentful-paint',
-      entryType: 'paint',
-      startTime: 2764,
-      duration: 0
-    }
-  ]
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
- POST /api/performance 200 in 4583ms
- POST /api/performance 200 in 4584ms
- GET /api/auth/session 200 in 7242ms
- GET /api/auth/session 200 in 362ms
-Performance metric: {
-  name: 'LCP',
-  value: 12264,
-  rating: 'poor',
-  delta: 12264,
-  id: 'v5-1753404404979-5943988721224',
-  navigationType: 'navigate',
-  entries: [
-    {
-      name: '',
-      entryType: 'largest-contentful-paint',
-      startTime: 12264,
-      duration: 0,
-      size: 3051,
-      renderTime: 12264,
-      loadTime: 0,
-      id: '',
-      url: ''
-    }
-  ]
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async pipe.req.req (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2033:30)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:386:24)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
- POST /api/performance 200 in 575ms
- GET /api/auth/providers 200 in 283ms
- GET /api/auth/csrf 200 in 159ms
-(node:83120) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
-(Use `node --trace-deprecation ...` to show where the warning was created)
- POST /api/auth/signin/google 200 in 316ms
-[next-auth][error][OAUTH_CALLBACK_ERROR] 
-https://next-auth.js.org/errors#oauth_callback_error state mismatch, expected FQP78ExDKPohJOSjuIDdYEj5vEVd6aQwwgqnl15IH64, got: mock_state_67890 {
-  error: RPError: state mismatch, expected FQP78ExDKPohJOSjuIDdYEj5vEVd6aQwwgqnl15IH64, got: mock_state_67890
-      at Client.callback (webpack-internal:///(rsc)/./node_modules/openid-client/lib/client.js:357:19)
-      at oAuthCallback (webpack-internal:///(rsc)/./node_modules/next-auth/core/lib/oauth/callback.js:94:29)
-      at async Object.callback (webpack-internal:///(rsc)/./node_modules/next-auth/core/routes/callback.js:45:11)
-      at async AuthHandler (webpack-internal:///(rsc)/./node_modules/next-auth/core/index.js:175:28)
-      at async NextAuthRouteHandler (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:57:28)
-      at async NextAuth._args$ (webpack-internal:///(rsc)/./node_modules/next-auth/next/index.js:89:16)
-      at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:55759
-      at async eO.execute (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46527)
-      at async eO.handle (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57093)
-      at async doRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:1345:42)
-      at async cacheEntry.responseCache.get.routeKind (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:1555:40)
-      at async DevServer.renderToResponseWithComponentsImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:1475:28)
-      at async DevServer.renderPageComponent (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:1901:24)
-      at async DevServer.renderToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:1939:32)
-      at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
-      at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:272:17)
-      at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
-      at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
-      at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
-      at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
-      at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
-      at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
-      at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
-      at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
-    name: 'OAuthCallbackError',
-    code: undefined
-  },
-  providerId: 'google',
-  message: 'state mismatch, expected FQP78ExDKPohJOSjuIDdYEj5vEVd6aQwwgqnl15IH64, got: mock_state_67890'
+ ⨯ TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
- GET /api/auth/callback/google?code=mock_auth_code_12345&state=mock_state_67890&scope=openid+email+profile 302 in 281ms
- GET /api/auth/error?error=OAuthCallback 302 in 353ms
- GET /api/auth/signin?error=OAuthCallback 302 in 11ms
- GET /auth/signin?callbackUrl=%2Fdashboard&error=OAuthCallback 200 in 257ms
- GET /api/auth/session 200 in 35ms
-Performance metric: {
-  name: 'FCP',
-  value: 1184,
-  rating: 'good',
-  delta: 1184,
-  id: 'v5-1753404419451-8768557084122',
-  navigationType: 'navigate',
-  entries: [
-    {
-      name: 'first-contentful-paint',
-      entryType: 'paint',
-      startTime: 1184,
-      duration: 0
-    }
-  ]
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
- POST /api/performance 200 in 33ms
-Performance metric: {
-  name: 'TTFB',
-  value: 995.5,
-  rating: 'needs-improvement',
-  delta: 995.5,
-  id: 'v5-1753404419451-2045299680409',
-  navigationType: 'navigate',
-  entries: [
-    {
-      name: 'http://localhost:3000/auth/signin?callbackUrl=%2Fdashboard&error=OAuthCallback',
-      entryType: 'navigation',
-      startTime: 0,
-      duration: 1571,
-      initiatorType: 'navigation',
-      deliveryType: '',
-      nextHopProtocol: 'http/1.1',
-      renderBlockingStatus: 'non-blocking',
-      workerStart: 0,
-      redirectStart: 0.2999999523162842,
-      redirectEnd: 787,
-      fetchStart: 787,
-      domainLookupStart: 787,
-      domainLookupEnd: 787,
-      connectStart: 787,
-      secureConnectionStart: 0,
-      connectEnd: 787,
-      requestStart: 787.6000001430511,
-      responseStart: 995.5,
-      firstInterimResponseStart: 0,
-      finalResponseHeadersStart: 995.5,
-      responseEnd: 1057.5,
-      transferSize: 7907,
-      encodedBodySize: 7607,
-      decodedBodySize: 33948,
-      responseStatus: 200,
-      serverTiming: [],
-      unloadEventStart: 0,
-      unloadEventEnd: 0,
-      domInteractive: 1157.7999999523163,
-      domContentLoadedEventStart: 1157.7999999523163,
-      domContentLoadedEventEnd: 1157.7999999523163,
-      domComplete: 1571,
-      loadEventStart: 1571,
-      loadEventEnd: 1571,
-      type: 'navigate',
-      redirectCount: 3,
-      activationStart: 0,
-      criticalCHRestart: 0,
-      notRestoredReasons: null
-    }
-  ]
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async pipe.req.req (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2033:30)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:386:24)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
 }
- POST /api/performance 200 in 40ms
- GET /api/auth/session 200 in 17ms
- GET /api/auth/providers 200 in 19ms
 [?25h

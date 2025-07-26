@@ -20,7 +20,7 @@ async function ensureInitialized() {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const startTime = Date.now();
   
   try {
@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
       },
       metadata: {
         endpoint: '/api/health/enhanced',
-        userAgent: request.headers.get('user-agent') || 'unknown',
-        method: request.method
+        userAgent: 'unknown',
+        method: 'GET'
       }
     }, {
       status: statusCode,
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Support for HEAD requests (common for health checks)
-export async function HEAD(request: NextRequest) {
+export async function HEAD() {
   try {
     await ensureInitialized();
     const healthReport = await healthChecker.runAllChecks();
