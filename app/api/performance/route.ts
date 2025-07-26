@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client lazily to avoid build-time errors
+let supabase: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseClient() {
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      throw new Error('Required environment variables are not set: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+    }
+    
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
+
+const MAX_METRICS = parseInt(process.env.MAX_PERFORMANCE_METRICS || '1000');
+
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  rating?: string;
+  [key: string]: unknown;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const metric: PerformanceMetric = await request.json();
+    
+    // Validate metric structure
+    if (!metric || !metric.name || typeof metric.value !== 'number') {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid metric format',
+      }, { status: 400 });
+    }
+    
+    // Skip Supabase logging if environment variables are not set
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      // Just log to console and return success without storing
+      console.log('Performance metric:', metric);
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Metric logged to console only' 
+      });
+    }
+
+    // Prepare metric data for database
+    const metricData = {
+      name: metric.name,
+      value: metric.value,
+      rating: metric.rating || null,
+      metadata: metric,
+      created_at: new Date().toISOString(),
+    };
+    
+    // Store metric in Supabase
+    try {
+      const { data, error } = await getSupabaseClient()
+        .from('performance_metrics')
+        .insert([metricData])
+        .select('id, created_at')
+        .single();
+
+      if (error) {
+        console.error('[PERFORMANCE METRIC DB ERROR]', error);
+        // Don't throw 500, just log and continue
+        return NextResponse.json({
+          success: true,
+          warning: 'Metric received but not stored in database',
+        });
+      }
+    
+      // Log to console with prefix for easy identification
+      console.log('[PERFORMANCE METRIC]', {
+        id: data.id,
+        name: metric.name,
+        value: metric.value,
+        rating: metric.rating || 'N/A',
+        timestamp: data.created_at,
+      });
+
+      // Clean up old metrics (keep only last 1000 to prevent table bloat)
+      await cleanupOldMetrics();
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: data.id,
+          received: true,
+          timestamp: data.created_at,
+        },
+      });
+    } catch (supabaseError: unknown) {
+      console.error('[PERFORMANCE METRIC SUPABASE ERROR]', supabaseError);
+      // Return success anyway to not interrupt the user experience
+      return NextResponse.json({ 
+        success: true, 
+        warning: 'Metric received but database unavailable' 
+      });
+    }
+  } catch (error: unknown) {
+    console.error('[PERFORMANCE API ERROR]', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to process metric',
+    }, { status: 500 });
+  }
+}
+
+// GET endpoint to retrieve stored metrics (for testing)
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100); // Cap at 100
+    const name = searchParams.get('name');
+
+    // Build query
+    let query = getSupabaseClient()
+      .from('performance_metrics')
+      .select('id, name, value, rating, metadata, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    // Filter by name if provided
+    if (name) {
+      query = query.eq('name', name);
+    }
+
+    const { data: metrics, error } = await query;
+
+    if (error) {
+      console.error('[PERFORMANCE METRICS FETCH ERROR]', error);
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to retrieve metrics from database',
+      }, { status: 500 });
+    }
+
+    // Get total count for pagination info
+    const { count, error: countError } = await getSupabaseClient()
+      .from('performance_metrics')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('[PERFORMANCE METRICS COUNT ERROR]', countError);
+    }
+
+    // Transform data to match original format
+    const transformedMetrics = metrics?.map(metric => ({
+      id: metric.id,
+      metric: metric.metadata,
+      timestamp: metric.created_at,
+    })) || [];
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        metrics: transformedMetrics,
+        total: count || 0,
+        filtered: transformedMetrics.length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    console.error('[PERFORMANCE API ERROR]', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to retrieve metrics',
+    }, { status: 500 });
+  }
+}
+
+// Helper function to clean up old metrics
+async function cleanupOldMetrics() {
+  try {
+    // Delete metrics older than 30 days or keep only the most recent MAX_METRICS
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // First, try to delete old metrics
+    await getSupabaseClient()
+      .from('performance_metrics')
+      .delete()
+      .lt('created_at', thirtyDaysAgo);
+      
+    // Then, if we still have too many, keep only the most recent MAX_METRICS
+    const { data: recentMetrics } = await getSupabaseClient()
+      .from('performance_metrics')
+      .select('id')
+      .order('created_at', { ascending: false })
+      .limit(MAX_METRICS);
+      
+    if (recentMetrics && recentMetrics.length === MAX_METRICS) {
+      const keepIds = recentMetrics.map(m => m.id);
+      await getSupabaseClient()
+        .from('performance_metrics')
+        .delete()
+        .not('id', 'in', keepIds);
+    }
+  } catch (error) {
+    console.error('[METRICS CLEANUP ERROR]', error);
+    // Don't throw - cleanup is non-critical
+  }
+}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Globe, Loader2, Check, ChevronRight, Upload, Phone, Clock, Mic, Building } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useSession } from 'next-auth/react'
 import { apiClient } from '@/lib/api-client'
 import { useRouter } from 'next/navigation'
 
@@ -14,7 +14,7 @@ interface BusinessInfoResponse {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { user, onboardingStep, updateOnboardingStep } = useAuth()
+  const { data: session, status, update } = useSession()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [businessData, setBusinessData] = useState({
@@ -40,16 +40,16 @@ export default function OnboardingPage() {
   })
   
   useEffect(() => {
-    if (!user) {
+    if (!session?.user) {
       router.push('/auth/signin')
       return
     }
     
     // Resume from saved step
-    if (onboardingStep > 0 && onboardingStep < 5) {
-      setStep(onboardingStep)
+    if (session?.user?.onboardingStep && session.user.onboardingStep > 0 && session.user.onboardingStep < 5) {
+      setStep(session.user.onboardingStep)
     }
-  }, [user, onboardingStep, router])
+  }, [session, router])
 
   const handleUrlExtraction = async () => {
     if (!businessData.businessUrl) return
@@ -84,7 +84,8 @@ export default function OnboardingPage() {
   const handleStepComplete = async (currentStep: number) => {
     try {
       // Update onboarding progress
-      await updateOnboardingStep(currentStep + 1)
+      // Note: onboarding step is updated on session refresh
+      await update()
       
       // Save data to backend based on step
       switch (currentStep) {

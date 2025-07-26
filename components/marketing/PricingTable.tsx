@@ -8,7 +8,7 @@ import Link from "next/link"
 
 const plans = [
   {
-    name: "Solo",
+    name: "Starter",
     price: 49,
     yearlyPrice: 490,
     features: [
@@ -22,12 +22,12 @@ const plans = [
     ],
   },
   {
-    name: "Team",
+    name: "Professional",
     price: 99,
     yearlyPrice: 990,
     highlighted: true,
     features: [
-      "Everything in Solo, plus:",
+      "Everything in Starter, plus:",
       "Up to 3 Google calendars",
       "Multi-calendar conflict avoidance",
       "Bulk reschedule feature",
@@ -37,11 +37,11 @@ const plans = [
     ],
   },
   {
-    name: "Business",
+    name: "Enterprise",
     price: 199,
     yearlyPrice: 1990,
     features: [
-      "Everything in Team, plus:",
+      "Everything in Professional, plus:",
       "GapHunter auto-scheduling",
       "Unlimited calendars & users",
       "Usage-based analytics",

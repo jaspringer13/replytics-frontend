@@ -1,0 +1,427 @@
+name: Replytics Production Deployment
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Perform rollback to previous version'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: replytics/website
+  NODE_VERSION: '18'
+
+jobs:
+  # Code Quality and Security
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript compilation check
+        run: npm run typecheck
+
+      - name: Linting and code quality
+        run: npm run lint
+
+      - name: Security audit
+        run: npm audit --audit-level moderate
+
+      - name: SAST Security Scan
+        uses: github/super-linter@v4
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_ALL_CODEBASE: false
+          VALIDATE_JAVASCRIPT_ES: true
+          VALIDATE_TYPESCRIPT_ES: true
+          VALIDATE_DOCKERFILE_HADOLINT: true
+
+  # Automated Testing
+  test:
+    runs-on: ubuntu-latest
+    needs: code-quality
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: replytics_test
+          POSTGRES_USER: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:ci
+        env:
+          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/replytics_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/replytics_test
+          REDIS_URL: redis://localhost:6379
+          NODE_ENV: test
+
+      - name: Upload test coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+
+  # Container Build and Security Scan
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Container Security Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Set image output
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+  # Staging Deployment
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && !github.event.inputs.rollback
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure staging kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Deploy to staging
+        run: |
+          export IMAGE=${{ needs.build.outputs.image }}
+          export VERSION=${{ needs.build.outputs.version }}
+          export NAMESPACE=staging
+          envsubst < k8s/staging/deployment.yaml | kubectl apply -f -
+          kubectl rollout status deployment/replytics-frontend -n staging --timeout=600s
+
+      - name: Wait for staging deployment
+        run: |
+          kubectl wait --for=condition=ready pod -l app=replytics-frontend -n staging --timeout=600s
+
+      - name: Run staging smoke tests
+        run: |
+          npm run test:smoke -- --env=staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+          API_KEY: ${{ secrets.STAGING_API_KEY }}
+
+      - name: Staging deployment notification
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Staging deployment: ${{ job.status }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Production Deployment (Blue-Green)
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging]
+    if: github.ref == 'refs/heads/main' && !github.event.inputs.rollback
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure production kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Determine current active color
+        id: current-color
+        run: |
+          CURRENT_COLOR=$(kubectl get service replytics-frontend-service -n production -o jsonpath='{.spec.selector.color}' 2>/dev/null || echo "blue")
+          NEW_COLOR=$([ "$CURRENT_COLOR" = "blue" ] && echo "green" || echo "blue")
+          echo "current-color=$CURRENT_COLOR" >> $GITHUB_OUTPUT
+          echo "new-color=$NEW_COLOR" >> $GITHUB_OUTPUT
+          echo "Current active: $CURRENT_COLOR, Deploying to: $NEW_COLOR"
+
+      - name: Blue-Green Deployment
+        run: |
+          # Deploy to inactive environment
+          export COLOR=${{ steps.current-color.outputs.new-color }}
+          export IMAGE=${{ needs.build.outputs.image }}
+          export VERSION=${{ needs.build.outputs.version }}
+          export NAMESPACE=production
+          
+          echo "Deploying to $COLOR environment..."
+          envsubst < k8s/production/deployment.yaml | kubectl apply -f -
+          
+          # Wait for new deployment to be ready
+          echo "Waiting for $COLOR deployment to be ready..."
+          kubectl rollout status deployment/replytics-frontend-$COLOR -n production --timeout=900s
+          
+          # Run health checks on new deployment
+          echo "Running health checks on $COLOR deployment..."
+          kubectl wait --for=condition=ready pod -l app=replytics-frontend,color=$COLOR -n production --timeout=300s
+          
+          # Get pod IP for direct health check
+          POD_IP=$(kubectl get pod -l app=replytics-frontend,color=$COLOR -n production -o jsonpath='{.items[0].status.podIP}')
+          kubectl run health-check-$COLOR --rm -i --restart=Never --image=curlimages/curl -- curl -f "http://$POD_IP:3000/api/health" || exit 1
+          
+          echo "Health check passed for $COLOR deployment"
+
+      - name: Switch traffic to new deployment
+        run: |
+          NEW_COLOR=${{ steps.current-color.outputs.new-color }}
+          OLD_COLOR=${{ steps.current-color.outputs.current-color }}
+          
+          echo "Switching traffic from $OLD_COLOR to $NEW_COLOR..."
+          kubectl patch service replytics-frontend-service -n production -p "{\"spec\":{\"selector\":{\"color\":\"$NEW_COLOR\"}}}"
+          
+          # Wait for traffic switch to take effect
+          echo "Waiting 30s for traffic switch to take effect..."
+          sleep 30
+          
+          # Verify traffic switch
+          ENDPOINTS=$(kubectl get endpoints replytics-frontend-service -n production -o jsonpath='{.subsets[0].addresses[*].ip}')
+          NEW_POD_IPS=$(kubectl get pod -l app=replytics-frontend,color=$NEW_COLOR -n production -o jsonpath='{.items[*].status.podIP}')
+          
+          for ip in $NEW_POD_IPS; do
+            if [[ ! "$ENDPOINTS" =~ $ip ]]; then
+              echo "Traffic switch verification failed: Pod IP $ip not found in service endpoints"
+              exit 1
+            fi
+          done
+          
+          echo "Traffic switch verification passed"
+
+      - name: Scale down old deployment
+        run: |
+          OLD_COLOR=${{ steps.current-color.outputs.current-color }}
+          echo "Scaling down $OLD_COLOR deployment..."
+          kubectl scale deployment replytics-frontend-$OLD_COLOR -n production --replicas=0
+          echo "$OLD_COLOR deployment scaled down"
+
+      - name: Run production smoke tests
+        run: |
+          npm run test:smoke -- --env=production
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          API_KEY: ${{ secrets.PRODUCTION_API_KEY }}
+
+      - name: Production deployment success notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: '🚀 Production deployment successful! New active environment: ${{ steps.current-color.outputs.new-color }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Emergency Rollback Job
+  rollback:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.rollback == 'true'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure production kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Determine rollback target
+        id: rollback-target
+        run: |
+          CURRENT_COLOR=$(kubectl get service replytics-frontend-service -n production -o jsonpath='{.spec.selector.color}' 2>/dev/null || echo "blue")
+          ROLLBACK_COLOR=$([ "$CURRENT_COLOR" = "blue" ] && echo "green" || echo "blue")
+          echo "current-color=$CURRENT_COLOR" >> $GITHUB_OUTPUT
+          echo "rollback-color=$ROLLBACK_COLOR" >> $GITHUB_OUTPUT
+          echo "Rolling back from $CURRENT_COLOR to $ROLLBACK_COLOR"
+
+      - name: Emergency rollback
+        run: |
+          CURRENT_COLOR=${{ steps.rollback-target.outputs.current-color }}
+          ROLLBACK_COLOR=${{ steps.rollback-target.outputs.rollback-color }}
+          
+          echo "Initiating emergency rollback from $CURRENT_COLOR to $ROLLBACK_COLOR..."
+          
+          # Scale up rollback deployment
+          kubectl scale deployment replytics-frontend-$ROLLBACK_COLOR -n production --replicas=3
+          
+          # Wait for rollback deployment to be ready
+          kubectl rollout status deployment/replytics-frontend-$ROLLBACK_COLOR -n production --timeout=300s
+          kubectl wait --for=condition=ready pod -l app=replytics-frontend,color=$ROLLBACK_COLOR -n production --timeout=300s
+          
+          # Switch traffic back
+          kubectl patch service replytics-frontend-service -n production -p "{\"spec\":{\"selector\":{\"color\":\"$ROLLBACK_COLOR\"}}}"
+          
+          # Verify rollback
+          sleep 15
+          kubectl get deployments -n production -l app=replytics-frontend
+          kubectl get service replytics-frontend-service -n production -o jsonpath='{.spec.selector.color}'
+          
+          echo "Emergency rollback completed successfully"
+
+      - name: Rollback notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: warning
+          text: '⚠️ Emergency rollback executed! Rolled back to: ${{ steps.rollback-target.outputs.rollback-color }}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Security and Compliance Reporting
+  security-report:
+    runs-on: ubuntu-latest
+    needs: [code-quality, test, build]
+    if: always()
+    steps:
+      - name: Generate security report
+        run: |
+          echo "## Security Scan Results" > security-report.md
+          echo "- Code Quality: ${{ needs.code-quality.result }}" >> security-report.md
+          echo "- Tests: ${{ needs.test.result }}" >> security-report.md
+          echo "- Container Security: ${{ needs.build.result }}" >> security-report.md
+          echo "- Timestamp: $(date)" >> security-report.md
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.md

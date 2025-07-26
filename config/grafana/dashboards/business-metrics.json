@@ -1,0 +1,645 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "replytics-business",
+    "title": "Replytics Business Metrics Dashboard",
+    "description": "Business intelligence and customer analytics for Replytics voice-bot integration",
+    "tags": ["replytics", "business", "analytics", "voice-ai", "customers"],
+    "timezone": "browser",
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "refresh": "1m",
+    "schemaVersion": 27,
+    "version": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Voice Call Success Rate",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "(rate(voice_calls_total{status=\"success\"}[1h]) / rate(voice_calls_total[1h])) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 85},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Average Call Quality Score",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "avg(voice_call_quality_score)",
+            "legendFormat": "Quality Score",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 3},
+                {"color": "green", "value": 4}
+              ]
+            },
+            "unit": "short",
+            "min": 1,
+            "max": 5,
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Booking Conversion Rate",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "(rate(booking_conversions_total[1h]) / rate(voice_calls_total[1h])) * 100",
+            "legendFormat": "Conversion Rate %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 20}
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Customer Satisfaction Score",
+        "type": "stat",
+        "gridPos": {
+          "h": 8,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "avg(customer_satisfaction_score)",
+            "legendFormat": "CSAT Score",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 3.5},
+                {"color": "green", "value": 4.5}
+              ]
+            },
+            "unit": "short",
+            "min": 1,
+            "max": 5,
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Voice Calls Over Time",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "rate(voice_calls_total[5m]) * 60",
+            "legendFormat": "Total Calls/min - {{business_id}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(voice_calls_total{status=\"success\"}[5m]) * 60",
+            "legendFormat": "Successful Calls/min - {{business_id}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(voice_calls_failed_total[5m]) * 60",
+            "legendFormat": "Failed Calls/min - {{business_id}}",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Calls per minute",
+            "min": 0,
+            "show": true
+          }
+        ],
+        "legend": {
+          "avg": true,
+          "current": true,
+          "max": true,
+          "min": false,
+          "show": true,
+          "total": false,
+          "values": true
+        }
+      },
+      {
+        "id": 6,
+        "title": "Call Duration Distribution",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(voice_call_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(voice_call_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile (median)",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(voice_call_duration_seconds_sum[5m]) / rate(voice_call_duration_seconds_count[5m])",
+            "legendFormat": "Average duration",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0,
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Customer Interaction Types",
+        "type": "piechart",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 0,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "sum by (interaction_type) (rate(customer_interactions_total[1h]))",
+            "legendFormat": "{{interaction_type}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "pieType": "pie",
+          "tooltip": {
+            "mode": "single"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Analytics Data Accuracy",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 8,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "analytics_data_accuracy_ratio * 100",
+            "legendFormat": "Accuracy % - {{business_id}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Accuracy Percentage",
+            "min": 90,
+            "max": 100,
+            "show": true
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "query": {
+                "queryType": "",
+                "refId": "A"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "evaluator": {
+                "params": [95],
+                "type": "lt"
+              }
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "5m",
+          "frequency": "30s",
+          "handler": 1,
+          "name": "Analytics Accuracy Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 9,
+        "title": "Customer Segments Distribution",
+        "type": "bargauge",
+        "gridPos": {
+          "h": 8,
+          "w": 8,
+          "x": 16,
+          "y": 16
+        },
+        "targets": [
+          {
+            "expr": "sum by (segment_type) (customer_segment_count)",
+            "legendFormat": "{{segment_type}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "horizontal",
+          "displayMode": "list",
+          "showUnfilled": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Business Performance by ID",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "targets": [
+          {
+            "expr": "sum by (business_id) (rate(voice_calls_total[1h]))",
+            "format": "table",
+            "legendFormat": "Calls/hr",
+            "refId": "A"
+          },
+          {
+            "expr": "sum by (business_id) (rate(booking_conversions_total[1h]))",
+            "format": "table",
+            "legendFormat": "Conversions/hr",
+            "refId": "B"
+          },
+          {
+            "expr": "avg by (business_id) (voice_call_quality_score)",
+            "format": "table",
+            "legendFormat": "Avg Quality",
+            "refId": "C"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Cache Performance Impact on Business Metrics",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "targets": [
+          {
+            "expr": "cache_hit_ratio{cache_type=\"business_id\"} * 100",
+            "legendFormat": "Business ID Cache Hit Rate %",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(business_id_resolution_duration_seconds_sum[5m]) / rate(business_id_resolution_duration_seconds_count[5m]) * 1000",
+            "legendFormat": "Avg Resolution Time (ms)",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage / Milliseconds",
+            "min": 0,
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Voice Processing Performance",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(voice_processing_latency_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile - {{processing_stage}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(voice_processing_latency_seconds_sum[5m]) / rate(voice_processing_latency_seconds_count[5m])",
+            "legendFormat": "Average - {{processing_stage}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Seconds",
+            "min": 0,
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Top Businesses by Call Volume (Last 4 Hours)",
+        "type": "table",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (business_id) (increase(voice_calls_total[4h])))",
+            "format": "table",
+            "legendFormat": "{{business_id}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Service Quality Trends",
+        "type": "graph",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 40
+        },
+        "targets": [
+          {
+            "expr": "avg_over_time(voice_call_quality_score[1h])",
+            "legendFormat": "Quality Score (1h avg) - {{business_id}}",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(customer_satisfaction_score[1h])",
+            "legendFormat": "Customer Satisfaction (1h avg) - {{business_id}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Score (1-5)",
+            "min": 1,
+            "max": 5,
+            "show": true
+          }
+        ]
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": "${DS_PROMETHEUS}",
+          "definition": "label_values(voice_calls_total, business_id)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Business ID",
+          "multi": true,
+          "name": "business_id",
+          "options": [],
+          "query": "label_values(voice_calls_total, business_id)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 1,
+          "type": "query"
+        },
+        {
+          "allValue": null,
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": "${DS_PROMETHEUS}",
+          "definition": "label_values(voice_calls_total, call_type)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Call Type",
+          "multi": true,
+          "name": "call_type",
+          "options": [],
+          "query": "label_values(voice_calls_total, call_type)",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "gnetId": null,
+    "graphTooltip": 1,
+    "links": [
+      {
+        "asDropdown": false,
+        "icon": "external link",
+        "includeVars": false,
+        "keepTime": false,
+        "tags": ["replytics"],
+        "targetBlank": true,
+        "title": "System Overview",
+        "type": "dashboards",
+        "url": ""
+      }
+    ],
+    "style": "dark"
+  }
+}

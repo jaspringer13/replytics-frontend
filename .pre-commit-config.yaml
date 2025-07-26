@@ -1,0 +1,11 @@
+repos:
+  - repo: local
+    hooks:
+      - id: filetree-reminder
+        name: FILETREE.md Update Reminder
+        entry: scripts/check-filetree-update.sh
+        language: script
+        files: ^(app/|components/|lib/|backend/|supabase/|scripts/).*\.(ts|tsx|js|jsx|py|sql)$
+        pass_filenames: true
+        stages: [commit]
+        verbose: true

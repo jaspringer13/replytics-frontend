@@ -1,0 +1,153 @@
+# Page snapshot
+
+```yaml
+- banner:
+  - link "R Replytics":
+    - /url: /
+  - navigation:
+    - list:
+      - listitem:
+        - button "Businesses":
+          - text: Businesses
+          - img
+      - listitem:
+        - link "Pricing":
+          - /url: /pricing
+      - listitem:
+        - link "About":
+          - /url: /about
+      - listitem:
+        - link "Contact":
+          - /url: /contact
+  - link "Sign In":
+    - /url: /auth/signin
+    - button "Sign In"
+  - button "Get Started Free":
+    - img
+    - text: Get Started Free
+- text: R
+- heading "Welcome Back" [level=1]
+- paragraph: Sign in to manage your AI receptionist
+- paragraph: 🚧 OAuth approval pending. You can use jaspringer13@gmail.com / admin for testing.
+- text: Email
+- textbox "Email"
+- text: Password
+- textbox "Password"
+- checkbox "Remember me"
+- text: Remember me
+- link "Forgot password?":
+  - /url: /auth/forgot-password
+- button "Sign In"
+- text: OR
+- button "Continue with Google":
+  - img
+  - text: Continue with Google
+- paragraph:
+  - text: Don't have an account?
+  - link "Sign up for free":
+    - /url: "#"
+- paragraph:
+  - text: By signing in, you agree to our
+  - link "Terms of Service":
+    - /url: /terms
+  - text: and
+  - link "Privacy Policy":
+    - /url: /privacy
+- contentinfo:
+  - heading "Replytics" [level=3]
+  - paragraph: The AI receptionist that remembers every client and never misses a call.
+  - link "Twitter":
+    - /url: https://twitter.com/replytics
+    - img
+  - link "Facebook":
+    - /url: https://facebook.com/replytics
+    - img
+  - link "LinkedIn":
+    - /url: https://linkedin.com/company/replytics
+    - img
+  - link "Instagram":
+    - /url: https://instagram.com/replytics
+    - img
+  - link "YouTube":
+    - /url: https://youtube.com/@replytics
+    - img
+  - heading "Features" [level=4]
+  - list:
+    - listitem:
+      - link "24/7 Call Answering":
+        - /url: "#"
+        - img
+        - text: 24/7 Call Answering
+    - listitem:
+      - link "Smart Scheduling":
+        - /url: "#"
+        - img
+        - text: Smart Scheduling
+    - listitem:
+      - link "Natural Conversations":
+        - /url: "#"
+        - img
+        - text: Natural Conversations
+    - listitem:
+      - link "Instant Response":
+        - /url: "#"
+        - img
+        - text: Instant Response
+    - listitem:
+      - link "Call Analytics":
+        - /url: "#"
+        - img
+        - text: Call Analytics
+    - listitem:
+      - link "Intelligent Memory":
+        - /url: "#"
+        - img
+        - text: Intelligent Memory
+  - heading "For Business" [level=4]
+  - list:
+    - listitem:
+      - link "Barbers":
+        - /url: /businesses/barbers
+    - listitem:
+      - link "Beauty Salons":
+        - /url: /businesses/beauty-salons
+    - listitem:
+      - link "Nail Salons":
+        - /url: /businesses/nail-salons
+    - listitem:
+      - link "Tattoo Studios":
+        - /url: /businesses/tattoo
+    - listitem:
+      - link "Massage & Wellness":
+        - /url: /businesses/massage-wellness
+    - listitem:
+      - link "Enterprise":
+        - /url: /enterprise
+  - heading "Company" [level=4]
+  - list:
+    - listitem:
+      - link "About Us":
+        - /url: /about
+    - listitem:
+      - link "Contact":
+        - /url: /contact
+    - listitem:
+      - link "Privacy Policy":
+        - /url: /privacy
+    - listitem:
+      - link "Terms of Service":
+        - /url: /terms
+    - listitem:
+      - link "SMS Opt-In":
+        - /url: /sms-opt-in
+  - paragraph: © 2024 Replytics. All rights reserved.
+  - link "Privacy Policy":
+    - /url: /privacy
+  - link "Terms of Service":
+    - /url: /terms
+  - link "Transparency in Coverage":
+    - /url: /transparency
+- button "Open Tanstack query devtools":
+  - img
+- alert
+```

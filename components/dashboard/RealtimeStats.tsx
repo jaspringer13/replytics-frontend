@@ -89,6 +89,7 @@ export function RealtimeNumber({ value, format, className = "" }: RealtimeNumber
 
       return () => clearInterval(interval)
     }
+    return undefined
   }, [value, prevValue])
 
   const formattedValue = format ? format(displayValue) : Math.round(displayValue).toString()

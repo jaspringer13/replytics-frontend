@@ -1,22 +1,40 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/config';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+// Singleton instance
+let supabaseClient: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase configuration missing. Real-time features will not work.');
+/**
+ * Get Supabase client for client-side operations
+ * Uses anon key for RLS-protected operations
+ */
+export function getSupabaseClient() {
+  if (!supabaseClient) {
+    const supabaseUrl = env.get('SUPABASE_URL');
+    const supabaseAnonKey = env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase URL and anon key are required for client initialization.');
+    }
+
+    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        storageKey: 'replytics-auth',
+        storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
+  }
+  
+  return supabaseClient;
 }
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-});
 
 export interface RealtimeSubscription {
   unsubscribe: () => void;
@@ -26,7 +44,7 @@ export const subscribeToCallsTable = (
   callback: (payload: any) => void,
   filter?: { column: string; value: any }
 ): RealtimeSubscription => {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel('calls-channel')
     .on(
       'postgres_changes',
@@ -44,7 +62,7 @@ export const subscribeToCallsTable = (
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     },
   };
 };
@@ -53,7 +71,7 @@ export const subscribeToSMSTable = (
   callback: (payload: any) => void,
   filter?: { column: string; value: any }
 ): RealtimeSubscription => {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel('sms-channel')
     .on(
       'postgres_changes',
@@ -71,7 +89,7 @@ export const subscribeToSMSTable = (
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     },
   };
 };
@@ -79,7 +97,7 @@ export const subscribeToSMSTable = (
 export const subscribeToDailyAnalytics = (
   callback: (payload: any) => void
 ): RealtimeSubscription => {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel('analytics-channel')
     .on(
       'postgres_changes',
@@ -96,7 +114,7 @@ export const subscribeToDailyAnalytics = (
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     },
   };
 };
@@ -105,7 +123,7 @@ export const subscribeToBookings = (
   callback: (payload: any) => void,
   filter?: { column: string; value: any }
 ): RealtimeSubscription => {
-  const channel = supabase
+  const channel = getSupabaseClient()
     .channel('bookings-channel')
     .on(
       'postgres_changes',
@@ -123,7 +141,7 @@ export const subscribeToBookings = (
 
   return {
     unsubscribe: () => {
-      supabase.removeChannel(channel);
+      getSupabaseClient().removeChannel(channel);
     },
   };
 };

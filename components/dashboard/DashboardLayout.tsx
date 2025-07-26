@@ -10,10 +10,11 @@ import {
   X, Search, ChevronDown, LogOut, HelpCircle, User,
   CreditCard, ExternalLink, ChevronRight
 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useSession, signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'
 import { LiveCallIndicator } from './LiveCallIndicator'
 import { ConnectionStatus } from './ConnectionStatus'
+import { AIChatWidget } from './AIChatWidget'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -34,7 +35,7 @@ const sidebarLinks = [
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { data: session } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -56,17 +57,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       document.addEventListener('click', handleClickOutside)
       return () => document.removeEventListener('click', handleClickOutside)
     }
+    return undefined
   }, [sidebarOpen])
 
   const handleSignOut = () => {
-    logout()
+    signOut({ callbackUrl: '/' })
     router.push('/')
   }
 
   // Get user initials for avatar
-  const userInitials = user?.name 
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : user?.email?.[0].toUpperCase() || 'U'
+  const userInitials = session?.user?.name 
+    ? session.user.name.split(' ').map((n: any) => n[0]).join('').toUpperCase()
+    : session?.user?.email?.[0].toUpperCase() || 'U'
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -142,8 +144,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   >
                     {/* User info */}
                     <div className="p-4 border-b border-gray-700">
-                      <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
-                      <p className="text-xs text-gray-400">{user?.email}</p>
+                      <p className="text-sm font-medium text-white">{session?.user?.name || 'User'}</p>
+                      <p className="text-xs text-gray-400">{session?.user?.email}</p>
                     </div>
 
                     {/* Menu items */}
@@ -247,6 +249,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       
       {/* Connection Status */}
       <ConnectionStatus />
+      <AIChatWidget />
     </div>
   )
 }

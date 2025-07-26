@@ -1,0 +1,156 @@
+
+> replytics-frontend@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.13
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · turbotrace
+    · optimizeCss
+
+ ✓ Starting...
+   Disabled SWC as replacement for Babel because of custom Babel configuration "babel.config.js" https://nextjs.org/docs/messages/swc-disabled
+   `compiler` options in `next.config.js` will be ignored while using Babel https://nextjs.org/docs/messages/ignored-compiler-options
+ ✓ Ready in 1918ms
+   Using external babel configuration from /Users/jakespringer/Desktop/Replytics Website/babel.config.js
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1374ms (219 modules)
+ ○ Compiling /api/debug-session ...
+ ⨯ ./lib/auth-config.ts:6:1
+Syntax error: Unexpected reserved word 'interface'. (6:0)
+
+  4 |
+  5 | // Define the custom session user interface
+> 6 | interface CustomSessionUser {
+    | ^
+  7 |   id: string
+  8 |   email: string
+  9 |   name: string
+ ⨯ ./app/error.tsx:11:1
+Syntax error: Unexpected token, expected ","
+
+   9 |   error,
+  10 |   reset,
+> 11 | }: {
+     |  ^
+  12 |   error: Error & { digest?: string };
+  13 |   reset: () => void;
+  14 | }) {
+ ⨯ TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async pipe.req.req (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2033:30)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:386:24)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+ ⨯ TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/next-server.js:231:21)
+    at async DevServer.handleRequestImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:810:17)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+TypeError [ERR_INVALID_ARG_TYPE]: The "path" argument must be of type string. Received undefined
+    at Object.dirname (node:path:1380:5)
+    at getBabelLoader (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:359:39)
+    at getBaseWebpackConfig (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/build/webpack-config.js:366:6)
+    at HotReloaderWebpack.buildFallbackError (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/hot-reloader-webpack.js:553:65)
+    at async DevBundlerService.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/dev-bundler-service.js:25:9)
+    at async DevServer.getFallbackErrorComponents (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:593:9)
+    at async DevServer.renderErrorToResponseImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2180:40)
+    at async pipe.req.req (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:2033:30)
+    at async DevServer.pipeImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/base-server.js:914:25)
+    at async /Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async requestHandlerImpl (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/router-server.js:386:24)
+    at async Server.requestListener (/Users/jakespringer/Desktop/Replytics Website/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'ERR_INVALID_ARG_TYPE'
+}
+[?25h

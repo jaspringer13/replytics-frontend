@@ -1,0 +1,374 @@
+# Alertmanager Configuration for Replytics Voice-Bot Integration
+# Intelligent alert routing and notification management
+
+global:
+  # SMTP configuration for email alerts
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@replytics.com'
+  smtp_auth_username: 'alerts@replytics.com'
+  smtp_auth_password: 'your-app-password'
+  smtp_hello: 'alertmanager.replytics.com'
+  
+  # Slack webhook URL (replace with actual webhook)
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+  
+  # PagerDuty integration key
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+  
+  # Resolve timeout for alerts
+  resolve_timeout: 5m
+
+# Alert routing configuration
+route:
+  # Group alerts by alertname and service for batching
+  group_by: ['alertname', 'service', 'severity']
+  
+  # How long to wait before sending initial notification
+  group_wait: 10s
+  
+  # How long to wait before sending notification about new alerts added to group
+  group_interval: 30s
+  
+  # How long to wait before re-sending notification
+  repeat_interval: 12h
+  
+  # Default receiver for all alerts
+  receiver: 'default-notifications'
+  
+  # Routing tree for different alert types
+  routes:
+    # Critical alerts - immediate escalation
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 5s
+      group_interval: 10s
+      repeat_interval: 1h
+      routes:
+        # Security violations need immediate attention
+        - match:
+            team: security
+          receiver: 'security-team-critical'
+          group_wait: 0s
+          repeat_interval: 30m
+        
+        # Database issues need DBA attention
+        - match:
+            component: database
+          receiver: 'database-team-critical'
+          group_wait: 5s
+          repeat_interval: 30m
+        
+        # Voice AI issues need specialized attention
+        - match:
+            team: voice_ai
+          receiver: 'voice-ai-team-critical'
+          group_wait: 5s
+          repeat_interval: 45m
+    
+    # Warning alerts - standard escalation
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        # Performance issues
+        - match:
+            component: api
+          receiver: 'backend-team-warnings'
+        
+        # Analytics issues
+        - match:
+            team: analytics
+          receiver: 'analytics-team-warnings'
+        
+        # Infrastructure warnings
+        - match:
+            team: platform
+          receiver: 'platform-team-warnings'
+    
+    # Business metric alerts
+    - match:
+        team: business
+      receiver: 'business-alerts'
+      group_wait: 1m
+      group_interval: 10m
+      repeat_interval: 6h
+    
+    # Development environment alerts (lower priority)
+    - match:
+        environment: development
+      receiver: 'dev-alerts'
+      group_wait: 5m
+      group_interval: 30m
+      repeat_interval: 24h
+
+# Alert receivers and notification channels
+receivers:
+  # Default notification channel
+  - name: 'default-notifications'
+    slack_configs:
+      - channel: '#alerts-general'
+        title: '{{ .GroupLabels.alertname }} Alert'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Environment:* {{ .Labels.environment }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+
+  # Critical alerts - multiple channels + PagerDuty
+  - name: 'critical-alerts'
+    # Slack notification
+    slack_configs:
+      - channel: '#alerts-critical'
+        title: '🚨 CRITICAL ALERT: {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel>
+          {{ range .Alerts }}
+          *🔥 CRITICAL ISSUE DETECTED*
+          
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.job }}
+          *Instance:* {{ .Labels.instance }}
+          *Started:* {{ .StartsAt }}
+          
+          {{ if .Annotations.runbook_url }}*📚 Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ if .Annotations.dashboard_url }}*📊 Dashboard:* {{ .Annotations.dashboard_url }}{{ end }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+    
+    # Email notification
+    email_configs:
+      - to: 'ops-team@replytics.com'
+        subject: '🚨 CRITICAL: {{ .GroupLabels.alertname }} - {{ .GroupLabels.service }}'
+        headers:
+          X-Priority: '1'
+        body: |
+          CRITICAL ALERT TRIGGERED
+          
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          
+          Service: {{ .Labels.job }}
+          Instance: {{ .Labels.instance }}
+          Severity: {{ .Labels.severity }}
+          Component: {{ .Labels.component }}
+          
+          Started: {{ .StartsAt }}
+          
+          {{ if .Annotations.runbook_url }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+          
+          {{ if .Annotations.dashboard_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          {{ end }}
+          
+          Labels: {{ .Labels }}
+          {{ end }}
+    
+    # PagerDuty escalation
+    pagerduty_configs:
+      - routing_key: 'your-pagerduty-integration-key'
+        description: '{{ .GroupLabels.alertname }}: {{ .GroupLabels.service }}'
+        severity: 'critical'
+        details:
+          summary: '{{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+          service: '{{ .GroupLabels.service }}'
+          component: '{{ .GroupLabels.component }}'
+
+  # Security team critical alerts
+  - name: 'security-team-critical'
+    slack_configs:
+      - channel: '#security-alerts'
+        title: '🔒 SECURITY CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel> **SECURITY INCIDENT DETECTED**
+          
+          {{ range .Alerts }}
+          *🚨 Security Alert:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Type:* {{ .Labels.type }}
+          
+          {{ if .Labels.user_id }}*User:* {{ .Labels.user_id }}{{ end }}
+          {{ if .Labels.ip_address }}*IP:* {{ .Labels.ip_address }}{{ end }}
+          
+          *Time:* {{ .StartsAt }}
+          {{ end }}
+        color: '#FF0000'
+        send_resolved: true
+    
+    email_configs:
+      - to: 'security@replytics.com'
+        subject: '🔒 SECURITY CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          SECURITY INCIDENT DETECTED
+          
+          {{ range .Alerts }}
+          Type: {{ .Labels.type }}
+          Description: {{ .Annotations.description }}
+          
+          {{ if .Labels.user_id }}User ID: {{ .Labels.user_id }}{{ end }}
+          {{ if .Labels.ip_address }}IP Address: {{ .Labels.ip_address }}{{ end }}
+          {{ if .Labels.business_id }}Business ID: {{ .Labels.business_id }}{{ end }}
+          
+          Timestamp: {{ .StartsAt }}
+          {{ end }}
+
+  # Database team critical alerts
+  - name: 'database-team-critical'
+    slack_configs:
+      - channel: '#database-alerts'
+        title: '💾 DATABASE CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          <!here> **DATABASE CRITICAL ISSUE**
+          
+          {{ range .Alerts }}
+          *Database Alert:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Instance:* {{ .Labels.instance }}
+          {{ end }}
+        color: 'warning'
+    
+    email_configs:
+      - to: 'dba@replytics.com'
+        subject: '💾 DATABASE CRITICAL: {{ .GroupLabels.alertname }}'
+
+  # Voice AI team critical alerts
+  - name: 'voice-ai-team-critical'
+    slack_configs:
+      - channel: '#voice-ai-alerts'
+        title: '🎤 VOICE AI CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          <!channel> **VOICE AI SYSTEM CRITICAL**
+          
+          {{ range .Alerts }}
+          *Voice AI Alert:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          {{ if .Labels.business_id }}*Business:* {{ .Labels.business_id }}{{ end }}
+          {{ end }}
+        color: 'danger'
+
+  # Warning level alerts
+  - name: 'warning-alerts'
+    slack_configs:
+      - channel: '#alerts-warning'
+        title: '⚠️ WARNING: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Warning:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.job }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+  # Backend team warnings
+  - name: 'backend-team-warnings'
+    slack_configs:
+      - channel: '#backend-alerts'
+        title: '⚠️ Backend Performance Warning'
+        text: |
+          {{ range .Alerts }}
+          *Performance Issue:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          *Route:* {{ .Labels.route }}
+          {{ end }}
+
+  # Analytics team warnings
+  - name: 'analytics-team-warnings'
+    slack_configs:
+      - channel: '#analytics-alerts'
+        title: '📊 Analytics Warning: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Analytics Issue:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          {{ if .Labels.business_id }}*Business:* {{ .Labels.business_id }}{{ end }}
+          {{ end }}
+
+  # Platform team warnings
+  - name: 'platform-team-warnings'
+    slack_configs:
+      - channel: '#platform-alerts'
+        title: '🏗️ Infrastructure Warning'
+        text: |
+          {{ range .Alerts }}
+          *Infrastructure:* {{ .Annotations.summary }}
+          *Instance:* {{ .Labels.instance }}
+          *Details:* {{ .Annotations.description }}
+          {{ end }}
+
+  # Business metrics alerts
+  - name: 'business-alerts'
+    slack_configs:
+      - channel: '#business-metrics'
+        title: '📈 Business Metric Alert'
+        text: |
+          {{ range .Alerts }}
+          *Business Alert:* {{ .Annotations.summary }}
+          *Impact:* {{ .Annotations.description }}
+          {{ if .Labels.business_id }}*Business:* {{ .Labels.business_id }}{{ end }}
+          {{ end }}
+        color: 'good'
+
+  # Development environment alerts
+  - name: 'dev-alerts'
+    slack_configs:
+      - channel: '#dev-alerts'
+        title: '🔧 Dev Environment: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Dev Alert:* {{ .Annotations.summary }}
+          {{ end }}
+
+# Inhibition rules to prevent alert spam
+inhibit_rules:
+  # If a critical alert is firing, suppress warnings for the same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service', 'instance']
+  
+  # If a service is down, suppress all other alerts for that service
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '.*'
+    equal: ['service', 'instance']
+  
+  # If database is down, suppress query performance alerts
+  - source_match:
+      component: 'database'
+      severity: 'critical'
+    target_match:
+      component: 'database'
+      severity: 'warning'
+    equal: ['instance']
+
+# Silence configuration
+silences:
+  # Maintenance window example (commented out)
+  # - matcher:
+  #     name: 'alertname'
+  #     value: 'MaintenanceWindow'
+  #   starts_at: '2024-01-01T02:00:00Z'
+  #   ends_at: '2024-01-01T04:00:00Z'
+  #   created_by: 'ops-team'
+  #   comment: 'Scheduled maintenance window'
+
+# Templates for custom formatting
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

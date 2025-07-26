@@ -1,5 +1,6 @@
 import type { Config } from "tailwindcss"
 
+// Force rebuild: 2025-07-21 - Clear Vercel cache
 const config = {
   darkMode: ["class"],
   content: [

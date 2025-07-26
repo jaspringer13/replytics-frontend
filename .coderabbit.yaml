@@ -1,0 +1,8 @@
+max_comments: 25            # hard cap
+severity_threshold: major   # ignore minor & info
+paths:
+  - "app/**"
+  - "!scripts/**"
+  - "!docs/**"
+review_simple_changes: true # skip typo-only commits
+profile: chill              # built-in less-strict preset

@@ -1,74 +1,90 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+// middleware.ts - Simplified NextAuth Security Middleware
 
-// Define protected routes
-const protectedRoutes = ['/dashboard']
+import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
 
-// Define public routes that should redirect to dashboard if authenticated
-const authRoutes = ['/auth/signin', '/auth/signup']
+export default withAuth(
+  // Middleware function
+  function middleware(req) {
+    const pathname = req.nextUrl.pathname
+    const token = req.nextauth.token
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+    // Skip processing for auth routes when user is already authenticated
+    const authRoutes = ['/auth/signin', '/auth/signup']
+    if (authRoutes.some(route => pathname.startsWith(route))) {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
 
-  // Check if user is authenticated by looking for JWT token in cookies
-  const authToken = request.cookies.get('auth_token')?.value
-  const tenantId = request.cookies.get('tenant_id')?.value
-  const userCookie = request.cookies.get('user')?.value
-  
-  // Also check for NextAuth session cookie
-  const nextAuthSession = request.cookies.get('next-auth.session-token')?.value ||
-                         request.cookies.get('__Secure-next-auth.session-token')?.value
-  
-  // Basic token validation
-  const isAuthenticated = !!(authToken && tenantId) || !!nextAuthSession
-  
-  // For JWT validation, you could also check token expiry
-  if (isAuthenticated && userCookie) {
-    try {
-      const userData = JSON.parse(userCookie)
-      // Additional validation could be done here
-    } catch (error) {
-      // Invalid user data, treat as not authenticated
-      const response = NextResponse.redirect(new URL('/auth/signin', request.url))
-      response.cookies.delete('auth_token')
-      response.cookies.delete('user')
+    // For protected API routes, add tenant context headers
+    if (pathname.startsWith('/api/v2/')) {
+      const response = NextResponse.next()
+      
+      // Add business context headers for tenant isolation
+      if (token?.id) response.headers.set('X-User-ID', token.id)
+      if (token?.tenantId) response.headers.set('X-Tenant-ID', token.tenantId)
+      if (token?.businessId) response.headers.set('X-Business-ID', token.businessId)
+      
       return response
     }
+
+    // Continue with request
+    return NextResponse.next()
+  },
+  {
+    callbacks: {
+      // Authorization check - require businessId and tenantId for protected routes
+      authorized: ({ token, req }) => {
+        const pathname = req.nextUrl.pathname
+
+        // Public routes - always allow
+        const publicRoutes = ['/', '/about', '/contact', '/pricing']
+        if (publicRoutes.includes(pathname) || pathname.startsWith('/public')) {
+          return true
+        }
+
+        // Special API routes - always allow (NextAuth handles its own auth)
+        const specialAPIRoutes = ['/api/auth', '/api/debug-session', '/api/health']
+        if (specialAPIRoutes.some(route => pathname.startsWith(route))) {
+          return true
+        }
+
+        // Protected routes - require valid token with business context
+        const protectedRoutes = ['/dashboard', '/api/v2/']
+        if (protectedRoutes.some(route => pathname.startsWith(route))) {
+          // Require authentication
+          if (!token) return false
+          
+          // For onboarding users (step 0), allow access to dashboard but not API
+          if (token.onboardingStep === 0) {
+            return pathname.startsWith('/dashboard') // Allow dashboard, block API
+          }
+          
+          // For completed users, require full business context
+          return !!(token.tenantId && token.businessId)
+        }
+
+        // Default: allow access for other routes
+        return true
+      }
+    },
+    pages: {
+      signIn: '/auth/signin',
+      error: '/auth/error',
+    }
   }
+)
 
-  // Check if the current route is protected
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-  
-  // Check if the current route is an auth route
-  const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
-  // Redirect to sign in if accessing protected route without authentication
-  if (isProtectedRoute && !isAuthenticated) {
-    const signInUrl = new URL('/auth/signin', request.url)
-    // Add the original URL as a redirect parameter
-    signInUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(signInUrl)
-  }
-
-  // Redirect to dashboard if accessing auth routes while authenticated
-  if (isAuthRoute && isAuthenticated) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  return NextResponse.next()
-}
-
-// Configure which routes the middleware should run on
+/* Configure which paths run through the middleware */
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths except:
      * - _next/static (static files)
-     * - _next/image (image optimization files)
+     * - _next/image (image optimization files)  
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 }
